@@ -21,15 +21,16 @@ I am a final-year Ph.D. student at the [StarAI lab](https://starai.cs.ucla.edu/m
 
 My primary research focus is **deep generative models** (diffusion models [[1](https://arxiv.org/pdf/2410.01949),[2](https://arxiv.org/pdf/2401.03349),[3](https://arxiv.org/pdf/2405.15506)], probabilistic circuits [[5](https://arxiv.org/pdf/2406.00766),[6](https://arxiv.org/pdf/2210.04398),[7](https://arxiv.org/pdf/2111.11632)], variational autoencoders [[4](https://arxiv.org/pdf/2310.08235)]). Other than understanding and mitigating the fundamental challenges toward good modeling performance [[1](https://arxiv.org/pdf/2410.01949),[6](https://arxiv.org/pdf/2210.04398),[8](https://arxiv.org/pdf/2302.08086)], I am especially interested in **efficient exact/approximate inference with guarantees** of various deep generative models from both theoretical perspectives [[9](https://arxiv.org/pdf/2102.06137)] and empirical perspectives [[7](https://arxiv.org/pdf/2111.11632),[10](https://arxiv.org/pdf/2401.03349)].
 
-- What requirements must we impose on the structure of deep generative models to **accurately and efficiently answer various probabilistic queries**, such as computing arbitrary marginal probabilities or determining the MAP state? A useful theoretical framework for studying these problems is [Probabilistic Circuits](https://starai.cs.ucla.edu/papers/ProbCirc20.pdf) (PCs), which allows us to establish necessary and sufficient conditions on their structures to answer specific probabilistic queries [[9](https://arxiv.org/pdf/2102.06137)]. I am among the first to significantly enhance the empirical performance of PCs, improving their effectiveness from struggling on MNIST to being compatible with variational autoencoders and even diffusion models on ImageNet32 [[8](https://arxiv.org/pdf/2302.08086)]. To facilitate large-scale training and inference on PCs, I developed the Python package [**PyJuice**](https://github.com/Tractables/pyjuice), which is orders of magnitudes faster than all previous implementations.
+- What requirements must we impose on the structure of deep generative models to **accurately and efficiently answer various probabilistic queries**, such as computing arbitrary marginal probabilities or determining the MAP state? A useful theoretical framework for studying these problems is [**Probabilistic Circuits**](https://starai.cs.ucla.edu/papers/ProbCirc20.pdf) (PCs), which allows us to establish necessary and sufficient conditions on their structures to answer specific probabilistic queries [[9](https://arxiv.org/pdf/2102.06137)]. I am among the first to significantly enhance the empirical performance of PCs, improving their effectiveness from struggling on MNIST to being compatible with variational autoencoders and even diffusion models on ImageNet32 [[8](https://arxiv.org/pdf/2302.08086)]. To facilitate large-scale training and inference on PCs, I developed the Python package [**PyJuice**](https://github.com/Tractables/pyjuice), which is orders of magnitudes faster than all previous implementations.
 
 - Does PCs matter in the era of large language models? Many of my research works demonstrate that, with the ability to efficiently perform exact probabilistic inference, PCs can achieve better empirical performance on various down-stream tasks, either when used along [[7](https://arxiv.org/pdf/2111.11632)] or when combined with other deep generative models [[2](https://arxiv.org/pdf/2401.03349),[11](https://arxiv.org/pdf/2311.00094)].
 
-- 
+- How does the idea of **tractable** modeling generalizes to other types of deep generative models? In our recent work, we generalize the idea of combining the [PC copula](https://arxiv.org/pdf/2408.04229) with a set of target univariate marginals to solve a fundamental problem that prevents discrete diffusion models from achieving strong performance with fewer steps -- they fail to capture dependencies between output variables at each denoising step [[1](https://arxiv.org/pdf/2410.01949)].
 
 # 🔥 News
 - *2024.10*: &nbsp;🎉🎉 Our recent work on improving few-step generation performance of discrete diffusion models is now on ArXiv. Check it out at [https://arxiv.org/pdf/2410.01949](https://arxiv.org/pdf/2410.01949).
 - *2024.09*: &nbsp;🎉🎉 Two papers accepted to NeurIPS 2024.
+- *2024.05*: &nbsp;🎉🎉 Two papers accepted to ICML 2024.
 
 <!-- # 🎖 Honors and Awards
 - *2021.10* Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus ornare aliquet ipsum, ac tempus justo dapibus sit amet. 
@@ -42,6 +43,7 @@ My primary research focus is **deep generative models** (diffusion models [[1](h
 # 💬 Invited Talks
 - *2024.08*, Scaling Up Tractable Probabilistic Circuits for Inference-Demanding Application, University of Stuttgart, Germany
 - *2023.07*, Tractable Probabilistic Circuits, Dagstuhl, Germany
+- *2023.05*, Scaling Up Probabilistic Circuits by Latent Variable Distillation, ICLR oral presentation
 - *2022.02*, Tractable Probabilistic Circuits, Peking University, China
 
 <!-- # 💻 Internships
