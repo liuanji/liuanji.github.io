@@ -61,7 +61,7 @@ My primary research focus is **deep generative models** (diffusion models [[1](h
 
 Below is a list of selected publications. Please refer to my [Google Scholar](https://scholar.google.com/citations?hl=en&user=k_4zYecAAAAJ) page for the full list of publications.
 
-<div class='paper-box' style="width: 500px;"><div class='paper-box-image'><div><div class="badge">ArXiv</div><img src='thumbnails/DCD.png' alt="sym" width="100%"></div></div>
+<div class='paper-box' style="width: 500px;"><div class='paper-box-image'><div><div class="badge">ArXiv</div><img src='thumbnails/DCD.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Discrete Copula Diffusion**
