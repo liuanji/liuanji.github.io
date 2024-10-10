@@ -37,7 +37,7 @@ My primary research focus is **deep generative models** (diffusion models [[1](h
 - *2021.09* Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus ornare aliquet ipsum, ac tempus justo dapibus sit amet. -->
 
 # 📖 Educations
-- *2020.06 - present*, Computer Science Ph.D. student at UCLA, United States
+- *2020.09 - present*, Computer Science Ph.D. student at UCLA, United States
 - *2015.09 - 2019.06*, Bachelor's degree in Automation, Beihang University, China
 
 # 💬 Invited Talks
@@ -61,7 +61,7 @@ My primary research focus is **deep generative models** (diffusion models [[1](h
 
 Below is a list of selected publications. Please refer to my [Google Scholar](https://scholar.google.com/citations?hl=en&user=k_4zYecAAAAJ) page for the full list of publications.
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ArXiv</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box' style="width: 500px;"><div class='paper-box-image'><div><div class="badge">ArXiv</div><img src='thumbnails/DCD.png' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Discrete Copula Diffusion**
