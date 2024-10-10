@@ -17,7 +17,7 @@ redirect_from:
 
 <span class='anchor' id='about-me'></span>
 
-I am a final-year Ph.D. student at the [StarAI lab](https://starai.cs.ucla.edu/members/) at [UCLA](https://www.ucla.edu/), advised by Prof. [Guy Van den Broeck](https://web.cs.ucla.edu/~guyvdb/). I am currently visiting Prof. [Mathias Niepert](https://www.matlog.net/)'s lab at the University of Stuttgart.
+I am a final-year Ph.D. student at the [StarAI lab](https://starai.cs.ucla.edu/members/) at [University of California, Los Angeles](https://www.ucla.edu/), advised by Prof. [Guy Van den Broeck](https://web.cs.ucla.edu/~guyvdb/). I am currently visiting Prof. [Mathias Niepert](https://www.matlog.net/)'s lab at the University of Stuttgart.
 
 <span class='anchor' id='highlights'></span>
 
@@ -39,6 +39,7 @@ My primary research focus is **deep generative models** (diffusion models [[1](h
 - *2024.10*: &nbsp;🎉🎉 Our recent work on improving few-step generation performance of discrete diffusion models is now on ArXiv. Check it out at [https://arxiv.org/pdf/2410.01949](https://arxiv.org/pdf/2410.01949).
 - *2024.09*: &nbsp;🎉🎉 Check our [recent work](https://arxiv.org/pdf/2311.00094) accepted to NeurIPS 2024. It demonstrates the importance of performing tractable inference in Offline Reinforcement Learning.
 - *2024.08*: &nbsp;🎉🎉 I gave an invitated talk about Probabilistic Circuits at Prof. [Steffen Staab](https://scholar.google.com/citations?user=QvpcUn8AAAAJ&hl=en)'s group at University of Stuttgart
+- *2024.06*: &nbsp;🎉🎉 I will co-organize the workshop on [Open-World Agents](https://sites.google.com/view/open-world-agents) at NeurIPS 2024
 - *2024.05*: &nbsp;🎉🎉 Our [paper](https://arxiv.org/pdf/2406.00766) describing the technical details of [PyJuice](https://github.com/Tractables/pyjuice) is accepted to ICML 2024.
 
 <!-- # 🎖 Honors and Awards
