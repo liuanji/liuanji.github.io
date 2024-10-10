@@ -19,15 +19,15 @@ redirect_from:
 
 I am a final-year Ph.D. student at the [StarAI lab](https://starai.cs.ucla.edu/members/) at [UCLA](https://www.ucla.edu/), advised by Prof. [Guy Van den Broeck](https://web.cs.ucla.edu/~guyvdb/). I am currently visiting Prof. [Mathias Niepert](https://www.matlog.net/)'s lab at the University of Stuttgart.
 
-# 🎯 Research highlights
-
 <span class='anchor' id='highlights'></span>
+
+# 🎯 Research highlights
 
 My primary research focus is **deep generative models** (diffusion models [[1](https://arxiv.org/pdf/2410.01949),[2](https://arxiv.org/pdf/2401.03349),[3](https://arxiv.org/pdf/2405.15506)], probabilistic circuits [[5](https://arxiv.org/pdf/2406.00766),[6](https://arxiv.org/pdf/2210.04398),[7](https://arxiv.org/pdf/2111.11632)], variational autoencoders [[4](https://arxiv.org/pdf/2310.08235)]). Other than understanding and mitigating the fundamental challenges toward good modeling performance [[1](https://arxiv.org/pdf/2410.01949),[6](https://arxiv.org/pdf/2210.04398),[8](https://arxiv.org/pdf/2302.08086)], I am especially interested in **efficient exact/approximate inference with guarantees** of various deep generative models from both theoretical perspectives [[9](https://arxiv.org/pdf/2102.06137)] and empirical perspectives [[7](https://arxiv.org/pdf/2111.11632),[10](https://arxiv.org/pdf/2401.03349)].
 
-# 📊 Research directions
-
 <span class='anchor' id='directions'></span>
+
+# 📊 Research directions
 
 - What requirements must we impose on the structure of deep generative models to **accurately and efficiently answer various probabilistic queries**, such as computing arbitrary marginal probabilities or determining the MAP state? A useful theoretical framework for studying these problems is [**Probabilistic Circuits**](https://starai.cs.ucla.edu/papers/ProbCirc20.pdf) (PCs), which allows us to establish necessary and sufficient conditions on their structures to answer specific probabilistic queries [[9](https://arxiv.org/pdf/2102.06137)]. **I am among the first to significantly enhance the empirical performance of PCs**, improving their effectiveness from struggling on MNIST to being compatible with variational autoencoders and even diffusion models on ImageNet32 [[8](https://arxiv.org/pdf/2302.08086)]. To facilitate large-scale training and inference on PCs, I **developed the Python package [PyJuice](https://github.com/Tractables/pyjuice)**, which is orders of magnitudes faster than all previous implementations.
 
