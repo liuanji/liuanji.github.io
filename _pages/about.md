@@ -145,7 +145,7 @@ Zihao Wang, Shaofei Cai, Guanzhou Chen, **Anji Liu**, Xiaojian Ma, Yitao Liang
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICML 2023</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICML 2023</div><img src='thumbnails/LVD-PG.png' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Understanding the distillation process from deep generative models to tractable probabilistic circuits**
@@ -157,7 +157,7 @@ Xuejie Liu<sup>*</sup>, **Anji Liu<sup>*</sup>**, Guy Van den Broeck, Yitao Lian
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">AAAI 2023</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">AAAI 2023</div><img src='thumbnails/NtoC.png' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Out-of-distribution generalization by neural-symbolic joint training**
@@ -169,7 +169,7 @@ Xuejie Liu<sup>*</sup>, **Anji Liu<sup>*</sup>**, Guy Van den Broeck, Yitao Lian
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2023</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2023</div><img src='thumbnails/LVD.png' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Scaling up probabilistic circuits by latent variable distillation**
@@ -181,7 +181,7 @@ Xuejie Liu<sup>*</sup>, **Anji Liu<sup>*</sup>**, Guy Van den Broeck, Yitao Lian
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2022</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2022</div><img src='thumbnails/SpHCLT.png' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Sparse probabilistic circuits via pruning and growing**
@@ -193,7 +193,7 @@ Meihua Dang, **Anji Liu**, Guy Van den Broeck
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">RECOMB 2022</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">RECOMB 2022</div><img src='thumbnails/BioPC.jpg' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Tractable and Expressive Generative Models of Genetic Variation Data**
