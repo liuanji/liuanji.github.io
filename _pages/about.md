@@ -109,7 +109,7 @@ Zihao Wang, Shaofei Cai, Zhancun Mu, Haowei Lin, Ceyao Zhang, Xuejie Liu, Qing L
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2024</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2024</div><img src='thumbnails/Tiramisu.png' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Image Inpainting via Tractable Steering of Diffusion Models**
@@ -121,7 +121,7 @@ Zihao Wang, Shaofei Cai, Zhancun Mu, Haowei Lin, Ceyao Zhang, Xuejie Liu, Qing L
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2024</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2024</div><img src='thumbnails/Groot.png' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Groot: Learning to follow instructions by watching gameplay videos**
@@ -133,7 +133,7 @@ Shaofei Cai, Bowei Zhang, Zihao Wang, Xiaojian Ma, **Anji Liu**, Yitao Liang
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2023</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2023</div><img src='thumbnails/DEPS.png' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Describe, Explain, Plan and Select: Interactive Planning with Large Language Models Enables Open-World Multi-Task Agents**
