@@ -101,7 +101,7 @@ Zihao Wang, Shaofei Cai, Zhancun Mu, Haowei Lin, Ceyao Zhang, Xuejie Liu, Qing L
 
 Shaofei Cai, Bowei Zhang, Zihao Wang, Xiaojian Ma, **Anji Liu**, Yitao Liang
 
-[**ICLR 2024**](https://iclr.cc/Conferences/2024) <p style="color: red; font-weight: bold">(Spotlight)</p> / [Paper](https://arxiv.org/pdf/2310.08235) / [Website](https://craftjarvis.github.io/GROOT/) / [Code](https://github.com/CraftJarvis/GROOT)
+[**ICLR 2024**](https://iclr.cc/Conferences/2024) <span style="color: red; font-weight: bold">(Spotlight)</span> / [Paper](https://arxiv.org/pdf/2310.08235) / [Website](https://craftjarvis.github.io/GROOT/) / [Code](https://github.com/CraftJarvis/GROOT)
 
 </div>
 </div>
