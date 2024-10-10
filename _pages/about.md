@@ -64,7 +64,7 @@ My primary research focus is **deep generative models** (diffusion models [[1](h
 
 # 💗 Services
 - PC member of ICML, NeurIPS, ICLR, AISTATS, AAAI
-- Co-organizer of the Workshop on Open-World Agents at NeurIPS 2024
+- Co-organizer of the Workshop on [Open-World Agents](https://sites.google.com/view/open-world-agents) at NeurIPS 2024
 
 # 📝 Publications 
 
