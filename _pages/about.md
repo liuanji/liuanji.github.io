@@ -32,6 +32,8 @@ My research interest includes neural machine translation and computer vision. I 
 
 # 📝 Publications 
 
+Please refer to my [Google Scholar](https://scholar.google.com/citations?hl=en&user=k_4zYecAAAAJ) page for the full list of publications.
+
 <div class='paper-box'><div class='paper-box-image'><div><div class="badge">ArXiv</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
 
@@ -88,6 +90,30 @@ Zihao Wang, Shaofei Cai, Zhancun Mu, Haowei Lin, Ceyao Zhang, Xuejie Liu, Qing L
 **Anji Liu**, Mathias Niepert, Guy Van den Broeck
 
 [**ICLR 2024**](https://iclr.cc/Conferences/2024) / [Paper](https://arxiv.org/pdf/2401.03349) / [Code](https://github.com/UCLA-StarAI/Tiramisu)
+
+</div>
+</div>
+
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2024</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box-text' markdown="1">
+
+**Groot: Learning to follow instructions by watching gameplay videos**
+
+Shaofei Cai, Bowei Zhang, Zihao Wang, Xiaojian Ma, **Anji Liu**, Yitao Liang
+
+[**ICLR 2024 <p style="color: red;">(Spotlight)</p>**](https://iclr.cc/Conferences/2024) / [Paper](https://arxiv.org/pdf/2310.08235) / [Website](https://craftjarvis.github.io/GROOT/) / [Code](https://github.com/CraftJarvis/GROOT)
+
+</div>
+</div>
+
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2023</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box-text' markdown="1">
+
+**Groot: Learning to follow instructions by watching gameplay videos**
+
+Shaofei Cai, Bowei Zhang, Zihao Wang, Xiaojian Ma, **Anji Liu**, Yitao Liang
+
+[**NeurIPS 2023 <p style="color: red;">(Best paper award at the TEACH workshop at ICML 2023)</p>**](https://neurips.cc/Conferences/2023) / [Paper](https://arxiv.org/pdf/2302.01560) / [Code](https://github.com/CraftJarvis/MC-Planner)
 
 </div>
 </div>
