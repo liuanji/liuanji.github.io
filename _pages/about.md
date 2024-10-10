@@ -80,6 +80,18 @@ Zihao Wang, Shaofei Cai, Zhancun Mu, Haowei Lin, Ceyao Zhang, Xuejie Liu, Qing L
 </div>
 </div>
 
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2024</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box-text' markdown="1">
+
+**Image Inpainting via Tractable Steering of Diffusion Models**
+
+**Anji Liu**, Mathias Niepert, Guy Van den Broeck
+
+[**ICLR 2024**](https://iclr.cc/Conferences/2024) / [Paper](https://arxiv.org/pdf/2401.03349) / [Code](https://github.com/UCLA-StarAI/Tiramisu)
+
+</div>
+</div>
+
 <!-- # 🎖 Honors and Awards
 - *2021.10* Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus ornare aliquet ipsum, ac tempus justo dapibus sit amet. 
 - *2021.09* Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus ornare aliquet ipsum, ac tempus justo dapibus sit amet. -->
