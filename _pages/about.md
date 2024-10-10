@@ -39,7 +39,10 @@ My research interest includes neural machine translation and computer vision. I 
 
 **Anji Liu**, Oliver Broadrick, Mathias Niepert, Guy Van den Broeck
 
-[Paper](https://arxiv.org/pdf/2410.01949)
+**ArXiv** / [Paper](https://arxiv.org/pdf/2410.01949)
+
+</div>
+</div>
 
 <div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2024</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
 <div class='paper-box-text' markdown="1">
@@ -48,7 +51,34 @@ My research interest includes neural machine translation and computer vision. I 
 
 Xuejie Liu<sup>*</sup>, **Anji Liu<sup>*</sup>**, Guy Van den Broeck, Yitao Liang
 
-[Paper](https://arxiv.org/pdf/2410.01949)
+[**NeurIPS 2024**](https://neurips.cc/Conferences/2024) / [Paper](https://arxiv.org/pdf/2311.00094)
+
+</div>
+</div>
+
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2024</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box-text' markdown="1">
+
+**OmniJARVIS: Unified Vision-Language-Action Tokenization Enables Open-World Instruction Following Agents**
+
+Zihao Wang, Shaofei Cai, Zhancun Mu, Haowei Lin, Ceyao Zhang, Xuejie Liu, Qing Li, **Anji Liu**, Xiaojian Ma, Yitao Liang
+
+[**NeurIPS 2024**](https://neurips.cc/Conferences/2024) / [Paper](https://arxiv.org/pdf/2407.00114) / [Website](https://omnijarvis.github.io/) / [Code](https://github.com/CraftJarvis/OmniJarvis)
+
+</div>
+</div>
+
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICML 2024</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box-text' markdown="1">
+
+**Scaling Tractable Probabilistic Circuits: A Systems Perspective**
+
+**Anji Liu**, Kareem Ahmed, Guy Van den Broeck
+
+[**ICML 2024**](https://icml.cc/Conferences/2024) / [Paper](https://arxiv.org/pdf/2406.00766) / [Code](https://github.com/Tractables/pyjuice)
+
+</div>
+</div>
 
 <!-- # 🎖 Honors and Awards
 - *2021.10* Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus ornare aliquet ipsum, ac tempus justo dapibus sit amet. 
