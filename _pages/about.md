@@ -73,7 +73,7 @@ Below is a list of selected publications. Please refer to my [Google Scholar](ht
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2024</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2024</div><img src='thumbnails/Trifle.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **A Tractable Inference Perspective of Offline RL**
@@ -85,7 +85,7 @@ Xuejie Liu<sup>*</sup>, **Anji Liu<sup>*</sup>**, Guy Van den Broeck, Yitao Lian
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2024</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2024</div><img src='thumbnails/OmniJarvis.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **OmniJARVIS: Unified Vision-Language-Action Tokenization Enables Open-World Instruction Following Agents**
@@ -97,7 +97,7 @@ Zihao Wang, Shaofei Cai, Zhancun Mu, Haowei Lin, Ceyao Zhang, Xuejie Liu, Qing L
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICML 2024</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICML 2024</div><img src='thumbnails/PyJuice.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Scaling Tractable Probabilistic Circuits: A Systems Perspective**
