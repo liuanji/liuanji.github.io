@@ -113,7 +113,7 @@ Shaofei Cai, Bowei Zhang, Zihao Wang, Xiaojian Ma, **Anji Liu**, Yitao Liang
 
 Shaofei Cai, Bowei Zhang, Zihao Wang, Xiaojian Ma, **Anji Liu**, Yitao Liang
 
-[**NeurIPS 2023 <p style="color: red;">(Best paper award at the TEACH workshop at ICML 2023)</p>**](https://neurips.cc/Conferences/2023) / [Paper](https://arxiv.org/pdf/2302.01560) / [Code](https://github.com/CraftJarvis/MC-Planner)
+[**NeurIPS 2023**](https://neurips.cc/Conferences/2023) <p style="color: red; font-weight: bold;">(Best paper award at the TEACH workshop at ICML 2023)</p> / [Paper](https://arxiv.org/pdf/2302.01560) / [Code](https://github.com/CraftJarvis/MC-Planner)
 
 </div>
 </div>
