@@ -37,8 +37,9 @@ My primary research focus is **deep generative models** (diffusion models [[1](h
 
 # 🔥 News
 - *2024.10*: &nbsp;🎉🎉 Our recent work on improving few-step generation performance of discrete diffusion models is now on ArXiv. Check it out at [https://arxiv.org/pdf/2410.01949](https://arxiv.org/pdf/2410.01949).
-- *2024.09*: &nbsp;🎉🎉 Two papers accepted to NeurIPS 2024.
-- *2024.05*: &nbsp;🎉🎉 Two papers accepted to ICML 2024.
+- *2024.09*: &nbsp;🎉🎉 Check our [recent work](https://arxiv.org/pdf/2311.00094) accepted to NeurIPS 2024. It demonstrates the importance of performing tractable inference in Offline Reinforcement Learning.
+- *2024.08*: &nbsp; I gave an invitated talk about Probabilistic Circuits at Prof. [Steffen Staab](https://scholar.google.com/citations?user=QvpcUn8AAAAJ&hl=en)'s group at University of Stuttgart
+- *2024.05*: &nbsp;🎉🎉 Our [paper](https://arxiv.org/pdf/2406.00766) describing the technical details of [PyJuice](https://github.com/Tractables/pyjuice) is accepted to ICML 2024.
 
 <!-- # 🎖 Honors and Awards
 - *2021.10* Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus ornare aliquet ipsum, ac tempus justo dapibus sit amet. 
