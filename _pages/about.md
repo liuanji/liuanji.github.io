@@ -109,7 +109,7 @@ Zihao Wang, Shaofei Cai, Zhancun Mu, Haowei Lin, Ceyao Zhang, Xuejie Liu, Qing L
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2024</div><img src='thumbnails/Tiramisu.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2024</div><img src='thumbnails/Tiramisu.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Image Inpainting via Tractable Steering of Diffusion Models**
@@ -121,7 +121,7 @@ Zihao Wang, Shaofei Cai, Zhancun Mu, Haowei Lin, Ceyao Zhang, Xuejie Liu, Qing L
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2024</div><img src='thumbnails/Groot.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2024</div><img src='thumbnails/Groot.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Groot: Learning to follow instructions by watching gameplay videos**
@@ -133,7 +133,7 @@ Shaofei Cai, Bowei Zhang, Zihao Wang, Xiaojian Ma, **Anji Liu**, Yitao Liang
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2023</div><img src='thumbnails/DEPS.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2023</div><img src='thumbnails/DEPS.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Describe, Explain, Plan and Select: Interactive Planning with Large Language Models Enables Open-World Multi-Task Agents**
@@ -145,7 +145,7 @@ Zihao Wang, Shaofei Cai, Guanzhou Chen, **Anji Liu**, Xiaojian Ma, Yitao Liang
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICML 2023</div><img src='thumbnails/LVD-PG.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICML 2023</div><img src='thumbnails/LVD-PG.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Understanding the distillation process from deep generative models to tractable probabilistic circuits**
@@ -157,7 +157,7 @@ Xuejie Liu<sup>*</sup>, **Anji Liu<sup>*</sup>**, Guy Van den Broeck, Yitao Lian
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">AAAI 2023</div><img src='thumbnails/NtoC.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">AAAI 2023</div><img src='thumbnails/NtoC.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Out-of-distribution generalization by neural-symbolic joint training**
@@ -169,7 +169,7 @@ Xuejie Liu<sup>*</sup>, **Anji Liu<sup>*</sup>**, Guy Van den Broeck, Yitao Lian
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2023</div><img src='thumbnails/LVD.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2023</div><img src='thumbnails/LVD.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Scaling up probabilistic circuits by latent variable distillation**
@@ -181,7 +181,7 @@ Xuejie Liu<sup>*</sup>, **Anji Liu<sup>*</sup>**, Guy Van den Broeck, Yitao Lian
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2022</div><img src='thumbnails/SpHCLT.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2022</div><img src='thumbnails/SpHCLT.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Sparse probabilistic circuits via pruning and growing**
@@ -193,7 +193,7 @@ Meihua Dang, **Anji Liu**, Guy Van den Broeck
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">RECOMB 2022</div><img src='thumbnails/BioPC.jpg' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">RECOMB 2022</div><img src='thumbnails/BioPC.jpg' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Tractable and Expressive Generative Models of Genetic Variation Data**
@@ -205,7 +205,7 @@ Meihua Dang, **Anji Liu**, Xinzhu Wei, Sriram Sankararaman, Guy Van den Broeck
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2022</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2022</div><img src='thumbnails/PCCompression.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Lossless compression with probabilistic circuits**
@@ -217,7 +217,7 @@ Meihua Dang, **Anji Liu**, Xinzhu Wei, Sriram Sankararaman, Guy Van den Broeck
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2021</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2021</div><img src='thumbnails/CircuitOpsAtlas.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **A Compositional Atlas of Tractable Circuit Operations for Probabilistic Inference**
@@ -229,7 +229,7 @@ Antonio Vergari, YooJung Choi, **Anji Liu**, Stefano Teso, Guy Van den Broeck
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2021</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">NeurIPS 2021</div><img src='thumbnails/TracReg.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Tractable regularization of probabilistic circuits**
@@ -241,7 +241,7 @@ Antonio Vergari, YooJung Choi, **Anji Liu**, Stefano Teso, Guy Van den Broeck
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2020</div><img src='images/500x300.png' alt="sym" width="100%"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2020</div><img src='thumbnails/WU-UCT.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Watch the Unobserved: A Simple Approach to Parallelizing Monte Carlo Tree Search**
