@@ -61,7 +61,7 @@ My primary research focus is **deep generative models** (diffusion models [[1](h
 
 # 📖 Teaching
 - Teaching assistant, Reinforcement Learning, University of Stuttgart, Spring 2024
-- Lecturer, Introduction to AI, University of Stuttgart, Winter 2024
+- Lecturer (with Mathias Niepert), Introduction to AI, University of Stuttgart, Winter 2024
 
 # 💗 Services
 - PC member of ICML, NeurIPS, ICLR, AISTATS, AAAI
