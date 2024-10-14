@@ -251,6 +251,18 @@ Antonio Vergari, YooJung Choi, **Anji Liu**, Stefano Teso, Guy Van den Broeck
 </div>
 </div>
 
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2020</div><img src='thumbnails/ADAC.png' alt="sym" width="500px"></div></div>
+<div class='paper-box-text' markdown="1">
+
+**Off-Policy Deep Reinforcement Learning with Analogous Disentangled Exploration**
+
+**Anji Liu**, Yitao Liang, Guy Van den Broeck
+
+[**AAMAS 2020**](https://aamas2020.conference.auckland.ac.nz/) / [Paper](https://arxiv.org/pdf/2002.10738) / [Code](https://github.com/UCLA-StarAI/Analogous-Disentangled-Actor-Critic)
+
+</div>
+</div>
+
 <div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2020</div><img src='thumbnails/WU-UCT.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
