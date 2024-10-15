@@ -35,7 +35,9 @@ My primary research focus is **deep generative models** (diffusion models [[1](h
 
 - How does the idea of **tractable** modeling generalizes to other types of deep generative models? In our recent work, we generalize the idea of combining the [PC copula](https://arxiv.org/pdf/2408.04229) with a set of target univariate marginals to solve a fundamental problem that prevents discrete diffusion models from achieving strong performance with fewer steps -- they fail to capture dependencies between output variables at each denoising step [[1](https://arxiv.org/pdf/2410.01949)].
 
-# ![PyJuice](./images/pyjuice.png)
+# <img src="./images/pyjuice.png" alt="PyJuice" width="20"> PyJuice
+
+I am the main developer of [PyJuice](https://github.com/Tractables/pyjuice), which enables fast and scalable training and inference of Probabilistic Circuits. PyJuice has been used to train state-of-the-art PCs [[8](https://arxiv.org/pdf/2302.08086)] and and has supported many related projects.
 
 # 🔥 News
 - *2024.10*: &nbsp;🎉🎉 Our recent work on improving few-step generation performance of discrete diffusion models is now on ArXiv. Check it out at [https://arxiv.org/pdf/2410.01949](https://arxiv.org/pdf/2410.01949).
