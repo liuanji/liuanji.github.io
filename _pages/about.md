@@ -35,6 +35,8 @@ My primary research focus is **deep generative models** (diffusion models [[1](h
 
 - How does the idea of **tractable** modeling generalizes to other types of deep generative models? In our recent work, we generalize the idea of combining the [PC copula](https://arxiv.org/pdf/2408.04229) with a set of target univariate marginals to solve a fundamental problem that prevents discrete diffusion models from achieving strong performance with fewer steps -- they fail to capture dependencies between output variables at each denoising step [[1](https://arxiv.org/pdf/2410.01949)].
 
+# ![PyJuice](./images/pyjuice.png)
+
 # 🔥 News
 - *2024.10*: &nbsp;🎉🎉 Our recent work on improving few-step generation performance of discrete diffusion models is now on ArXiv. Check it out at [https://arxiv.org/pdf/2410.01949](https://arxiv.org/pdf/2410.01949).
 - *2024.09*: &nbsp;🎉🎉 Check our [recent work](https://arxiv.org/pdf/2311.00094) accepted to NeurIPS 2024. It demonstrates the importance of performing tractable inference in Offline Reinforcement Learning.
