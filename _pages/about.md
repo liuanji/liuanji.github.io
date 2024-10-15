@@ -37,7 +37,7 @@ My primary research focus is **deep generative models** (diffusion models [[1](h
 
 # <img src="./images/pyjuice.png" alt="PyJuice" width="25"> PyJuice
 
-I am the main developer of [PyJuice](https://github.com/Tractables/pyjuice), which enables fast and scalable training and inference of Probabilistic Circuits. PyJuice has been used to train state-of-the-art PCs [[8](https://arxiv.org/pdf/2302.08086)] and and has supported many related projects.
+I am the main developer of [PyJuice](https://github.com/Tractables/pyjuice), which enables fast and scalable training and inference of Probabilistic Circuits. PyJuice has been used to train state-of-the-art PCs [[8](https://arxiv.org/pdf/2302.08086)] and and has supported many related projects. Feel free to give it a try!
 
 # 🔥 News
 - *2024.10*: &nbsp;🎉🎉 Our recent work on improving few-step generation performance of discrete diffusion models is now on ArXiv. Check it out at [https://arxiv.org/pdf/2410.01949](https://arxiv.org/pdf/2410.01949).
