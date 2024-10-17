@@ -142,7 +142,7 @@ Zihao Wang, Shaofei Cai, Zhancun Mu, Haowei Lin, Ceyao Zhang, Xuejie Liu, Qing L
 
 Shaofei Cai, Bowei Zhang, Zihao Wang, Xiaojian Ma, **Anji Liu**, Yitao Liang
 
-[**ICLR 2024**](https://iclr.cc/Conferences/2024) <span style="color: red; font-weight: bold">(Spotlight)</span> / [Paper](https://arxiv.org/pdf/2310.08235) / [Website](https://craftjarvis.github.io/GROOT/) / [Code](https://github.com/CraftJarvis/GROOT)
+[**ICLR 2024**](https://iclr.cc/Conferences/2024) <span style="color: red; font-weight: bold">(Spotlight; top 6.2%)</span> / [Paper](https://arxiv.org/pdf/2310.08235) / [Website](https://craftjarvis.github.io/GROOT/) / [Code](https://github.com/CraftJarvis/GROOT)
 
 </div>
 </div>
@@ -190,7 +190,7 @@ Xuejie Liu<sup>*</sup>, **Anji Liu<sup>*</sup>**, Guy Van den Broeck, Yitao Lian
 
 **Anji Liu<sup>*</sup>**, Honghua Zhang<sup>*</sup>, Guy Van den Broeck
 
-[**ICLR 2023**](https://iclr.cc/Conferences/2023/) <span style="color: red; font-weight: bold">(Oral)</span> / [Paper](https://arxiv.org/pdf/2210.04398) / [Code](https://github.com/liebenxj/LVD-PG)
+[**ICLR 2023**](https://iclr.cc/Conferences/2023/) <span style="color: red; font-weight: bold">(Oral; top 1.8%)</span> / [Paper](https://arxiv.org/pdf/2210.04398) / [Code](https://github.com/liebenxj/LVD-PG)
 
 </div>
 </div>
@@ -202,7 +202,7 @@ Xuejie Liu<sup>*</sup>, **Anji Liu<sup>*</sup>**, Guy Van den Broeck, Yitao Lian
 
 Meihua Dang, **Anji Liu**, Guy Van den Broeck
 
-[**NeurIPS 2022**](https://neurips.cc/Conferences/2022/) <span style="color: red; font-weight: bold">(Oral)</span> / [Paper](https://arxiv.org/pdf/2211.12551) / [Code](https://github.com/UCLA-StarAI/SparsePC)
+[**NeurIPS 2022**](https://neurips.cc/Conferences/2022/) <span style="color: red; font-weight: bold">(Oral; top 1.9%)</span> / [Paper](https://arxiv.org/pdf/2211.12551) / [Code](https://github.com/UCLA-StarAI/SparsePC)
 
 </div>
 </div>
@@ -226,7 +226,7 @@ Meihua Dang, **Anji Liu**, Xinzhu Wei, Sriram Sankararaman, Guy Van den Broeck
 
 **Anji Liu**, Stephan Mandt, Guy Van den Broeck
 
-[**ICLR 2022**](https://iclr.cc/Conferences/2022/) <span style="color: red; font-weight: bold">(Spotlight)</span> / [Paper](https://arxiv.org/pdf/2111.11632) / [Code](https://github.com/Tractables/PressedJuice.jl)
+[**ICLR 2022**](https://iclr.cc/Conferences/2022/) <span style="color: red; font-weight: bold">(Spotlight; top 5.2%)</span> / [Paper](https://arxiv.org/pdf/2111.11632) / [Code](https://github.com/Tractables/PressedJuice.jl)
 
 </div>
 </div>
@@ -238,7 +238,7 @@ Meihua Dang, **Anji Liu**, Xinzhu Wei, Sriram Sankararaman, Guy Van den Broeck
 
 Antonio Vergari, YooJung Choi, **Anji Liu**, Stefano Teso, Guy Van den Broeck
 
-[**NeurIPS 2021**](https://neurips.cc/Conferences/2021/) <span style="color: red; font-weight: bold">(Oral)</span> / [Paper](https://arxiv.org/pdf/2102.06137) / [Code](https://github.com/UCLA-StarAI/circuit-ops-atlas)
+[**NeurIPS 2021**](https://neurips.cc/Conferences/2021/) <span style="color: red; font-weight: bold">(Oral; top 0.6%)</span> / [Paper](https://arxiv.org/pdf/2102.06137) / [Code](https://github.com/UCLA-StarAI/circuit-ops-atlas)
 
 </div>
 </div>
@@ -250,7 +250,7 @@ Antonio Vergari, YooJung Choi, **Anji Liu**, Stefano Teso, Guy Van den Broeck
 
 **Anji Liu**, Guy Van den Broeck
 
-[**NeurIPS 2021**](https://neurips.cc/Conferences/2021/) <span style="color: red; font-weight: bold">(Spotlight)</span> / [Paper](https://arxiv.org/pdf/2106.02264) / [Code](https://github.com/UCLA-StarAI/Tractable-PC-Regularization)
+[**NeurIPS 2021**](https://neurips.cc/Conferences/2021/) <span style="color: red; font-weight: bold">(Spotlight; top 3.7%)</span> / [Paper](https://arxiv.org/pdf/2106.02264) / [Code](https://github.com/UCLA-StarAI/Tractable-PC-Regularization)
 
 </div>
 </div>
@@ -274,7 +274,7 @@ Antonio Vergari, YooJung Choi, **Anji Liu**, Stefano Teso, Guy Van den Broeck
 
 **Anji Liu**, Jianshu Chen, Mingze Yu, Yu Zhai, Xuewen Zhou, Ji Liu
 
-[**ICLR 2020**](https://iclr.cc/Conferences/2022/) <span style="color: red; font-weight: bold">(Oral)</span> / [Paper](https://arxiv.org/pdf/1810.11755) / [Code](https://github.com/liuanji/WU-UCT)
+[**ICLR 2020**](https://iclr.cc/Conferences/2022/) <span style="color: red; font-weight: bold">(Oral; top 1.9%)</span> / [Paper](https://arxiv.org/pdf/1810.11755) / [Code](https://github.com/liuanji/WU-UCT)
 
 </div>
 </div>
