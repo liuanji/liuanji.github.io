@@ -76,7 +76,7 @@ I am the main developer of [PyJuice](https://github.com/Tractables/pyjuice), whi
 
 Below is a list of selected publications. Please refer to my [Google Scholar](https://scholar.google.com/citations?hl=en&user=k_4zYecAAAAJ) page for the full list of publications.
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ArXiv</div><img src='thumbnails/DCD.png' alt="sym" width="500px"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2025</div><img src='thumbnails/DCD.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Discrete Copula Diffusion**
@@ -88,19 +88,19 @@ Below is a list of selected publications. Please refer to my [Google Scholar](ht
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ArXiv</div><img src='thumbnails/LD3.png' alt="sym" width="500px"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2025</div><img src='thumbnails/LD3.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **Learning to Discretize Denoising Diffusion ODEs**
 
 Vinh Tong, Trung-Dung Hoang, **Anji Liu**, Guy Van den Broeck, Mathias Niepert
 
-[**ICLR 2025**](https://iclr.cc/Conferences/2025) / [Paper](https://arxiv.org/pdf/2405.15506)
+[**ICLR 2025**](https://iclr.cc/Conferences/2025) / [Paper](https://arxiv.org/pdf/2405.15506) / [Code](https://github.com/vinhsuhi/LD3)
 
 </div>
 </div>
 
-<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ArXiv</div><img src='thumbnails/GROOT2.png' alt="sym" width="500px"></div></div>
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ICLR 2025</div><img src='thumbnails/GROOT2.png' alt="sym" width="500px"></div></div>
 <div class='paper-box-text' markdown="1">
 
 **GROOT-2: Weakly Supervised Multi-Modal Instruction Following Agents**
