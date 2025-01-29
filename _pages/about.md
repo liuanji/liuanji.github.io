@@ -55,6 +55,7 @@ I am the main developer of [PyJuice](https://github.com/Tractables/pyjuice), whi
 - *2015.09 - 2019.06*, Bachelor's degree in Automation, Beihang University, China
 
 # 💬 Invited Talks
+- *2025.01*, Towards Controllable Generative AI with Intrinsic Reasoning Capabilities, [ELPIS lab](https://fortuinlab.github.io/), TU Munich, Germany
 - *2024.08*, Scaling Up Tractable Probabilistic Circuits for Inference-Demanding Application, University of Stuttgart, Germany
 - *2023.07*, Tractable Probabilistic Circuits, Dagstuhl, Germany
 - *2023.05*, Scaling Up Probabilistic Circuits by Latent Variable Distillation, ICLR oral presentation
