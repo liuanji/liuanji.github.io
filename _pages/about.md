@@ -82,7 +82,31 @@ Below is a list of selected publications. Please refer to my [Google Scholar](ht
 
 **Anji Liu**, Oliver Broadrick, Mathias Niepert, Guy Van den Broeck
 
-**ArXiv** / [Paper](https://arxiv.org/pdf/2410.01949)
+[**ICLR 2025**](https://iclr.cc/Conferences/2025) / [Paper](https://arxiv.org/pdf/2410.01949)
+
+</div>
+</div>
+
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ArXiv</div><img src='thumbnails/LD3.png' alt="sym" width="500px"></div></div>
+<div class='paper-box-text' markdown="1">
+
+**Learning to Discretize Denoising Diffusion ODEs**
+
+Vinh Tong, Trung-Dung Hoang, **Anji Liu**, Guy Van den Broeck, Mathias Niepert
+
+[**ICLR 2025**](https://iclr.cc/Conferences/2025) / [Paper](https://arxiv.org/pdf/2405.15506)
+
+</div>
+</div>
+
+<div class='paper-box'><div class='paper-box-image'><div><div class="badge">ArXiv</div><img src='thumbnails/GROOT2.png' alt="sym" width="500px"></div></div>
+<div class='paper-box-text' markdown="1">
+
+**GROOT-2: Weakly Supervised Multi-Modal Instruction Following Agents**
+
+Shaofei Cai, Bowei Zhang, Zihao Wang, Haowei Lin, Xiaojian Ma, **Anji Liu**, Yitao Liang
+
+[**ICLR 2025**](https://iclr.cc/Conferences/2025) / [Paper](https://arxiv.org/pdf/2412.10410)
 
 </div>
 </div>
