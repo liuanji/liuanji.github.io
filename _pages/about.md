@@ -95,7 +95,7 @@ Below is a list of selected publications. Please refer to my [Google Scholar](ht
 
 Vinh Tong, Trung-Dung Hoang, **Anji Liu**, Guy Van den Broeck, Mathias Niepert
 
-[**ICLR 2025**](https://iclr.cc/Conferences/2025) / [Paper](https://arxiv.org/pdf/2405.15506) / [Code](https://github.com/vinhsuhi/LD3)
+[**ICLR 2025**](https://iclr.cc/Conferences/2025) <span style="color: red; font-weight: bold">(Oral; top 1.8%)</span> / [Paper](https://arxiv.org/pdf/2405.15506) / [Code](https://github.com/vinhsuhi/LD3)
 
 </div>
 </div>
