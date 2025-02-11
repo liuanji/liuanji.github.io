@@ -119,7 +119,7 @@ Shaofei Cai, Bowei Zhang, Zihao Wang, Haowei Lin, Xiaojian Ma, **Anji Liu**, Yit
 
 Xuejie Liu<sup>*</sup>, **Anji Liu<sup>*</sup>**, Guy Van den Broeck, Yitao Liang
 
-[**NeurIPS 2024**](https://neurips.cc/Conferences/2024) / [Paper](https://arxiv.org/pdf/2311.00094)
+[**NeurIPS 2024**](https://neurips.cc/Conferences/2024) / [Paper](https://arxiv.org/pdf/2311.00094) / [Code](https://github.com/liebenxj/Trifle)
 
 </div>
 </div>
