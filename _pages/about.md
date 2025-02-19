@@ -83,7 +83,7 @@ Below is a list of selected publications. Please refer to my [Google Scholar](ht
 
 **Anji Liu**, Oliver Broadrick, Mathias Niepert, Guy Van den Broeck
 
-[**ICLR 2025**](https://iclr.cc/Conferences/2025) / [Paper](https://arxiv.org/pdf/2410.01949)
+[**ICLR 2025**](https://iclr.cc/Conferences/2025) / [Paper](https://arxiv.org/pdf/2410.01949) / [Code](https://github.com/liuanji/Copula-Diffusion)
 
 </div>
 </div>
