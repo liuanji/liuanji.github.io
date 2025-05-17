@@ -21,6 +21,10 @@ I am an incoming **Assistant Professor** (Presidential Young Professor, PYP) in 
 
 <span class='anchor' id='interests'></span>
 
+# 🎯 Research interests
+
+My primary research focus is **deep generative models** (diffusion models [[1](https://arxiv.org/pdf/2410.01949),[2](https://arxiv.org/pdf/2401.03349),[3](https://arxiv.org/pdf/2405.15506)], probabilistic circuits [[5](https://arxiv.org/pdf/2406.00766),[6](https://arxiv.org/pdf/2210.04398),[7](https://arxiv.org/pdf/2111.11632)], variational autoencoders [[4](https://arxiv.org/pdf/2310.08235)]). Other than understanding and mitigating the fundamental challenges toward good modeling performance [[1](https://arxiv.org/pdf/2410.01949),[6](https://arxiv.org/pdf/2210.04398),[8](https://arxiv.org/pdf/2302.08086)], I am especially interested in **efficient exact/approximate inference with guarantees** of various deep generative models from both theoretical perspectives [[9](https://arxiv.org/pdf/2102.06137)] and empirical perspectives [[7](https://arxiv.org/pdf/2111.11632),[10](https://arxiv.org/pdf/2401.03349)].
+
 # 🎓 Prospective Students
 
 I am actively looking for motivated and curious individuals to join my research group. Multiple positions are available for **PhD students**, **postdoctoral researchers**, and **research interns** (both on-site and remote) at my lab in NUS. If you are interested in working on topics including generative modeling, reasoning, and tractable inference, I would love to hear from you.
@@ -33,10 +37,6 @@ To apply, please send an email to *anjiliu219@gmail.com*. Use the subject line t
 I welcome applications from individuals with diverse backgrounds and levels of experience.
 
 <span style="color: red; font-weight: bold">**[Important]**</span> For prospective **PhD students** interested in the **Spring 2026** intake, the application deadline is **June 15th, 2025**. In addition to emailing me, **please also submit your application through the official website**.
-
-# 🎯 Research interests
-
-My primary research focus is **deep generative models** (diffusion models [[1](https://arxiv.org/pdf/2410.01949),[2](https://arxiv.org/pdf/2401.03349),[3](https://arxiv.org/pdf/2405.15506)], probabilistic circuits [[5](https://arxiv.org/pdf/2406.00766),[6](https://arxiv.org/pdf/2210.04398),[7](https://arxiv.org/pdf/2111.11632)], variational autoencoders [[4](https://arxiv.org/pdf/2310.08235)]). Other than understanding and mitigating the fundamental challenges toward good modeling performance [[1](https://arxiv.org/pdf/2410.01949),[6](https://arxiv.org/pdf/2210.04398),[8](https://arxiv.org/pdf/2302.08086)], I am especially interested in **efficient exact/approximate inference with guarantees** of various deep generative models from both theoretical perspectives [[9](https://arxiv.org/pdf/2102.06137)] and empirical perspectives [[7](https://arxiv.org/pdf/2111.11632),[10](https://arxiv.org/pdf/2401.03349)].
 
 <span class='anchor' id='directions'></span>
 
