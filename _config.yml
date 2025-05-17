@@ -7,7 +7,7 @@
 
 # Site Settings
 title                    : "Anji Liu"
-description              : "Ph.D. student at UCLA working on tractable deep generative models."
+description              : "Assistant Professor at NUS working on tractable deep generative models."
 repository               : "liuanji/liuanji.github.io"
 google_scholar_stats_use_cdn : true
 
@@ -23,8 +23,8 @@ baidu_site_verification  :  # get baidu_site_verification from https://ziyuan.ba
 author:
   name             : "Anji Liu"
   avatar           : "images/android-chrome-512x512.png"
-  bio              : "UCLA"
-  location         : "Los Angeles, USA"
+  bio              : "National University of Singapore"
+  location         : "Singapore"
   employer         :
   pubmed           : 
   googlescholar    : "https://scholar.google.com/citations?hl=en&user=k_4zYecAAAAJ"
