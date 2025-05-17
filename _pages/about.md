@@ -17,7 +17,7 @@ redirect_from:
 
 <span class='anchor' id='about-me'></span>
 
-I am an incoming Assistant Professor (Presidential Young Professor, PYP) in the Department of Computer Science within the School of Computing (SoC) at the National University of Singapore (NUS). Before joining NUS, I completed my PhD at the [StarAI lab](https://starai.cs.ucla.edu/members/) at the [University of California, Los Angeles](https://www.ucla.edu/), where I was advised by Prof. [Guy Van den Broeck](https://web.cs.ucla.edu/~guyvdb/). I am currently visiting Prof. [Mathias Niepert](https://www.matlog.net/)'s lab at the University of Stuttgart.
+I am an incoming **Assistant Professor** (Presidential Young Professor, PYP) in the Department of Computer Science within the [School of Computing](https://www.comp.nus.edu.sg/) (SoC) at the [National University of Singapore](https://www.nus.edu.sg/) (NUS). Before joining NUS, I completed my PhD at the [StarAI lab](https://starai.cs.ucla.edu/members/) at the [University of California, Los Angeles](https://www.ucla.edu/), where I was advised by Prof. [Guy Van den Broeck](https://web.cs.ucla.edu/~guyvdb/). I am currently visiting Prof. [Mathias Niepert](https://www.matlog.net/)'s lab at the University of Stuttgart.
 
 <span class='anchor' id='interests'></span>
 
