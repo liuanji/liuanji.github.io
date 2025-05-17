@@ -17,11 +17,11 @@ redirect_from:
 
 <span class='anchor' id='about-me'></span>
 
-I am a final-year Ph.D. student at the [StarAI lab](https://starai.cs.ucla.edu/members/) at [University of California, Los Angeles](https://www.ucla.edu/), advised by Prof. [Guy Van den Broeck](https://web.cs.ucla.edu/~guyvdb/). I am currently visiting Prof. [Mathias Niepert](https://www.matlog.net/)'s lab at the University of Stuttgart.
+I am an incoming Assistant Professor (Presidential Young Professor, PYP) in the Department of Computer Science within the School of Computing (SoC) at the National University of Singapore (NUS). Before joining NUS, I completed my PhD at the [StarAI lab](https://starai.cs.ucla.edu/members/) at the [University of California, Los Angeles](https://www.ucla.edu/), where I was advised by Prof. [Guy Van den Broeck](https://web.cs.ucla.edu/~guyvdb/). I am currently visiting Prof. [Mathias Niepert](https://www.matlog.net/)'s lab at the University of Stuttgart.
 
-<span class='anchor' id='highlights'></span>
+<span class='anchor' id='interests'></span>
 
-# 🎯 Research highlights
+# 🎯 Research interests
 
 My primary research focus is **deep generative models** (diffusion models [[1](https://arxiv.org/pdf/2410.01949),[2](https://arxiv.org/pdf/2401.03349),[3](https://arxiv.org/pdf/2405.15506)], probabilistic circuits [[5](https://arxiv.org/pdf/2406.00766),[6](https://arxiv.org/pdf/2210.04398),[7](https://arxiv.org/pdf/2111.11632)], variational autoencoders [[4](https://arxiv.org/pdf/2310.08235)]). Other than understanding and mitigating the fundamental challenges toward good modeling performance [[1](https://arxiv.org/pdf/2410.01949),[6](https://arxiv.org/pdf/2210.04398),[8](https://arxiv.org/pdf/2302.08086)], I am especially interested in **efficient exact/approximate inference with guarantees** of various deep generative models from both theoretical perspectives [[9](https://arxiv.org/pdf/2102.06137)] and empirical perspectives [[7](https://arxiv.org/pdf/2111.11632),[10](https://arxiv.org/pdf/2401.03349)].
 
@@ -29,18 +29,33 @@ My primary research focus is **deep generative models** (diffusion models [[1](h
 
 # 📊 Research directions
 
-- What requirements must we impose on the structure of deep generative models to **accurately and efficiently answer various probabilistic queries**, such as computing arbitrary marginal probabilities or determining the MAP state? A useful theoretical framework for studying these problems is [**Probabilistic Circuits**](https://starai.cs.ucla.edu/papers/ProbCirc20.pdf) (PCs), which allows us to establish necessary and sufficient conditions on their structures to answer specific probabilistic queries [[9](https://arxiv.org/pdf/2102.06137)]. **I am among the first to significantly enhance the empirical performance of PCs**, improving their effectiveness from struggling on MNIST to being compatible with variational autoencoders and even diffusion models on ImageNet32 [[8](https://arxiv.org/pdf/2302.08086)]. To facilitate large-scale training and inference on PCs, I **developed the Python package [PyJuice](https://github.com/Tractables/pyjuice)**, which is orders of magnitudes faster than all previous implementations.
+Generative AI has become a transformative paradigm that enables machines to produce high-quality content such as images, language, and audio. However, beyond creating charming and coherent
+outputs, these systems must reason -- steering their generations to satisfy specific properties. While **sound reasoning techniques** from classical symbolic AI can rigorously guarantee these properties, they are often computationally prohibitive and difficult to scale. As a result, many recent approaches rely on **scalable yet unsound methods**, such as chain-of-thought prompting, which prioritize efficiency over rigorous correctness.
 
-- Does PCs matter in the era of large language models? Many of my research works demonstrate that, with the ability to efficiently perform exact probabilistic inference, **PCs can achieve better empirical performance on various down-stream tasks**, either when used alone [[7](https://arxiv.org/pdf/2111.11632)] or when combined with other deep generative models [[2](https://arxiv.org/pdf/2401.03349),[11](https://arxiv.org/pdf/2311.00094)].
+My research aims to **design generative AI models as drop-in replacements of existing models like autoregressive Transformers and diffusion models, with the distinguishing capability of sound reasoning**. This enables high-fidelity yet controllable generations that align with user requests or domain constraints. Towards this goal, I pursue research in the following directions:
 
-- How does the idea of **tractable** modeling generalizes to other types of deep generative models? In our recent work, we generalize the idea of combining the [PC copula](https://arxiv.org/pdf/2408.04229) with a set of target univariate marginals to solve a fundamental problem that prevents discrete diffusion models from achieving strong performance with fewer steps -- they fail to capture dependencies between output variables at each denoising step [[1](https://arxiv.org/pdf/2410.01949)].
+- **Advancing and designing tractable deep generative models.** Are there generative models that are expressive enough and at the same time support sound reasoning? Perhaps surprisingly, the answer is yes! I am among the first to enhance the expressiveness of [Probabilistic Circuits](https://starai.cs.ucla.edu/papers/ProbCirc20.pdf), a class of models known for their ability to compute probabilistic queries exactly and efficiently. My work has pushed these models from underfitting simple tabular data to achieving competitive performance with autoregressive and diffusion models on image and text modeling tasks (e.g., [[8](https://arxiv.org/pdf/2302.08086),[11](https://arxiv.org/pdf/2406.13892)]). Building on this progress, I aim to further explore the frontier of tractable and expressive generative models, making them more capable and broadly applicable in reasoning-intensive domains.
 
-# <img src="./images/pyjuice.png" alt="PyJuice" width="25"> PyJuice
+- **Demonstrating the benefit of tractable reasoning.** While expressiveness is often viewed as the most important aspect of generative models, I argue that their ability to reason tractably is equally critical. Specifically, in many reasoning-demanding tasks such as lossless data compression [[7](https://arxiv.org/pdf/2111.11632)], controlled image generation [[12](https://arxiv.org/pdf/2401.03349)], and population genetic studies [[13](https://www.biorxiv.org/content/10.1101/2023.05.16.541036v1.full.pdf)], the capacity to compute the desired inference query is essential. When a model lacks this capability, the resulting approximation error can outweigh any gains achieved through increased expressiveness. Looking ahead, I aim to make generative models more suitable for reasoning-demanding applications, by either **improving their inherent reasoning capability**, or **designing better exact/approximate inference algorithms**.
 
-I am the main developer of [PyJuice](https://github.com/Tractables/pyjuice), which enables fast and scalable training and inference of Probabilistic Circuits. PyJuice has been used to train state-of-the-art PCs [[8](https://arxiv.org/pdf/2302.08086)] and and has supported many related projects. Feel free to give it a try!
+Beyond these directions, I am also interested in several related questions at the intersection of modeling and reasoning. One example is the interplay between learning to reason and having intrinsic reasoning capabilities.
+
+#  Prospective Students
+
+I am actively looking for motivated and curious individuals to join my research group. Multiple positions are available for **PhD students**, **postdoctoral researchers**, and **research interns** (both on-site and remote) at my lab in NUS. If you are interested in working on topics including generative modeling, reasoning, and tractable inference, I would love to hear from you.
+
+To apply, please send an email to *anjiliu219@gmail.com*. Use the subject line to specify the position you are applying for (e.g., [PhD], [Postdoc], or [Intern]), and include the following materials:
+- Your CV and transcript;
+- (Optional) A short research statement describing your interests;
+- (Optional) One research paper you have authored.
+
+I welcome applications from individuals with diverse backgrounds and levels of experience.
+
+**[Important]** For prospective **PhD students** interested in the **Spring 2026** intake, the application deadline is **June 15th, 2025**. In addition to emailing me, **please also submit your application through the official website**.
 
 # 🔥 News
-- *2024.10*: &nbsp;🎉🎉 Our recent work on improving few-step generation performance of discrete diffusion models is now on ArXiv. Check it out at [https://arxiv.org/pdf/2410.01949](https://arxiv.org/pdf/2410.01949).
+- *2025.03*: &nbsp;🎉🎉 Can discrete diffusion models generalize well to any conditional generation tasks? We demonstrate a significant gap and propose a better architecture [Tracformer](https://arxiv.org/pdf/2502.07616) in our paper accepted to ICML 2025.
+- *2025.01*: &nbsp;🎉🎉 Our recent work on improving few-step generation performance of discrete diffusion models is accepted to ICLR 2025. Check it out at [https://arxiv.org/pdf/2410.01949](https://arxiv.org/pdf/2410.01949).
 - *2024.09*: &nbsp;🎉🎉 Check our [recent work](https://arxiv.org/pdf/2311.00094) accepted to NeurIPS 2024. It demonstrates the importance of performing tractable inference in Offline Reinforcement Learning.
 - *2024.08*: &nbsp;🎉🎉 I gave an invitated talk about Probabilistic Circuits at Prof. [Steffen Staab](https://scholar.google.com/citations?user=QvpcUn8AAAAJ&hl=en)'s group at University of Stuttgart
 - *2024.06*: &nbsp;🎉🎉 I will co-organize the workshop on [Open-World Agents](https://sites.google.com/view/open-world-agents) at NeurIPS 2024
@@ -51,7 +66,7 @@ I am the main developer of [PyJuice](https://github.com/Tractables/pyjuice), whi
 - *2021.09* Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus ornare aliquet ipsum, ac tempus justo dapibus sit amet. -->
 
 # 📖 Education
-- *2020.09 - present*, Computer Science Ph.D. student at UCLA, United States
+- *2020.09 - 2025.06*, Computer Science PhD student at UCLA, United States
 - *2015.09 - 2019.06*, Bachelor's degree in Automation, Beihang University, China
 
 # 💬 Invited Talks
@@ -61,12 +76,14 @@ I am the main developer of [PyJuice](https://github.com/Tractables/pyjuice), whi
 - *2023.05*, Scaling Up Probabilistic Circuits by Latent Variable Distillation, ICLR oral presentation
 - *2022.02*, Tractable Probabilistic Circuits, Peking University, China
 
-<!-- # 💻 Internships
-- *2019.05 - 2020.02*, [Lorem](https://github.com/), China. -->
+# <img src="./images/pyjuice.png" alt="PyJuice" width="25"> PyJuice
+
+I am the main developer of [PyJuice](https://github.com/Tractables/pyjuice), which enables fast and scalable training and inference of Probabilistic Circuits. PyJuice has been used to train state-of-the-art PCs [[8](https://arxiv.org/pdf/2302.08086)] and and has supported many related projects. Feel free to give it a try!
 
 # 📖 Teaching
-- Teaching assistant, Reinforcement Learning, University of Stuttgart, Spring 2024
+- Lecturer (with Mathias Niepert), Reinforcement Learning, University of Stuttgart, Spring 2025
 - Lecturer (with Mathias Niepert), Introduction to AI, University of Stuttgart, Winter 2024
+- Teaching assistant, Reinforcement Learning, University of Stuttgart, Spring 2024
 
 # 💗 Services
 - PC member of ICML, NeurIPS, ICLR, AISTATS, AAAI
