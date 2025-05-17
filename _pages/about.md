@@ -53,6 +53,8 @@ I welcome applications from individuals with diverse backgrounds and levels of e
 
 <span style="color: red; font-weight: bold">**[Important]**</span> For prospective **PhD students** interested in the **Spring 2026** intake, the application deadline is **June 15th, 2025**. In addition to emailing me, **please also submit your application through the official website**.
 
+<span class='anchor' id='news'></span>
+
 # 🔥 News
 - *2025.03*: &nbsp;🎉🎉 Can discrete diffusion models generalize well to any conditional generation tasks? We demonstrate a significant gap and propose a better architecture [Tracformer](https://arxiv.org/pdf/2502.07616) in our paper accepted to ICML 2025.
 - *2025.01*: &nbsp;🎉🎉 Our recent work on improving few-step generation performance of discrete diffusion models is accepted to ICLR 2025. Check it out at [https://arxiv.org/pdf/2410.01949](https://arxiv.org/pdf/2410.01949).
@@ -69,6 +71,8 @@ I welcome applications from individuals with diverse backgrounds and levels of e
 - *2020.09 - 2025.06*, Computer Science PhD student at UCLA, United States
 - *2015.09 - 2019.06*, Bachelor's degree in Automation, Beihang University, China
 
+<span class='anchor' id='invited-talks'></span>
+
 # 💬 Invited Talks
 - *2025.01*, Towards Controllable Generative AI with Intrinsic Reasoning Capabilities, [ELPIS lab](https://fortuinlab.github.io/), TU Munich, Germany
 - *2024.08*, Scaling Up Tractable Probabilistic Circuits for Inference-Demanding Application, University of Stuttgart, Germany
@@ -80,14 +84,20 @@ I welcome applications from individuals with diverse backgrounds and levels of e
 
 I am the main developer of [PyJuice](https://github.com/Tractables/pyjuice), which enables fast and scalable training and inference of Probabilistic Circuits. PyJuice has been used to train state-of-the-art PCs [[8](https://arxiv.org/pdf/2302.08086)] and and has supported many related projects. Feel free to give it a try!
 
+<span class='anchor' id='teaching'></span>
+
 # 📖 Teaching
 - Lecturer (with Mathias Niepert), Reinforcement Learning, University of Stuttgart, Spring 2025
 - Lecturer (with Mathias Niepert), Introduction to AI, University of Stuttgart, Winter 2024
 - Teaching assistant, Reinforcement Learning, University of Stuttgart, Spring 2024
 
+<span class='anchor' id='services'></span>
+
 # 💗 Services
 - PC member of ICML, NeurIPS, ICLR, AISTATS, AAAI
 - Co-organizer of the Workshop on [Open-World Agents](https://sites.google.com/view/open-world-agents) at NeurIPS 2024
+
+<span class='anchor' id='publications'></span>
 
 # 📝 Publications 
 
