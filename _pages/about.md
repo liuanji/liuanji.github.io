@@ -51,7 +51,7 @@ To apply, please send an email to *anjiliu219@gmail.com*. Use the subject line t
 
 I welcome applications from individuals with diverse backgrounds and levels of experience.
 
-**[Important]** For prospective **PhD students** interested in the **Spring 2026** intake, the application deadline is **June 15th, 2025**. In addition to emailing me, **please also submit your application through the official website**.
+<span style="color: red; font-weight: bold">**[Important]**</span> For prospective **PhD students** interested in the **Spring 2026** intake, the application deadline is **June 15th, 2025**. In addition to emailing me, **please also submit your application through the official website**.
 
 # 🔥 News
 - *2025.03*: &nbsp;🎉🎉 Can discrete diffusion models generalize well to any conditional generation tasks? We demonstrate a significant gap and propose a better architecture [Tracformer](https://arxiv.org/pdf/2502.07616) in our paper accepted to ICML 2025.
