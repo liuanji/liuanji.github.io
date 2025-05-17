@@ -40,7 +40,7 @@ My research aims to **design generative AI models as drop-in replacements of exi
 
 Beyond these directions, I am also interested in several related questions at the intersection of modeling and reasoning. One example is the interplay between learning to reason and having intrinsic reasoning capabilities.
 
-#  Prospective Students
+# 🎓 Prospective Students
 
 I am actively looking for motivated and curious individuals to join my research group. Multiple positions are available for **PhD students**, **postdoctoral researchers**, and **research interns** (both on-site and remote) at my lab in NUS. If you are interested in working on topics including generative modeling, reasoning, and tractable inference, I would love to hear from you.
 
