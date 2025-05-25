@@ -32,7 +32,7 @@ I am actively looking for motivated and curious individuals to join my research 
 To apply, please send an email to *anjiliu219@gmail.com*. Use the subject line to specify the position you are applying for (e.g., [PhD], [Postdoc], or [Intern]), and include the following materials:
 - Your CV and transcript;
 - (Optional) A short research statement describing your interests;
-- (Optional) One research paper you have authored.
+- (Optional) A brief overview of one reseach problem that has inspired your enthusiasm (you don't need to have an answer).
 
 I welcome applications from individuals with diverse backgrounds and levels of experience.
 
