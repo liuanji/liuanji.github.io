@@ -17,7 +17,7 @@ redirect_from:
 
 <span class='anchor' id='about-me'></span>
 
-I am an incoming **Assistant Professor** (Presidential Young Professor, PYP) in the Department of Computer Science within the [School of Computing](https://www.comp.nus.edu.sg/) (SoC) at the [National University of Singapore](https://www.nus.edu.sg/) (NUS). Before joining NUS, I completed my PhD at the [StarAI lab](https://starai.cs.ucla.edu/members/) at the [University of California, Los Angeles](https://www.ucla.edu/), where I was advised by Prof. [Guy Van den Broeck](https://web.cs.ucla.edu/~guyvdb/). I am currently visiting Prof. [Mathias Niepert](https://www.matlog.net/)'s lab at the University of Stuttgart.
+I am an **Assistant Professor** (Presidential Young Professor, PYP) in the Department of Computer Science within the [School of Computing](https://www.comp.nus.edu.sg/) (SoC) at the [National University of Singapore](https://www.nus.edu.sg/) (NUS). Before joining NUS, I completed my PhD at the [StarAI lab](https://starai.cs.ucla.edu/members/) at the [University of California, Los Angeles](https://www.ucla.edu/), where I was advised by Prof. [Guy Van den Broeck](https://web.cs.ucla.edu/~guyvdb/). I am currently visiting Prof. [Mathias Niepert](https://www.matlog.net/)'s lab at the University of Stuttgart.
 
 <span class='anchor' id='interests'></span>
 
@@ -29,7 +29,7 @@ My primary research focus is **deep generative models** (diffusion models [[1](h
 
 I am actively looking for motivated and curious individuals to join my research group. Multiple positions are available for **PhD students**, **postdoctoral researchers**, and **research interns** (both on-site and remote) at my lab in NUS. If you are interested in working on topics including generative modeling, reasoning, and tractable inference, I would love to hear from you.
 
-To apply, please send an email to *anjiliu219@gmail.com*. Use the subject line to specify the position you are applying for (e.g., [PhD], [Postdoc], or [Intern]), and include the following materials:
+To apply, please send an email to *anjiliu@nus.edu.sg*. Use the subject line to specify the position you are applying for (e.g., [PhD], [Postdoc], or [Intern]), and include the following materials:
 - Your CV and transcript;
 - (Optional) A short research statement describing your interests;
 - (Optional) A brief overview of one reseach problem that has inspired your enthusiasm (you don't need to have an answer).

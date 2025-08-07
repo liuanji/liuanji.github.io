@@ -7,7 +7,7 @@
 
 # Site Settings
 title                    : "Anji Liu"
-description              : "Incoming Assistant Professor at NUS working on tractable deep generative models."
+description              : "Assistant Professor at NUS working on tractable deep generative models."
 repository               : "liuanji/liuanji.github.io"
 google_scholar_stats_use_cdn : true
 
@@ -28,7 +28,7 @@ author:
   employer         :
   pubmed           : 
   googlescholar    : "https://scholar.google.com/citations?hl=en&user=k_4zYecAAAAJ"
-  email            : "liuanji@cs.ucla.edu"
+  email            : "anjiliu@nus.edu.sg"
   researchgate     :  # e.g., "https://www.researchgate.net/profile/yourprofile"
   uri              :
   bitbucket        :
