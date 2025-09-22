@@ -56,6 +56,7 @@ Beyond these directions, I am also interested in several related questions at th
 <span class='anchor' id='news'></span>
 
 # 🔥 News
+- *2025.08*: &nbsp;🎉🎉 I officially joined NUS SoC!
 - *2025.03*: &nbsp;🎉🎉 Can discrete diffusion models generalize well to any conditional generation tasks? We demonstrate a significant gap and propose a better architecture [Tracformer](https://arxiv.org/pdf/2502.07616) in our paper accepted to ICML 2025.
 - *2025.01*: &nbsp;🎉🎉 Our recent work on improving few-step generation performance of discrete diffusion models is accepted to ICLR 2025. Check it out at [https://arxiv.org/pdf/2410.01949](https://arxiv.org/pdf/2410.01949).
 - *2024.09*: &nbsp;🎉🎉 Check our [recent work](https://arxiv.org/pdf/2311.00094) accepted to NeurIPS 2024. It demonstrates the importance of performing tractable inference in Offline Reinforcement Learning.
