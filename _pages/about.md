@@ -17,7 +17,7 @@ redirect_from:
 
 <span class='anchor' id='about-me'></span>
 
-I am an **Assistant Professor** (Presidential Young Professor, PYP) in the Department of Computer Science within the [School of Computing](https://www.comp.nus.edu.sg/) (SoC) at the [National University of Singapore](https://www.nus.edu.sg/) (NUS). Before joining NUS, I completed my PhD at the [StarAI lab](https://starai.cs.ucla.edu/members/) at the [University of California, Los Angeles](https://www.ucla.edu/), where I was advised by Prof. [Guy Van den Broeck](https://web.cs.ucla.edu/~guyvdb/). I am currently visiting Prof. [Mathias Niepert](https://www.matlog.net/)'s lab at the University of Stuttgart.
+I am an **Assistant Professor** (Presidential Young Professor, PYP) in the Department of Computer Science within the [School of Computing](https://www.comp.nus.edu.sg/) (SoC) at the [National University of Singapore](https://www.nus.edu.sg/) (NUS). Before joining NUS, I completed my PhD at the [StarAI lab](https://starai.cs.ucla.edu/members/) at the [University of California, Los Angeles](https://www.ucla.edu/), where I was advised by Prof. [Guy Van den Broeck](https://web.cs.ucla.edu/~guyvdb/).
 
 <span class='anchor' id='interests'></span>
 
@@ -54,6 +54,7 @@ Beyond these directions, I am also interested in several related questions at th
 <span class='anchor' id='news'></span>
 
 # 🔥 News
+- *2025.08*: &nbsp;🎉🎉 I officially joined NUS SoC!
 - *2025.03*: &nbsp;🎉🎉 Can discrete diffusion models generalize well to any conditional generation tasks? We demonstrate a significant gap and propose a better architecture [Tracformer](https://arxiv.org/pdf/2502.07616) in our paper accepted to ICML 2025.
 - *2025.01*: &nbsp;🎉🎉 Our recent work on improving few-step generation performance of discrete diffusion models is accepted to ICLR 2025. Check it out at [https://arxiv.org/pdf/2410.01949](https://arxiv.org/pdf/2410.01949).
 - *2024.09*: &nbsp;🎉🎉 Check our [recent work](https://arxiv.org/pdf/2311.00094) accepted to NeurIPS 2024. It demonstrates the importance of performing tractable inference in Offline Reinforcement Learning.
