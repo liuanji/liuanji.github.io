@@ -36,8 +36,6 @@ To apply, please send an email to *anjiliu@nus.edu.sg*. Use the subject line to 
 
 I welcome applications from individuals with diverse backgrounds and levels of experience.
 
-<span style="color: red; font-weight: bold">**[Important]**</span> For prospective **PhD students** interested in the **Spring 2026** intake, the application deadline is **June 15th, 2025**. In addition to emailing me, **please also submit your application through the official website**.
-
 <span class='anchor' id='directions'></span>
 
 # 📊 Research Directions
