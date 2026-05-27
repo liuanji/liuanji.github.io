@@ -7,7 +7,7 @@ import { myCopyrightBody, myUpdateInfo } from '../data/profile';
 const PI = {
   name: 'Anji Liu',
   role: 'Principal Investigator',
-  photo: './src/data/photos/anji.png',
+  photo: '/photos/anji.png',
   bio: 'Assistant Professor at NUS SoC.',
   website: '/#',
   twitter: 'https://x.com/liu_anji',
@@ -19,7 +19,7 @@ const currentMembers = [
     name: 'Vit Chun Yap',
     role: 'Research Assistant',
     year: '',
-    photo: './src/data/photos/vitchun.jpeg',
+    photo: '/photos/vitchun.jpeg',
     interests: 'Probabilistic Inference, Constrained Generation',
     linkedin: 'https://sg.linkedin.com/in/vitchun',
     website: '#',
@@ -28,7 +28,7 @@ const currentMembers = [
     name: 'Zhiyu Zhao',
     role: 'Research Assistant',
     year: '',
-    photo: './src/data/photos/default.jpg',
+    photo: '/photos/default.jpg',
     interests: 'Probabilistic Inference, Reinforcement Learning',
     // twitter: '#',
     // linkedin: '#',
@@ -38,7 +38,7 @@ const currentMembers = [
     name: 'Kodai Kawamura',
     role: 'PhD Student',
     year: '1st year',
-    photo: './src/data/photos/kodai.png',
+    photo: '/photos/kodai.png',
     interests: 'Diffusion Language Models',
     // twitter: '#',
     linkedin: 'https://www.linkedin.com/in/kodai-kawamura-498b75251/',
@@ -48,7 +48,7 @@ const currentMembers = [
     name: 'Zak Guang Hong Tng',
     role: 'Undergraduate Student',
     year: '',
-    photo: './src/data/photos/default.jpg',
+    photo: '/photos/default.jpg',
     interests: 'Diffusion Language Models',
     // twitter: '#',
     linkedin: 'https://www.linkedin.com/in/zaktng/',
@@ -58,7 +58,7 @@ const currentMembers = [
     name: 'Kewei Lian',
     role: 'PhD Student',
     year: '1st year',
-    photo: './src/data/photos/kewei.jpg',
+    photo: '/photos/kewei.jpg',
     interests: 'Probabilistic Inference',
     // twitter: '#',
     linkedin: 'https://www.linkedin.com/in/kewei-lian-1172b026a/',
@@ -139,7 +139,7 @@ export default function Group() {
             {/* <h1 className="font-tight font-bold text-5xl lg:text-6xl text-inkwell mb-5">The Tractable Bakery Lab</h1> */}
             <div className="flex items-center gap-4 mb-5">
               <img 
-                src="./src/data/logos/logo-plain.png" 
+                src="/logos/logo-plain.png" 
                 alt="Tractable Bakery Lab Icon" 
                 className="w-12 h-12 lg:w-16 lg:h-16 object-contain"
               />

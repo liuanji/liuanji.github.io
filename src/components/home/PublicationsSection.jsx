@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Link, Code, ChevronDown } from 'lucide-react';
 import { parseBib } from '../../lib/parseBib';
-import bibRaw from '../../data/publications.bib?raw';
+import bibRaw from '/publications.bib?url&raw';
 
 const MY_NAME = 'Anji Liu';
 
