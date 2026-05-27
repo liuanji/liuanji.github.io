@@ -29,7 +29,7 @@ const currentMembers = [
     name: 'Zhiyu Zhao',
     role: 'Research Assistant',
     year: '',
-    photo: '/photos/default.jpg',
+    photo: '/photos/zhiyu.jpg',
     interests: 'Reinforcement Learning, Probabilistic Inference',
     // twitter: '#',
     linkedin: 'https://www.linkedin.com/in/%E7%A5%89%E7%91%9C-%E8%B5%B5-7362b6399/',
