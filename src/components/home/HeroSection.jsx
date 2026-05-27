@@ -50,7 +50,7 @@ export default function HeroSection() {
             className="lg:col-span-3"
           >
             <div className="font-mono text-sm text-data-grey mb-4 tracking-wide">
-              Assistant Professor · National University of Singapore
+              Presidential Young Professor · National University of Singapore
             </div>
             <h1 className="font-tight font-bold text-5xl lg:text-6xl text-inkwell leading-tight mb-4">
               Anji Liu
