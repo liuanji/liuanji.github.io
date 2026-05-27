@@ -31,7 +31,7 @@ export const courses = [
     institution: 'Uni Stuttgart',
     enrollment: '150 students',
     level: 'Graduate',
-    description: '',
+    description: 'Introduction of fundamental RL concepts and algorithms.',
     // materials: '#',
   },
   {
