@@ -12,7 +12,7 @@ export const courses = [
     enrollment: '27 students',
     level: 'Graduate Seminar',
     description: 'An introduction to different generative models with a focus on their probabilistic semantics.',
-    // materials: '#',
+    materials: 'https://canvas.nus.edu.sg/courses/90444',
   },
   {
     code: 'CS6101',
