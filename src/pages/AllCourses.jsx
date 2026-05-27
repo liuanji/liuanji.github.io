@@ -12,7 +12,7 @@ export const courses = [
     enrollment: '27 students',
     level: 'Graduate Seminar',
     description: 'An introduction to different generative models with a focus on their probabilistic semantics.',
-    materials: '#',
+    // materials: '#',
   },
   {
     code: 'CS6101',
@@ -22,7 +22,7 @@ export const courses = [
     enrollment: '6 students',
     level: 'Graduate Seminar',
     description: 'A reading group/seminar about diffusion language models.',
-    materials: '#',
+    // materials: '#',
   },
   {
     code: 'CS021862000',
@@ -32,7 +32,7 @@ export const courses = [
     enrollment: '150 students',
     level: 'Graduate',
     description: '',
-    materials: '#',
+    // materials: '#',
   },
   {
     code: 'CS10110',
@@ -42,7 +42,7 @@ export const courses = [
     enrollment: '300 students',
     level: 'Undergraduate',
     description: 'Introduction of basic AI algorithms.',
-    materials: '#',
+    // materials: '#',
   },
 ];
 
@@ -104,12 +104,14 @@ export default function AllCourses() {
                       <Users size={12} /> {course.enrollment}
                     </div>
                   </div>
-                  <a
-                    href={course.materials}
-                    className="flex items-center gap-1.5 text-xs font-medium text-synapse hover:text-inkwell transition-colors"
-                  >
-                    Materials <ExternalLink size={12} />
-                  </a>
+                  {course.materials && (
+                    <a
+                      href={course.materials}
+                      className="flex items-center gap-1.5 text-xs font-medium text-synapse hover:text-inkwell transition-colors"
+                    >
+                      Materials <ExternalLink size={12} />
+                    </a>
+                  )}
                 </div>
               </motion.div>
             ))}

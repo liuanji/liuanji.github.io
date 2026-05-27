@@ -61,12 +61,14 @@ export default function TeachingSection() {
                     <Users size={12} /> {course.enrollment}
                   </div>
                 </div>
-                <a
-                  href={course.materials}
-                  className="flex items-center gap-1.5 text-xs font-medium text-synapse hover:text-inkwell transition-colors"
-                >
-                  Materials <ExternalLink size={12} />
-                </a>
+                {course.materials && (
+                  <a
+                    href={course.materials}
+                    className="flex items-center gap-1.5 text-xs font-medium text-synapse hover:text-inkwell transition-colors"
+                  >
+                    Materials <ExternalLink size={12} />
+                  </a>
+                )}
               </div>
             </motion.div>
           ))}
