@@ -21,7 +21,7 @@ const currentMembers = [
     role: 'Research Assistant',
     year: '',
     photo: '/photos/vitchun.jpeg',
-    interests: 'Probabilistic Inference, Constrained Generation',
+    interests: 'Constrained/Controlled Generation',
     linkedin: 'https://sg.linkedin.com/in/vitchun',
     website: '#',
   },
