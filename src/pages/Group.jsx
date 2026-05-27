@@ -3,6 +3,7 @@ import GhostNav from '../components/layout/GhostNav';
 import { Home } from 'lucide-react';
 import { FaXTwitter, FaLinkedin } from 'react-icons/fa6';
 import { myCopyrightBody, myUpdateInfo } from '../data/profile';
+import { ParseMarkdown } from '../lib/utils';
 
 const PI = {
   name: 'Anji Liu',
@@ -29,10 +30,20 @@ const currentMembers = [
     role: 'Research Assistant',
     year: '',
     photo: '/photos/default.jpg',
-    interests: 'Probabilistic Inference, Reinforcement Learning',
+    interests: 'Reinforcement Learning, Probabilistic Inference',
+    // twitter: '#',
+    linkedin: 'https://www.linkedin.com/in/%E7%A5%89%E7%91%9C-%E8%B5%B5-7362b6399/',
+    // website: '#',
+  },
+  {
+    name: 'Xuejie Liu',
+    role: 'PhD Student',
+    year: '3rd year',
+    photo: '/photos/xuejie.jpg',
+    interests: 'Probabilistic Circuits, Diffusion Language Models',
     // twitter: '#',
     // linkedin: '#',
-    // website: '#',
+    website: 'https://scholar.google.com/citations?user=vxqpWKUAAAAJ',
   },
   {
     name: 'Kodai Kawamura',
@@ -43,6 +54,7 @@ const currentMembers = [
     // twitter: '#',
     linkedin: 'https://www.linkedin.com/in/kodai-kawamura-498b75251/',
     website: 'https://kodaikawamura.github.io/kodaikawamura/',
+    remarks: <ParseMarkdown text='Co-advised with [Kenji Kawaguchi](https://www.comp.nus.edu.sg/cs/people/kenji/).'/>
   },
   {
     name: 'Zak Guang Hong Tng',
@@ -97,6 +109,12 @@ function MemberCard({ member, index }) {
               <span className="font-mono text-xs text-data-grey/60">· {member.year}</span>
             )}
           </div>
+          {/* Optional Remarks: Below the role, still to the right of the photo */}
+          {member.remarks && (
+            <div className="mt-1.5 text-xs text-gray-600 leading-snug">
+              {member.remarks}
+            </div>
+          )}
         </div>
       </div>
       <p className="text-sm text-data-grey mt-3 leading-relaxed">{member.interests}</p>
