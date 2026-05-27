@@ -8,8 +8,23 @@ import PublicationsSection from '../components/home/PublicationsSection';
 import TeachingSection from '../components/home/TeachingSection';
 import ContactSection from '../components/home/ContactSection';
 import { myCopyrightBody, myUpdateInfo } from '../data/profile';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
 export default function Home() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash) {
+      // Remove the '#' to get the pure ID string
+      const targetId = location.hash.substring(1);
+      const element = document.getElementById(targetId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [location]);
+  
   return (
     <div className="bg-paper min-h-screen page-enter">
       <GhostNav />
