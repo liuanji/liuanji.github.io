@@ -44,6 +44,7 @@ const currentMembers = [
     // twitter: '#',
     // linkedin: '#',
     website: 'https://scholar.google.com/citations?user=vxqpWKUAAAAJ',
+    remarks: <ParseMarkdown text='Co-advised with [Muhan Zhang](https://muhanzhang.github.io/).'/>
   },
   {
     name: 'Kodai Kawamura',
