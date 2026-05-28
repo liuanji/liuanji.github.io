@@ -1,26 +1,105 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Link, Code, ChevronDown } from 'lucide-react';
 import { parseBib } from '../../lib/parseBib';
 import bibRaw from '/publications.bib?url&raw';
 
 const MY_NAME = 'Anji Liu';
-
 const publications = parseBib(bibRaw);
 
-function highlightAuthors(authors) {
-  return authors.split(',').map((author, i, arr) => {
-    const trimmed = author.trim();
-    const isMe = trimmed.includes(MY_NAME) || trimmed.includes('A. Chen');
+function SmartAuthorList({ authorsStr }) {
+  const containerRef = useRef(null);
+  const fullTextRef = useRef(null);
+  const [shouldTruncate, setShouldTruncate] = useState(false);
+
+  // Dynamically measure text width vs container width
+  useEffect(() => {
+    const checkWidth = () => {
+      if (containerRef.current && fullTextRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        const fullTextWidth = fullTextRef.current.scrollWidth;
+        // Add a 5px buffer to prevent rapid flickering on edge cases
+        setShouldTruncate(fullTextWidth > containerWidth + 5);
+      }
+    };
+
+    const observer = new ResizeObserver(checkWidth);
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+    
+    checkWidth();
+    return () => observer.disconnect();
+  }, [authorsStr]);
+
+  const authorArray = authorsStr.split(',').map((a) => a.trim());
+  
+  const renderAuthor = (text, key) => {
+    const isMe = text.includes(MY_NAME) || text.includes('A. Chen');
     return (
-      <span key={i}>
-        <span className={isMe ? 'text-synapse font-semibold' : 'text-data-grey'}>
-          {trimmed}
-        </span>
-        {i < arr.length - 1 && <span className="text-data-grey">, </span>}
+      <span key={key} className={isMe ? 'text-synapse font-semibold' : 'text-data-grey'}>
+        {text}
       </span>
     );
-  });
+  };
+
+  const dots = (key) => <span key={key} className="text-data-grey">, ..., </span>;
+  const comma = (key) => <span key={key} className="text-data-grey">, </span>;
+
+  const buildList = (truncate) => {
+    // If it fits, or if there are 3 or fewer authors, show everyone
+    if (!truncate || authorArray.length <= 3) {
+      return authorArray.map((author, i) => (
+        <span key={`full-${i}`}>
+          {renderAuthor(author, `fa-${i}`)}
+          {i < authorArray.length - 1 && comma(`fc-${i}`)}
+        </span>
+      ));
+    }
+
+    // Smart Truncation Logic
+    const myIndex = authorArray.findIndex((a) => a.includes(MY_NAME) || a.includes('A. Chen'));
+    const result = [];
+
+    if (myIndex <= 1 || myIndex === -1) {
+      result.push(renderAuthor(authorArray[0], 'start-0'));
+      result.push(comma('c1'));
+      result.push(renderAuthor(authorArray[1], 'start-1'));
+      result.push(dots('d1'));
+      result.push(renderAuthor(authorArray[authorArray.length - 1], 'end'));
+    } else if (myIndex >= authorArray.length - 2) {
+      result.push(renderAuthor(authorArray[0], 'start-0'));
+      result.push(dots('d1'));
+      result.push(renderAuthor(authorArray[authorArray.length - 2], 'end-2'));
+      result.push(comma('c1'));
+      result.push(renderAuthor(authorArray[authorArray.length - 1], 'end-1'));
+    } else {
+      result.push(renderAuthor(authorArray[0], 'start-0'));
+      result.push(dots('d1'));
+      result.push(renderAuthor(authorArray[myIndex], 'mid'));
+      result.push(dots('d2'));
+      result.push(renderAuthor(authorArray[authorArray.length - 1], 'end'));
+    }
+    return result;
+  };
+
+  return (
+    <div ref={containerRef} className="relative w-full overflow-hidden">
+      {/* Invisible shadow element for measuring true one-line width */}
+      <div 
+        ref={fullTextRef} 
+        className="absolute top-0 left-0 opacity-0 pointer-events-none whitespace-nowrap"
+        aria-hidden="true"
+      >
+        {buildList(false)}
+      </div>
+      
+      {/* Visible content that updates dynamically */}
+      <div className="relative truncate">
+        {buildList(shouldTruncate)}
+      </div>
+    </div>
+  );
 }
 
 function PublicationRow({ pub }) {
@@ -36,7 +115,12 @@ function PublicationRow({ pub }) {
           <h4 className="font-tight font-semibold text-inkwell text-base mb-1 leading-snug">
             {pub.title}
           </h4>
-          <p className="text-sm mb-1.5">{highlightAuthors(pub.authors)}</p>
+          
+          {/* Replaced standard <p> with our new Smart Component */}
+          <div className="text-sm mb-1.5">
+            <SmartAuthorList authorsStr={pub.authors} />
+          </div>
+
           <div className="font-mono text-xs text-data-grey italic flex items-center gap-2 flex-wrap">
             {pub.venue}
             {pub.highlight && (() => {
@@ -94,7 +178,7 @@ export default function PublicationsSection() {
   const { recentYears, cutoffYear } = useMemo(() => {
     const sorted = Array.from(new Set(publications.map(p => Number(p.year)))).sort((a, b) => b - a);
     const recent = sorted.slice(0, 5);
-    const cutoff = recent[recent.length - 1]; // oldest of the recent ones
+    const cutoff = recent[recent.length - 1];
     return { recentYears: recent.map(String), cutoffYear: cutoff };
   }, []);
 
@@ -123,7 +207,6 @@ export default function PublicationsSection() {
         </motion.div>
 
         <div className="flex flex-col lg:flex-row gap-12">
-          {/* Sticky sidebar filters */}
           <div className="lg:w-36 flex-shrink-0">
             <div className="lg:sticky lg:top-24">
               <div className="font-mono text-xs text-data-grey/70 uppercase tracking-widest mb-3">Year</div>
@@ -145,7 +228,6 @@ export default function PublicationsSection() {
             </div>
           </div>
 
-          {/* Publication list */}
           <div className="flex-1 min-w-0">
             {filtered.length === 0 ? (
               <div className="text-data-grey font-mono text-sm py-12 text-center">
