@@ -207,7 +207,7 @@ export default function PublicationsSection() {
         </motion.div>
 
         <div className="flex flex-col lg:flex-row gap-12">
-          <div className="lg:w-36 flex-shrink-0">
+          <div className="hidden md:block lg:w-36 flex-shrink-0">
             <div className="lg:sticky lg:top-24">
               <div className="font-mono text-xs text-data-grey/70 uppercase tracking-widest mb-3">Year</div>
               <div className="space-y-1">
