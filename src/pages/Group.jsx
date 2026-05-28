@@ -162,8 +162,8 @@ export default function Group() {
                 alt="Tractable Bakery Lab Icon" 
                 className="w-12 h-12 lg:w-16 lg:h-16 object-contain"
               />
-              <h1 className="font-tight font-bold text-5xl lg:text-6xl text-inkwell">
-                The Tractable Bakery Lab
+              <h1 className="font-tight font-bold text-4xl md:text-5xl lg:text-6xl text-inkwell leading-tight">
+                The Tractable <br className="block md:hidden" /> Bakery Lab
               </h1>
             </div>
             <p className="text-data-grey max-w-2xl text-base leading-relaxed">
