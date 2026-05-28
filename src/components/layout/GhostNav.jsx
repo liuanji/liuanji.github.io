@@ -1,13 +1,23 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-const navLinks = [
+const navLinksPI = [
   { label: 'About', href: '#about' },
+  { label: 'Group', href: '/group', isPage: true },
   { label: 'Research', href: '#research-direction' },
   { label: 'News', href: '#news' },
   { label: 'Publications', href: '#publications' },
   { label: 'Teaching', href: '#teaching' },
+  { label: 'Contact', href: '#contact' },
+];
+
+const navLinksGroup = [
+  { label: 'Director', href: '#about' },
   { label: 'Group', href: '/group', isPage: true },
+  { label: 'Research', href: '#research-direction' },
+  { label: 'News', href: '#news' },
+  { label: 'Publications', href: '#publications' },
+  { label: 'Teaching', href: '#teaching' },
   { label: 'Contact', href: '#contact' },
 ];
 
@@ -17,6 +27,8 @@ export default function GhostNav() {
   const isHome = location.pathname === '/';
 
   const isGroup = location.pathname.startsWith('/group');
+
+  const navLinks = isGroup ? navLinksGroup : navLinksPI;
 
   const handleNav = (e, hash) => {
     setMobileMenuOpen(false);
