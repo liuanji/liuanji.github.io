@@ -6,7 +6,7 @@ const navLinksPI = [
   { label: 'Group', href: '/group', isPage: true },
   { label: 'Research', href: '#research-direction' },
   { label: 'News', href: '#news' },
-  { label: 'Publications', href: '#publications' },
+  { label: 'Publications', href: '/publications', isPage: true },
   { label: 'Teaching', href: '#teaching' },
   { label: 'Contact', href: '#contact' },
 ];
@@ -16,7 +16,7 @@ const navLinksGroup = [
   { label: 'Group', href: '/group', isPage: true },
   { label: 'Research', href: '#research-direction' },
   { label: 'News', href: '#news' },
-  { label: 'Publications', href: '#publications' },
+  { label: 'Publications', href: '/publications', isPage: true },
   { label: 'Teaching', href: '#teaching' },
   { label: 'Contact', href: '#contact' },
 ];

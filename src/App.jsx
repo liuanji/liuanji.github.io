@@ -7,6 +7,7 @@ import PageNotFound from './lib/PageNotFound';
 import Home from './pages/Home';
 import Group from './pages/Group';
 import AllCourses from './pages/AllCourses';
+import Publications from './pages/Publications';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/group" element={<Group />} />
+          <Route path="/publications" element={<Publications />} />
           <Route path="/courses" element={<AllCourses />} />
           <Route path="*" element={<PageNotFound />} />
         </Routes>

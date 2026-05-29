@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Code, ChevronDown, ArrowRight } from 'lucide-react';
+import { FileText, Link as LinkIcon, Code, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { parseBib } from '../../lib/parseBib';
+import GhostNav from '../components/layout/GhostNav';
+import { parseBib } from '../lib/parseBib';
 import bibRaw from '/publications.bib?url&raw';
+import { ParseMarkdown } from '@/lib/utils';
 
 const MY_NAME = 'Anji Liu';
 const publications = parseBib(bibRaw);
@@ -13,13 +15,11 @@ function SmartAuthorList({ authorsStr }) {
   const fullTextRef = useRef(null);
   const [shouldTruncate, setShouldTruncate] = useState(false);
 
-  // Dynamically measure text width vs container width
   useEffect(() => {
     const checkWidth = () => {
       if (containerRef.current && fullTextRef.current) {
         const containerWidth = containerRef.current.clientWidth;
         const fullTextWidth = fullTextRef.current.scrollWidth;
-        // Add a 5px buffer to prevent rapid flickering on edge cases
         setShouldTruncate(fullTextWidth > containerWidth + 5);
       }
     };
@@ -48,7 +48,6 @@ function SmartAuthorList({ authorsStr }) {
   const comma = (key) => <span key={key} className="text-data-grey">, </span>;
 
   const buildList = (truncate) => {
-    // If it fits, or if there are 3 or fewer authors, show everyone
     if (!truncate || authorArray.length <= 3) {
       return authorArray.map((author, i) => (
         <span key={`full-${i}`}>
@@ -58,7 +57,6 @@ function SmartAuthorList({ authorsStr }) {
       ));
     }
 
-    // Smart Truncation Logic
     const myIndex = authorArray.findIndex((a) => a.includes(MY_NAME) || a.includes('A. Chen'));
     const result = [];
 
@@ -86,7 +84,6 @@ function SmartAuthorList({ authorsStr }) {
 
   return (
     <div ref={containerRef} className="relative w-full overflow-hidden">
-      {/* Invisible shadow element for measuring true one-line width */}
       <div 
         ref={fullTextRef} 
         className="absolute top-0 left-0 opacity-0 pointer-events-none whitespace-nowrap"
@@ -94,8 +91,6 @@ function SmartAuthorList({ authorsStr }) {
       >
         {buildList(false)}
       </div>
-      
-      {/* Visible content that updates dynamically */}
       <div className="relative truncate">
         {buildList(shouldTruncate)}
       </div>
@@ -117,7 +112,6 @@ function PublicationRow({ pub }) {
             {pub.title}
           </h4>
           
-          {/* Replaced standard <p> with our new Smart Component */}
           <div className="text-sm mb-1.5">
             <SmartAuthorList authorsStr={pub.authors} />
           </div>
@@ -150,7 +144,7 @@ function PublicationRow({ pub }) {
             {pub.project_url && (
               <a href={pub.project_url} target="_blank" rel="noreferrer"
                 className="flex items-center gap-1.5 text-xs font-medium text-data-grey hover:text-inkwell">
-                <Link size={13} /> Project
+                <LinkIcon size={13} /> Project
               </a>
             )}
             {pub.bibtex && (
@@ -173,28 +167,29 @@ function PublicationRow({ pub }) {
   );
 }
 
-export default function PublicationsSection() {
-  const selectedPubs = useMemo(() => {
-    return publications.filter(p => p.selected);
-  }, []);
-
+export default function Publications() {
   const [activeYear, setActiveYear] = useState('All');
+
+  // Add this block to instantly scroll to the top on page load
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const { recentYears, cutoffYear, hasOlderYears } = useMemo(() => {
     // Note: ensure you are using selectedPubs or publications based on your file
-    const sorted = Array.from(new Set(selectedPubs.map(p => Number(p.year)))).sort((a, b) => b - a);
-    const recent = sorted.slice(0, 5);
+    const sorted = Array.from(new Set(publications.map(p => Number(p.year)))).sort((a, b) => b - a);
+    const recent = sorted.slice(0, 8);
     const cutoff = recent[recent.length - 1];
     
     // Check if there are actually any years older than the 5 we just sliced
-    const hasOlder = sorted.length > 5;
+    const hasOlder = sorted.length > 8;
 
     return { 
       recentYears: recent.map(String), 
       cutoffYear: cutoff,
       hasOlderYears: hasOlder
     };
-  }, [selectedPubs]); // make sure to include dependencies if needed
+  }, [publications]); // make sure to include dependencies if needed
 
   // Conditionally add the "Before" string using the spread operator
   const yearOptions = [
@@ -203,73 +198,121 @@ export default function PublicationsSection() {
     ...(hasOlderYears ? [`Before ${cutoffYear}`] : [])
   ];
 
-  const filtered = useMemo(() => {
-    if (activeYear === 'All') return selectedPubs;
-    if (activeYear === `Before ${cutoffYear}`) return selectedPubs.filter(p => p.year < cutoffYear);
-    return selectedPubs.filter(p => String(p.year) === activeYear);
-  }, [activeYear, cutoffYear]);
+  const processedPubs = useMemo(() => {
+    const seenGroups = new Set();
+    return publications.map(pub => {
+      const group = pub.year >= cutoffYear ? String(pub.year) : `Before ${cutoffYear}`;
+      const isFirstInGroup = !seenGroups.has(group);
+      if (isFirstInGroup) seenGroups.add(group);
+      return { ...pub, group, isFirstInGroup };
+    });
+  }, [cutoffYear]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const offset = 100; 
+      let currentActive = 'All';
+
+      for (const yr of yearOptions.slice(1)) {
+        const element = document.getElementById(`group-${yr.replace(/\s+/g, '-')}`);
+        if (element && element.getBoundingClientRect().top <= offset) {
+          currentActive = yr;
+        }
+      }
+      
+      if (window.scrollY < 100) currentActive = 'All';
+
+      setActiveYear((prev) => prev !== currentActive ? currentActive : prev);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [yearOptions]);
+
+  const handleScrollToGroup = (yr) => {
+    setActiveYear(yr);
+    
+    if (yr === 'All') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const elementId = `group-${yr.replace(/\s+/g, '-')}`;
+    const element = document.getElementById(elementId);
+    
+    if (element) {
+      const yOffset = -80; 
+      const y = element.getBoundingClientRect().top + window.scrollY + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
 
   return (
-    <section id="publications" className="py-16" style={{ background: '#F8FAFC' }}>
-      <div className="max-w-6xl mx-auto px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-12"
-        >
-          <div className="font-mono text-sm text-data-grey mb-3">04 / Publications</div>
-          <h2 className="font-tight font-bold text-4xl lg:text-5xl text-inkwell">
-            Selected Publications
-          </h2>
-        </motion.div>
+    <div className="bg-paper min-h-screen page-enter">
+      <GhostNav />
+      <main className="pt-24 pb-28">
+        <div className="max-w-6xl mx-auto px-8">
+            <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="mb-16"
+            >
+            <Link to="/#publications" className="font-mono text-sm text-data-grey hover:text-inkwell transition-colors mb-4 inline-block">
+                ← Back
+            </Link>
+            <div className="font-mono text-sm text-data-grey mb-3">Publications</div>
+            <h1 className="font-tight font-bold text-5xl lg:text-6xl text-inkwell">
+                Publications
+            </h1>
+            <p className="mt-4 text-data-grey max-w-2xl text-lg">
+                <ParseMarkdown text="A full index of publications. Please also refer to my [Google Scholar](https://scholar.google.com/citations?hl=en&user=k_4zYecAAAAJ) page."/>
+            </p>
+            </motion.div>
 
-        <div className="flex flex-col lg:flex-row gap-12">
-          <div className="lg:w-36 flex-shrink-0">
-            <div className="lg:sticky lg:top-24">
-              <div className="font-mono text-xs text-data-grey/70 uppercase tracking-widest mb-3">Year</div>
-              <div className="space-y-1">
-                {yearOptions.map((yr) => (
-                  <button
-                    key={yr}
-                    onClick={() => setActiveYear(yr)}
-                    className={`block w-full text-left font-mono text-sm px-3 py-1.5 rounded-lg transition-all ${
-                      activeYear === yr
-                        ? 'bg-inkwell text-white font-medium'
-                        : 'text-data-grey hover:text-inkwell hover:bg-inkwell/5'
-                    }`}
-                  >
-                    {yr}
-                  </button>
-                ))}
-              </div>
+            <div className="flex flex-col lg:flex-row gap-12 items-start">
+            <div className="hidden lg:block w-36 flex-shrink-0 sticky top-32 self-start">
+                <div>
+                <div className="font-mono text-xs text-data-grey/70 uppercase tracking-widest mb-3">Year</div>
+                <div className="space-y-1">
+                    {yearOptions.map((yr) => (
+                    <button
+                        key={yr}
+                        onClick={() => handleScrollToGroup(yr)}
+                        className={`block w-full text-left font-mono text-sm px-3 py-1.5 rounded-lg transition-all ${
+                        activeYear === yr
+                            ? 'bg-inkwell text-white font-medium'
+                            : 'text-data-grey hover:text-inkwell hover:bg-inkwell/5'
+                        }`}
+                    >
+                        {yr}
+                    </button>
+                    ))}
+                </div>
+                </div>
             </div>
-          </div>
 
-          <div className="flex-1 min-w-0">
-            {filtered.length === 0 ? (
-              <div className="text-data-grey font-mono text-sm py-12 text-center">
-                No publications found.
-              </div>
-            ) : (
-              <div className="overflow-y-auto max-h-[600px] pr-3 scrollbar-thin" style={{ scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' }}>
-                {filtered.map((pub) => (
-                  <PublicationRow key={pub.key} pub={pub} />
-                ))}
-              </div>
-            )}
-          </div>
+            <div className="flex-1 min-w-0">
+                {processedPubs.length === 0 ? (
+                <div className="text-data-grey font-mono text-sm py-12 text-center">
+                    No publications found.
+                </div>
+                ) : (
+                <div className="space-y-2">
+                    {processedPubs.map((pub) => (
+                    <div 
+                        key={pub.key} 
+                        id={pub.isFirstInGroup ? `group-${pub.group.replace(/\s+/g, '-')}` : undefined}
+                    >
+                        <PublicationRow pub={pub} />
+                    </div>
+                    ))}
+                </div>
+                )}
+            </div>
+            </div>
         </div>
-        <div className="mt-10 flex justify-center">
-          <Link
-            to="/publications"
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-border-light text-sm font-medium text-data-grey hover:text-inkwell hover:border-inkwell/30 transition-all"
-          >
-            View Full Publication List <ArrowRight size={15} />
-          </Link>
-        </div>
-      </div>
-    </section>
+      </main>
+    </div>
   );
 }
