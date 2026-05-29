@@ -44,7 +44,7 @@ const currentMembers = [
     // twitter: '#',
     // linkedin: '#',
     website: 'https://scholar.google.com/citations?user=vxqpWKUAAAAJ',
-    remarks: <ParseMarkdown text='Co-advised with [Muhan Zhang](https://muhanzhang.github.io/).'/>
+    remarks: <ParseMarkdown text='Co-advised with [Muhan Zhang](https://muhanzhang.github.io/)'/>
   },
   {
     name: 'Kodai Kawamura',
@@ -55,7 +55,7 @@ const currentMembers = [
     // twitter: '#',
     linkedin: 'https://www.linkedin.com/in/kodai-kawamura-498b75251/',
     website: 'https://kodaikawamura.github.io/kodaikawamura/',
-    remarks: <ParseMarkdown text='Co-advised with [Kenji Kawaguchi](https://www.comp.nus.edu.sg/cs/people/kenji/).'/>
+    remarks: <ParseMarkdown text='Co-advised with [Kenji Kawaguchi](https://www.comp.nus.edu.sg/cs/people/kenji/)'/>
   },
   {
     name: 'Zak Guang Hong Tng',
@@ -84,7 +84,7 @@ const alumni = [
     name: 'Anabel Yong',
     role: 'Intern 2026',
     placement: 'PhD Student at EPFL',
-    topic: 'Topic: Probabilistic Circuit parameter learning.',
+    topic: 'Topic: Probabilistic Circuit parameter learning',
     website: 'https://anabelyong.github.io/',
   },
 ];
