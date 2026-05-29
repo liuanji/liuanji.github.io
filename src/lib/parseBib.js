@@ -56,14 +56,18 @@ export function parseBib(bibText) {
     const noteRaw = get('note');
     const projectMatch = noteRaw.match(/project_url=(\S+)/);
     const project_url = projectMatch ? projectMatch[1] : '';
+    const selected = get('selected').toLowerCase() === 'true';
 
     let bibtex = match[0].trim();
     if (!bibtex.endsWith('}')) {
       const lastBrace = bibtex.lastIndexOf('}');
       if (lastBrace !== -1) bibtex = bibtex.substring(0, lastBrace + 1);
     }
+    bibtex = bibtex.replace(/\s*(selected|highlight)\s*=\s*(?:\{[\s\S]*?\}|"[^"]*"|[^,}\s]+)\s*,?/gi, '');
+    bibtex = bibtex.replace(/,\s*\}/g, '\n}');
+    bibtex = bibtex.replace(/\n\s*\n/g, '\n');
 
-    entries.push({ key, title, authors, venue, year, highlight, pdf_url, project_url, bibtex });
+    entries.push({ key, title, authors, venue, year, highlight, pdf_url, project_url, bibtex, selected });
   }
 
   entries.sort((a, b) => b.year - a.year);
