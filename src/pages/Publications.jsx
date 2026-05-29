@@ -103,7 +103,7 @@ function PublicationRow({ pub }) {
 
   return (
     <div className="pub-row px-0 py-5">
-      <div className="flex gap-6 items-start">
+      <div className="flex gap-3 sm:gap-6 items-start">
         <div className="font-mono text-sm text-data-grey/60 w-12 flex-shrink-0 pt-0.5">
           {pub.year}
         </div>
@@ -157,7 +157,7 @@ function PublicationRow({ pub }) {
             )}
           </div>
           {showBibtex && (
-            <pre className="mt-2 p-3 bg-inkwell/3 rounded-lg font-mono text-xs text-data-grey whitespace-pre-wrap leading-relaxed border border-border-light">
+            <pre className="mt-2 p-3 bg-inkwell/3 rounded-lg font-mono text-xs text-data-grey whitespace-pre-wrap break-all overflow-x-auto leading-relaxed border border-border-light">
               {pub.bibtex}
             </pre>
           )}
@@ -251,7 +251,7 @@ export default function Publications() {
     <div className="bg-paper min-h-screen page-enter">
       <GhostNav />
       <main className="pt-24 pb-28">
-        <div className="max-w-6xl mx-auto px-8">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
             <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
