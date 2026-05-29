@@ -298,7 +298,7 @@ export default function Publications() {
                     No publications found.
                 </div>
                 ) : (
-                <div className="space-y-2">
+                <div className="overflow-y-auto pr-3">
                     {processedPubs.map((pub) => (
                     <div 
                         key={pub.key} 
