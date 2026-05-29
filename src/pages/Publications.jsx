@@ -270,7 +270,7 @@ export default function Publications() {
             </p>
             </motion.div>
 
-            <div className="flex flex-col lg:flex-row gap-12 items-start">
+            <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 w-full">
             <div className="hidden lg:block w-36 flex-shrink-0 sticky top-32 self-start">
                 <div>
                 <div className="font-mono text-xs text-data-grey/70 uppercase tracking-widest mb-3">Year</div>
