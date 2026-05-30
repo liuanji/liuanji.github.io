@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 const navLinksPI = [
   { label: 'About', href: '#about' },
-  { label: 'Group', href: '/group', isPage: true },
+  { label: 'Lab', href: '/group', isPage: true },
   { label: 'Research', href: '#research-direction' },
   { label: 'News', href: '#news' },
   { label: 'Publications', href: '/publications', isPage: true },
@@ -13,7 +13,7 @@ const navLinksPI = [
 
 const navLinksGroup = [
   { label: 'Director', href: '#about' },
-  { label: 'Group', href: '/group', isPage: true },
+  { label: 'Lab', href: '/group', isPage: true },
   { label: 'Research', href: '#research-direction' },
   { label: 'News', href: '#news' },
   { label: 'Publications', href: '/publications', isPage: true },

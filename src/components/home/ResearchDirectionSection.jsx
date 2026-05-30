@@ -3,7 +3,7 @@ import { ParseMarkdown } from '../../lib/utils';
 
 // Edit these paragraphs to describe your research direction
 const paragraphs = [
-  <ParseMarkdown text="My [group](/group)'s research is driven by a fundamental question: **is making generative AI increasingly expressive sufficient?**
+  <ParseMarkdown text="My [lab](/group)'s research is driven by a fundamental question: **is making generative AI increasingly expressive sufficient?**
    While scaling models and curating massive datasets has led to tremendous success, 
    current AI systems still exhibit critical flaws: they hallucinate, 
    fail to follow simple instructions, and rely on opaque reasoning logic." target="_self"/>,
