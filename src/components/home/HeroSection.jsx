@@ -59,10 +59,11 @@ export default function HeroSection() {
               I build generative AI with sound reasoning.
             </p>
             <p className="text-base text-data-grey leading-relaxed mb-4 max-w-xl">
+              <ParseMarkdown text="I'm an Assistant Professor at [NUS School of Computing](https://www.comp.nus.edu.sg/). "/>
               My research focuses on building reliable, mathematically grounded generative AI.
               I integrate the expressiveness of deep generative models with the rigor of probabilistic reasoning. 
               <ParseMarkdown text=" My work spans designing scalable architectures for exact inference, developing efficient [systems](https://github.com/Tractables/pyjuice) to support them, "/>
-              and applying these models to reasoning-intensive tasks, ranging from controllable generation to reliable decision-making.
+              and applying these models to reasoning-intensive tasks.
             </p>
 
             {/* Social links */}
