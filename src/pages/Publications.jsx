@@ -12,16 +12,48 @@ const publications = parseBib(bibRaw);
 
 function SmartAuthorList({ authorsStr }) {
   const containerRef = useRef(null);
-  const fullTextRef = useRef(null);
-  const [shouldTruncate, setShouldTruncate] = useState(false);
+  const combinationsRef = useRef([]);
+  
+  const authorArray = authorsStr.split(',').map((a) => a.trim());
+  const totalAuthors = authorArray.length;
+  
+  // 1. Identify indices we absolutely must show
+  const myIndex = authorArray.findIndex((a) => a.includes(MY_NAME) || a.includes('A. Chen'));
+  const mandatoryIndices = new Set([0]); // Always show first author
+  
+  if (totalAuthors > 0) {
+    mandatoryIndices.add(totalAuthors - 1); // Always show last author
+  }
+
+  if (myIndex !== -1) {
+    mandatoryIndices.add(myIndex); // Always show you
+    
+    // If you are among the last three authors, reveal all of the last three.
+    // This prevents awkward single-author ellipsis gaps at the end.
+    if (myIndex >= totalAuthors - 3) {
+      if (totalAuthors - 2 > 0) mandatoryIndices.add(totalAuthors - 2);
+      if (totalAuthors - 3 > 0) mandatoryIndices.add(totalAuthors - 3);
+    }
+  }
+  
+  const minCapacity = mandatoryIndices.size;
+  const [optimalCapacity, setOptimalCapacity] = useState(totalAuthors);
 
   useEffect(() => {
     const checkWidth = () => {
-      if (containerRef.current && fullTextRef.current) {
-        const containerWidth = containerRef.current.clientWidth;
-        const fullTextWidth = fullTextRef.current.scrollWidth;
-        setShouldTruncate(fullTextWidth > containerWidth + 5);
+      if (!containerRef.current) return;
+      const containerWidth = containerRef.current.clientWidth;
+      
+      // Loop backwards from total to min capacity, finding the largest that fits
+      let bestCapacity = minCapacity;
+      for (let c = totalAuthors; c >= minCapacity; c--) {
+        const el = combinationsRef.current[c];
+        if (el && el.scrollWidth <= containerWidth + 5) { // +5px buffer
+          bestCapacity = c;
+          break;
+        }
       }
+      setOptimalCapacity(bestCapacity);
     };
 
     const observer = new ResizeObserver(checkWidth);
@@ -31,10 +63,8 @@ function SmartAuthorList({ authorsStr }) {
     
     checkWidth();
     return () => observer.disconnect();
-  }, [authorsStr]);
+  }, [authorsStr, totalAuthors, minCapacity]);
 
-  const authorArray = authorsStr.split(',').map((a) => a.trim());
-  
   const renderAuthor = (text, key) => {
     const isMe = text.includes(MY_NAME) || text.includes('A. Chen');
     return (
@@ -47,52 +77,69 @@ function SmartAuthorList({ authorsStr }) {
   const dots = (key) => <span key={key} className="text-data-grey">, ..., </span>;
   const comma = (key) => <span key={key} className="text-data-grey">, </span>;
 
-  const buildList = (truncate) => {
-    if (!truncate || authorArray.length <= 3) {
+  // 2. Build the array of elements based on a specific capacity limit
+  const buildList = (capacity) => {
+    if (capacity >= totalAuthors) {
       return authorArray.map((author, i) => (
         <span key={`full-${i}`}>
           {renderAuthor(author, `fa-${i}`)}
-          {i < authorArray.length - 1 && comma(`fc-${i}`)}
+          {i < totalAuthors - 1 && comma(`fc-${i}`)}
         </span>
       ));
     }
 
-    const myIndex = authorArray.findIndex((a) => a.includes(MY_NAME) || a.includes('A. Chen'));
+    // Start with mandatory elements, fill the rest with authors from the beginning
+    const selected = new Set(mandatoryIndices);
+    let currentIdx = 1;
+    
+    while (selected.size < capacity && currentIdx < totalAuthors) {
+      selected.add(currentIdx);
+      currentIdx++;
+    }
+
+    // Sort to maintain correct order sequence
+    const sortedIndices = Array.from(selected).sort((a, b) => a - b);
     const result = [];
 
-    if (myIndex <= 1 || myIndex === -1) {
-      result.push(renderAuthor(authorArray[0], 'start-0'));
-      result.push(comma('c1'));
-      result.push(renderAuthor(authorArray[1], 'start-1'));
-      result.push(dots('d1'));
-      result.push(renderAuthor(authorArray[authorArray.length - 1], 'end'));
-    } else if (myIndex >= authorArray.length - 2) {
-      result.push(renderAuthor(authorArray[0], 'start-0'));
-      result.push(dots('d1'));
-      result.push(renderAuthor(authorArray[authorArray.length - 2], 'end-2'));
-      result.push(comma('c1'));
-      result.push(renderAuthor(authorArray[authorArray.length - 1], 'end-1'));
-    } else {
-      result.push(renderAuthor(authorArray[0], 'start-0'));
-      result.push(dots('d1'));
-      result.push(renderAuthor(authorArray[myIndex], 'mid'));
-      result.push(dots('d2'));
-      result.push(renderAuthor(authorArray[authorArray.length - 1], 'end'));
+    for (let i = 0; i < sortedIndices.length; i++) {
+      const idx = sortedIndices[i];
+      result.push(renderAuthor(authorArray[idx], `a-${idx}`));
+
+      // Check if we need a comma or an ellipsis between this item and the next
+      if (i < sortedIndices.length - 1) {
+        const nextIdx = sortedIndices[i + 1];
+        if (nextIdx === idx + 1) {
+          result.push(comma(`c-${idx}`));
+        } else {
+          result.push(dots(`d-${idx}`));
+        }
+      }
     }
+
     return result;
   };
 
   return (
     <div ref={containerRef} className="relative w-full overflow-hidden">
+      {/* 3. Invisible track rendering ALL valid configurations to measure their max width */}
       <div 
-        ref={fullTextRef} 
-        className="absolute top-0 left-0 opacity-0 pointer-events-none whitespace-nowrap"
+        className="absolute top-0 left-0 opacity-0 pointer-events-none"
         aria-hidden="true"
       >
-        {buildList(false)}
+        {Array.from({ length: totalAuthors - minCapacity + 1 }, (_, i) => i + minCapacity).map(c => (
+          <div 
+            key={`measure-${c}`} 
+            ref={el => combinationsRef.current[c] = el} 
+            className="whitespace-nowrap w-max"
+          >
+            {buildList(c)}
+          </div>
+        ))}
       </div>
-      <div className="relative truncate">
-        {buildList(shouldTruncate)}
+      
+      {/* 4. Visible element rendering only the optimal calculated fit */}
+      <div className="relative truncate whitespace-nowrap w-full">
+        {buildList(optimalCapacity)}
       </div>
     </div>
   );
