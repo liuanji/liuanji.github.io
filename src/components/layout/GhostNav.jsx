@@ -46,7 +46,7 @@ export default function GhostNav() {
         
         {/* Name and Mini Logo Container */}
         <Link
-          to="/"
+          to={isGroup ? '/group' : '/'}
           onClick={() => setMobileMenuOpen(false)}
           className="flex items-center gap-2 group hover:opacity-80 transition-opacity"
         >
