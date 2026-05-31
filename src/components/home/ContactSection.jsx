@@ -25,13 +25,14 @@ export default function ContactSection() {
             <div className="space-y-4">
               {[
                 { icon: Mail, label: 'anjiliu [at] nus.edu.sg', href: 'mailto:anjiliu@nus.edu.sg' },
-                { icon: MapPin, label: 'COM2-03-51, 15 Computing Dr, Singapore', href: '#' },
-                { icon: FaXTwitter, label: '@liu_anji', href: '#' },
-                { icon: FaGithub, label: 'github.com/liuanji', href: '#' },
+                { icon: MapPin, label: 'COM2-03-51, 15 Computing Dr, Singapore', href: 'https://maps.app.goo.gl/B8cNrgw4k1tZsJ3f6' },
+                { icon: FaXTwitter, label: '@liu_anji', href: 'https://x.com/liu_anji' },
+                { icon: FaGithub, label: 'github.com/liuanji', href: 'https://github.com/liuanji' },
               ].map(({ icon: Icon, label, href }) => (
                 <a
                   key={label}
                   href={href}
+                  target={label === 'Email' ? '_self' : '_blank'}
                   className="flex items-center gap-4 text-sm text-data-grey hover:text-synapse transition-colors group"
                 >
                   <div className="w-9 h-9 rounded-xl bg-inkwell/5 flex items-center justify-center group-hover:bg-synapse/10 transition-colors">
