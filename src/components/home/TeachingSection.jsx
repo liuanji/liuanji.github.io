@@ -76,7 +76,7 @@ export default function TeachingSection() {
 
         <div className="mt-10 flex justify-center">
           <Link
-            to="/courses"
+            to="/teaching"
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-border-light text-sm font-medium text-data-grey hover:text-inkwell hover:border-inkwell/30 transition-all"
           >
             View All Courses <ArrowRight size={15} />
