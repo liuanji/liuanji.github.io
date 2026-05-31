@@ -220,7 +220,7 @@ Error generating stack: `+f.message+`
   author={Kaichen He and Zihao Wang and Muyao Li and Anji Liu and Yitao Liang},
   booktitle={The IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
   year={2026},
-  highlight={Highlight},
+  highlight={Highlight (top 3.6%)},
   url={https://arxiv.org/pdf/2512.09706}
 }
 
