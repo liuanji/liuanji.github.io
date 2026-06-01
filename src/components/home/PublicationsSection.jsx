@@ -103,11 +103,11 @@ function SmartAuthorList({ authorsStr }) {
   );
 }
 
-function PublicationRow({ pub }) {
+function PublicationRow({ pub, id }) {
   const [showBibtex, setShowBibtex] = useState(false);
 
   return (
-    <div className="pub-row px-0 py-5">
+    <div id={id} className="pub-row px-0 py-5">
       <div className="flex gap-6 items-start">
         <div className="font-mono text-sm text-data-grey/60 w-12 flex-shrink-0 pt-0.5">
           {pub.year}
@@ -179,6 +179,7 @@ export default function PublicationsSection() {
   }, []);
 
   const [activeYear, setActiveYear] = useState('All');
+  const scrollContainerRef = useRef(null);
 
   const { recentYears, cutoffYear, hasOlderYears } = useMemo(() => {
     // Note: ensure you are using selectedPubs or publications based on your file
@@ -203,11 +204,52 @@ export default function PublicationsSection() {
     ...(hasOlderYears ? [`Before ${cutoffYear}`] : [])
   ];
 
-  const filtered = useMemo(() => {
-    if (activeYear === 'All') return selectedPubs;
-    if (activeYear === `Before ${cutoffYear}`) return selectedPubs.filter(p => p.year < cutoffYear);
-    return selectedPubs.filter(p => String(p.year) === activeYear);
-  }, [activeYear, cutoffYear]);
+  const processedPubs = useMemo(() => {
+    const seenGroups = new Set();
+    return selectedPubs.map((pub) => {
+      const group = Number(pub.year) >= cutoffYear ? String(pub.year) : `Before ${cutoffYear}`;
+      const isFirstInGroup = !seenGroups.has(group);
+      seenGroups.add(group);
+      return { ...pub, group, isFirstInGroup };
+    });
+  }, [selectedPubs, cutoffYear]);
+
+  const handleScrollToGroup = (yr) => {
+    setActiveYear(yr);
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    if (yr === 'All') {
+      container.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    const el = container.querySelector(`#home-group-${yr.replace(/\s+/g, '-')}`);
+    if (el) {
+      const top = el.getBoundingClientRect().top
+        - container.getBoundingClientRect().top
+        + container.scrollTop;
+      container.scrollTo({ top, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      const containerTop = container.getBoundingClientRect().top;
+      const offset = 24; // px below container top to count a group as active
+      let currentActive = 'All';
+      for (const yr of yearOptions.slice(1)) {
+        const el = container.querySelector(`#home-group-${yr.replace(/\s+/g, '-')}`);
+        if (el && el.getBoundingClientRect().top - containerTop <= offset) {
+          currentActive = yr;
+        }
+      }
+      if (container.scrollTop < 8) currentActive = 'All';
+      setActiveYear((prev) => (prev !== currentActive ? currentActive : prev));
+    };
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [yearOptions]);
 
   return (
     <section id="publications" className="py-16" style={{ background: '#F8FAFC' }}>
@@ -233,7 +275,7 @@ export default function PublicationsSection() {
                 {yearOptions.map((yr) => (
                   <button
                     key={yr}
-                    onClick={() => setActiveYear(yr)}
+                    onClick={() => handleScrollToGroup(yr)}
                     className={`block w-full text-left font-mono text-sm px-3 py-1.5 rounded-lg transition-all ${
                       activeYear === yr
                         ? 'bg-inkwell text-white font-medium'
@@ -248,14 +290,18 @@ export default function PublicationsSection() {
           </div>
 
           <div className="flex-1 min-w-0">
-            {filtered.length === 0 ? (
+            {processedPubs.length === 0 ? (
               <div className="text-data-grey font-mono text-sm py-12 text-center">
                 No publications found.
               </div>
             ) : (
-              <div className="overflow-y-auto max-h-[600px] pr-3 scrollbar-thin" style={{ scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' }}>
-                {filtered.map((pub) => (
-                  <PublicationRow key={pub.key} pub={pub} />
+              <div ref={scrollContainerRef} className="overflow-y-auto max-h-[600px] pr-3 scrollbar-thin" style={{ scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' }}>
+                {processedPubs.map((pub) => (
+                  <PublicationRow
+                    key={pub.key}
+                    pub={pub}
+                    id={pub.isFirstInGroup ? `home-group-${pub.group.replace(/\s+/g, '-')}` : undefined}
+                  />
                 ))}
               </div>
             )}
