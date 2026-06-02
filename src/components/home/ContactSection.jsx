@@ -4,7 +4,7 @@ import { FaXTwitter, FaGithub } from 'react-icons/fa6';
 
 export default function ContactSection() {
   return (
-    <section id="contact" className="py-20" style={{ background: '#F8FAFC' }}>
+    <section id="contact" className="py-20 scroll-mt-[-80px]" style={{ background: '#F8FAFC' }}>
       <div className="max-w-6xl mx-auto px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
           <motion.div

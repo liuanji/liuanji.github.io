@@ -40,7 +40,7 @@ const paragraphs = [
 
 export default function ResearchDirectionSection() {
   return (
-    <section id="research-direction" className="pt-10 pb-16 bg-paper">
+    <section id="research-direction" className="pt-10 pb-16 bg-paper scroll-mt-[140px]">
       <div className="max-w-6xl mx-auto px-8">
         <div className="font-mono text-xs text-data-grey/70 uppercase tracking-widest mb-6">
           Research Directions

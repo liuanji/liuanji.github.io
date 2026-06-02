@@ -61,6 +61,9 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    scroll-padding-top: 80px; /* 64px sticky nav (h-16) + breathing room */
+  }
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
