@@ -17,11 +17,20 @@ const PI = {
 
 const currentMembers = [
   {
+    name: 'Khang Nhat Hoang Vo',
+    role: 'Visiting PhD Student',
+    year: '',
+    photo: '/photos/khang.jpg',
+    interests: 'Multi-modal LLM, Uncertainty Quantification',
+    linkedin: 'https://www.linkedin.com/in/khangchris/',
+    website: 'https://nhatkhangcs.github.io/',
+  },
+  {
     name: 'Nahyeon Park',
     role: 'Visiting PhD Student',
     year: '',
     photo: '/photos/nahyeon.jpg',
-    interests: '',
+    interests: 'Interpretability, LLM Reasoning',
     linkedin: 'https://www.linkedin.com/in/katynahyeonpark/',
     website: 'https://nahyeonkaty.github.io/',
   },
