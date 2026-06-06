@@ -17,6 +17,15 @@ const PI = {
 
 const currentMembers = [
   {
+    name: 'Nahyeon Park',
+    role: 'Visiting PhD Student',
+    year: '',
+    photo: '/photos/nahyeon.jpg',
+    interests: '',
+    linkedin: 'https://www.linkedin.com/in/katynahyeonpark/',
+    website: 'https://nahyeonkaty.github.io/',
+  },
+  {
     name: 'Vit Chun Yap',
     role: 'Research Assistant',
     year: '',
