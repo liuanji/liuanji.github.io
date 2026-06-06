@@ -24,6 +24,7 @@ const currentMembers = [
     interests: 'Multi-modal LLM, Uncertainty Quantification',
     linkedin: 'https://www.linkedin.com/in/khangchris/',
     website: 'https://nhatkhangcs.github.io/',
+    remarks: 'From MBZUAI',
   },
   {
     name: 'Nahyeon Park',
@@ -33,6 +34,7 @@ const currentMembers = [
     interests: 'Interpretability, LLM Reasoning',
     linkedin: 'https://www.linkedin.com/in/katynahyeonpark/',
     website: 'https://nahyeonkaty.github.io/',
+    remarks: 'From KAIST',
   },
   {
     name: 'Vit Chun Yap',
