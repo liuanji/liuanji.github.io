@@ -9,7 +9,7 @@ const PI = {
   name: 'Anji Liu',
   role: 'Principal Investigator',
   photo: '/photos/anji.png',
-  bio: 'Assistant Professor at NUS SoC.',
+  bio: 'Assistant Professor at NUS SoC',
   website: '/#',
   twitter: 'https://x.com/liu_anji',
   linkedin: 'https://linkedin.com/liuanji',
