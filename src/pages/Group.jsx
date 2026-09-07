@@ -17,6 +17,16 @@ const PI = {
 
 const currentMembers = [
   {
+    name: 'Jiayi Zhai',
+    role: 'Undergraduate Student',
+    year: '',
+    photo: '/photos/jiayi.jpeg',
+    interests: 'KV Compression',
+    linkedin: 'https://www.linkedin.com/in/jiayi-zhai-1945052a5/',
+    // website: '#',
+    // remarks: '',
+  },
+  {
     name: 'Khang Nhat Hoang Vo',
     role: 'Visiting PhD Student',
     year: '',
@@ -46,9 +56,19 @@ const currentMembers = [
     website: '#',
   },
   {
+    name: 'Hanzhen Zhao',
+    role: 'PhD Student',
+    year: '1st year',
+    photo: '/photos/default.jpg',
+    interests: 'Optimization',
+    // twitter: '#',
+    // linkedin: '#',
+    website: 'https://openreview.net/profile?id=%7EHanzhen_Zhao2',
+  },
+  {
     name: 'Zhiyu Zhao',
-    role: 'Research Assistant',
-    year: '',
+    role: 'PhD Student',
+    year: '1st year',
     photo: '/photos/zhiyu.jpg',
     interests: 'Reinforcement Learning, Probabilistic Inference',
     // twitter: '#',
@@ -65,6 +85,16 @@ const currentMembers = [
     // linkedin: '#',
     website: 'https://scholar.google.com/citations?user=vxqpWKUAAAAJ',
     remarks: <ParseMarkdown text='Co-advised with [Muhan Zhang](https://muhanzhang.github.io/)'/>
+  },
+  {
+    name: 'Kewei Lian',
+    role: 'PhD Student',
+    year: '1st year',
+    photo: '/photos/kewei.jpg',
+    interests: 'Probabilistic Inference',
+    // twitter: '#',
+    linkedin: 'https://www.linkedin.com/in/kewei-lian-1172b026a/',
+    website: 'https://kevin-lkw.github.io/',
   },
   {
     name: 'Kodai Kawamura',
@@ -86,16 +116,6 @@ const currentMembers = [
     // twitter: '#',
     linkedin: 'https://www.linkedin.com/in/zaktng/',
     // website: '#',
-  },
-  {
-    name: 'Kewei Lian',
-    role: 'PhD Student',
-    year: '1st year',
-    photo: '/photos/kewei.jpg',
-    interests: 'Probabilistic Inference',
-    // twitter: '#',
-    linkedin: 'https://www.linkedin.com/in/kewei-lian-1172b026a/',
-    website: 'https://kevin-lkw.github.io/',
   },
 ];
 

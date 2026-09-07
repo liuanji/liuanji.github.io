@@ -9,6 +9,11 @@ const MONTHS = [
 // Edit this array to update news items
 const newsItems = [
   {
+    month: 'July',
+    year: 2026,
+    text: <ParseMarkdown text="I gave a [talk](https://mp.weixin.qq.com/s/9hh9tOj8sTk-iRHvD5ssIQ) at HKUST(GZ) about "/>
+  }
+  {
     month: 'May',
     year: 2026,
     text: <ParseMarkdown text="I gave an oral presentation at [AISTATS 2026](https://virtual.aistats.org/virtual/2026/calendar) about an effective and scalable optimizer for Probabilistic Circuits. Check out our [paper](https://arxiv.org/pdf/2505.19982)!"/>
