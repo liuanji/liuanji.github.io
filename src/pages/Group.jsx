@@ -17,6 +17,16 @@ const PI = {
 
 const currentMembers = [
   {
+    name: 'Hua (Edward) Xu',
+    role: 'Intern',
+    year: '',
+    photo: '/photos/hua.jpg',
+    interests: 'Constrained Generation',
+    // linkedin: '',
+    website: 'https://hxu129.github.io/',
+    remarks: 'From HKUST(GZ)',
+  },
+  {
     name: 'Jiayi Zhai',
     role: 'Undergraduate Student',
     year: '',
