@@ -7,6 +7,10 @@ import time
 from dataclasses import dataclass
 
 
+# The owner of a GPU process that ps could not name, usually because it exited
+# between the two queries. It still makes its GPU busy but is never a user.
+UNKNOWN_USER = "unknown"
+
 GPU_MARKER = "__SERVERMONITOR_GPUS__"
 APP_MARKER = "__SERVERMONITOR_APPS__"
 USER_MARKER = "__SERVERMONITOR_USERS__"
@@ -213,7 +217,7 @@ def parse_collector_output(host: str, output: str, sampled_at: int, duration_ms:
             ProcessStat(
                 gpu_uuid=uuid,
                 pid=pid,
-                username=users.get(pid, "unknown"),
+                username=users.get(pid, UNKNOWN_USER),
                 process_name=",".join(row[2:-1]).strip(),
                 used_memory_mb=float(_number(row[-1]) or 0),
             )

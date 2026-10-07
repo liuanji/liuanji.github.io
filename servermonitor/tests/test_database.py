@@ -143,6 +143,32 @@ class DatabaseTest(unittest.TestCase):
         limits = [gpu["power_limit_w"] for gpu in overview["hosts"][0]["gpus"]]
         self.assertEqual(limits, [600.0, None])
 
+    def test_unknown_owner_keeps_gpu_busy_but_is_never_a_user(self) -> None:
+        def result(timestamp: int) -> CollectionResult:
+            return replace(
+                successful_result(timestamp),
+                processes=(
+                    ProcessStat("GPU-a", 10, "alice", "python", 1000),
+                    ProcessStat("GPU-b", 12, "unknown", "python", 500),
+                ),
+            )
+
+        self.database.save(result(1_700_000_000))
+        self.database.save(result(1_700_000_060))
+        # Rows credited to "unknown" before it was excluded stay out of rankings.
+        with self.database.connect() as connection:
+            connection.execute(
+                "INSERT INTO user_minute VALUES (?, 'brezel', 'unknown', 60, 500, 0)",
+                (1_700_000_000,),
+            )
+
+        overview = self.database.overview(("brezel",), stale_after_seconds=180, now=1_700_000_090)
+        gpu_b = overview["hosts"][0]["gpus"][1]
+        self.assertTrue(gpu_b["busy"])
+        self.assertEqual(gpu_b["users"], [])
+        users = self.database.user_summary(1_699_999_000, 1_700_000_090)
+        self.assertEqual([user["username"] for user in users], ["alice"])
+
     def test_disks_keep_only_the_latest_successful_check(self) -> None:
         def check(checked_at: int, used: int, success: bool = True) -> DiskResult:
             disks = (DiskStat("/scratch2", 1000, used, 1000 - used), DiskStat("/scratch1", 100, 10, 90))

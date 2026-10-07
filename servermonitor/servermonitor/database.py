@@ -9,7 +9,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-from .collector import CollectionResult, DiskResult, GPUStat, ProcessStat
+from .collector import UNKNOWN_USER, CollectionResult, DiskResult, GPUStat, ProcessStat
 
 
 BUSY_MEMORY_THRESHOLD_MB = 100
@@ -476,7 +476,8 @@ class Database:
         gpus = {gpu.uuid: gpu for gpu in result.gpus}
         per_gpu_user: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
         for process in result.processes:
-            per_gpu_user[process.gpu_uuid][process.username] += process.used_memory_mb
+            if process.username != UNKNOWN_USER:
+                per_gpu_user[process.gpu_uuid][process.username] += process.used_memory_mb
 
         # Per second of the interval: GPUs in use, MB of memory, and
         # load-weighted GPUs, split by memory share when users share a GPU.
@@ -653,7 +654,8 @@ class Database:
                 processes = processes_by_gpu[gpu["uuid"]]
                 users: dict[str, float] = defaultdict(float)
                 for process in processes:
-                    users[process["username"]] += process["used_memory_mb"]
+                    if process["username"] != UNKNOWN_USER:
+                        users[process["username"]] += process["used_memory_mb"]
                 gpu_items.append(
                     {
                         "index": gpu["index"],
@@ -778,11 +780,11 @@ class Database:
                        SUM(memory_mb_seconds * {weight}) AS memory_mb_seconds,
                        SUM(weighted_gpu_seconds * {weight}) AS weighted_seconds
                 FROM {tier.user_table}
-                WHERE {where}
+                WHERE {where} AND username != ?
                 GROUP BY username, host
                 ORDER BY active_seconds DESC
                 """,
-                params,
+                [*params, UNKNOWN_USER],
             ).fetchall()
 
         users: dict[str, dict[str, Any]] = {}
