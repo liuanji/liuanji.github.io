@@ -88,6 +88,8 @@ def public_uptime(
         "generated_at": now,
         "range": name,
         "bar_seconds": bar_seconds,
+        # Day and week bars run midnight to midnight at this offset from UTC.
+        "utc_offset": utc_offset,
         "start": start,
         "end": start + bar_seconds * bars,
         "hosts": database.availability(settings.hosts, start, bar_seconds, bars),

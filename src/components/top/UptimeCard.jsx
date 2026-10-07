@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { HOST_STATUS, UPTIME_STATES } from './config';
-import { formatBar, formatBarLength, formatDuration, formatUptime, uptimeState } from './format';
+import {
+  formatBar,
+  formatBarLength,
+  formatDuration,
+  formatUptime,
+  formatUtcOffset,
+  sharesServerDays,
+  uptimeState,
+} from './format';
 
 const LEGEND = ['up', 'partial', 'down', 'none'];
 
@@ -8,8 +16,8 @@ function sum(values) {
   return values.reduce((total, value) => total + value, 0);
 }
 
-function describeBar(start, barSeconds, checked, down) {
-  const when = formatBar(start, barSeconds);
+function describeBar(start, barSeconds, utcOffset, checked, down) {
+  const when = formatBar(start, barSeconds, utcOffset);
   if (!checked) return `${when} · no data`;
   if (!down) return `${when} · up the whole time`;
   return `${when} · ${formatUptime(checked, down)} up · down ${formatDuration(down)}`;
@@ -99,6 +107,7 @@ function UptimeRow({ series, status, uptime, rangeAgo }) {
             {describeBar(
               uptime.start + active * uptime.bar_seconds,
               uptime.bar_seconds,
+              uptime.utc_offset,
               series.checked[active],
               series.down[active],
             )}
@@ -112,6 +121,8 @@ function UptimeRow({ series, status, uptime, rangeAgo }) {
 export default function UptimeCard({ uptime, hosts, range }) {
   const statuses = Object.fromEntries(hosts.map((host) => [host.name, host.status]));
   const rows = uptime.hosts.filter((series) => series.name in statuses);
+  // Day and week bars follow the servers' midnight; say so to viewers elsewhere.
+  const foreignDays = uptime.bar_seconds >= 86400 && !sharesServerDays(uptime.end, uptime.utc_offset);
   return (
     <div className="bg-white rounded-2xl border border-border-light">
       <div className="flex flex-col gap-3 border-b border-border-light px-6 pb-4 pt-5 sm:flex-row sm:items-start sm:justify-between">
@@ -119,6 +130,7 @@ export default function UptimeCard({ uptime, hosts, range }) {
           <h3 className="font-tight font-semibold text-lg text-inkwell">Availability</h3>
           <p className="mt-0.5 text-xs text-data-grey">
             {range.title} · each bar is {formatBarLength(uptime.bar_seconds)}
+            {foreignDays && `, midnight to midnight ${formatUtcOffset(uptime.utc_offset)}`}
           </p>
         </div>
         <ul className="flex flex-wrap gap-x-4 gap-y-1">

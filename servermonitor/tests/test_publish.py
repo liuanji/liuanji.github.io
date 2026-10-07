@@ -67,6 +67,7 @@ class PublishTest(unittest.TestCase):
         uptime = build_files(self.settings, self.database, now=self.start + 120, utc_offset=0)["uptime-1h"]
 
         self.assertEqual((uptime["bar_seconds"], len(uptime["hosts"][0]["checked"])), (60, 60))
+        self.assertEqual(uptime["utc_offset"], 0)
         brezel, toast = uptime["hosts"]
         self.assertEqual(brezel["name"], "brezel")
         # The first check counts one interval, each later one the time since the last.

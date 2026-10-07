@@ -88,8 +88,24 @@ export function formatUptime(checkedSeconds, downSeconds) {
   return `${percent.toFixed(2)}%`;
 }
 
-// The span one availability bar covers, e.g. "21:34", "Tue 7 Oct" or "1 Oct – 7 Oct".
-export function formatBar(start, barSeconds) {
+// Whether midnight on the server's clock (utcOffset seconds east of UTC) is
+// midnight for this viewer too at that moment.
+export function sharesServerDays(timestamp, utcOffset) {
+  return utcOffset == null || -new Date(timestamp * 1000).getTimezoneOffset() * 60 === utcOffset;
+}
+
+// "UTC+8", "UTC-3:30".
+export function formatUtcOffset(seconds) {
+  const sign = seconds < 0 ? '-' : '+';
+  const minutes = Math.abs(seconds) / 60;
+  const rest = minutes % 60;
+  return `UTC${sign}${Math.floor(minutes / 60)}${rest ? `:${String(rest).padStart(2, '0')}` : ''}`;
+}
+
+// The span one availability bar covers, in the viewer's time zone: "21:34",
+// "Tue 7 Oct", "1 Oct – 7 Oct", or, for day and week bars cut on another time
+// zone's midnight, "6 Oct, 17:00 – 7 Oct, 17:00".
+export function formatBar(start, barSeconds, utcOffset) {
   const from = new Date(start * 1000);
   const to = new Date((start + barSeconds) * 1000);
   if (barSeconds <= 60) return clock.format(from);
@@ -97,6 +113,7 @@ export function formatBar(start, barSeconds) {
     const span = `${clock.format(from)}–${clock.format(to)}`;
     return barSeconds < 3600 ? span : `${day.format(from)}, ${span}`;
   }
+  if (!sharesServerDays(start, utcOffset)) return `${dayAndClock.format(from)} – ${dayAndClock.format(to)}`;
   if (barSeconds === 86400) return weekday.format(from);
   return `${day.format(from)} – ${day.format(new Date((start + barSeconds - 1) * 1000))}`;
 }
