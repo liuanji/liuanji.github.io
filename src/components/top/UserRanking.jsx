@@ -28,9 +28,7 @@ export default function UserRanking({ users, rangeTitle, showHosts }) {
     <div className="bg-white rounded-2xl border border-border-light overflow-hidden">
       <div className="border-b border-border-light px-6 pb-4 pt-5">
         <h3 className="font-tight font-semibold text-lg text-inkwell">GPU time by user</h3>
-        <p className="mt-0.5 text-xs text-data-grey">
-          {rangeTitle} · GPU-hours count each GPU a user had a process on
-        </p>
+        <p className="mt-0.5 text-xs text-data-grey">{rangeTitle}</p>
       </div>
       {users.length ? (
         <div className="overflow-x-auto">
