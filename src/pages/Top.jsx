@@ -55,7 +55,6 @@ function Freshness({ overview, now }) {
       <LiveDot color={state.color} pulse={state.label === 'Live'} />
       <span className="text-inkwell">{state.label}</span>
       <span>· updated {formatAgo(age)}</span>
-      <span className="text-data-grey/60">· sampled every {overview.data.interval_seconds} s</span>
     </div>
   );
 }
