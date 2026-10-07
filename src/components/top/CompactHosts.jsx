@@ -401,7 +401,7 @@ function ChipGlyph({ share, color, size = 26 }) {
 // idle or when the viewer prefers reduced motion), its eight memory chips fill
 // with memory in use, and gold contacts run along the bottom.
 function GpuGlyph({ compute, memory, width = 116 }) {
-  const fan = { x: 15.5, y: 13, radius: 8.4 };
+  const fan = { x: 13.5, y: 13, radius: 8.4 };
   const circumference = 2 * Math.PI * fan.radius;
   const load = Math.min(1, Math.max(0, compute));
   const arc = load * circumference;
@@ -447,13 +447,13 @@ function GpuGlyph({ compute, memory, width = 116 }) {
         const amount = Math.min(1, Math.max(0, filled - index));
         // The chips keep the same margin from the card's right edge as the fan
         // does from its left.
-        const x = 28.6 + (index % 4) * 6.8;
+        const x = 28.75 + (index % 4) * 7.2;
         const y = 5 + Math.floor(index / 4) * 8.6;
         return (
           <g key={index}>
-            <rect x={x} y={y} width="5.2" height="6.4" rx="0.8" fill={GLYPH.unlit} />
+            <rect x={x} y={y} width="5.6" height="6.4" rx="0.8" fill={GLYPH.unlit} />
             {amount > 0 && (
-              <rect x={x} y={y} width={5.2 * amount} height="6.4" rx="0.8" fill={RING_SERIES.memory.color} />
+              <rect x={x} y={y} width={5.6 * amount} height="6.4" rx="0.8" fill={RING_SERIES.memory.color} />
             )}
           </g>
         );
