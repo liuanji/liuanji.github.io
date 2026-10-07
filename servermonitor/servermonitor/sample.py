@@ -37,6 +37,9 @@ HOSTS = (
     ("toast", 0.6, 64, 512 * 1024),
     ("croissant", 1.0, 96, 768 * 1024),
 )
+# Each host is unreachable now and then: about every 10 days, for 40 minutes on average.
+OUTAGE_EVERY_SECONDS = 10 * 86400
+OUTAGE_MEAN_SECONDS = 40 * 60
 USERS = ("alice", "bob", "carol", "dave", "erin", "frank", "grace")
 USER_WEIGHTS = (6, 4, 3, 2, 2, 1, 1)
 
@@ -61,6 +64,7 @@ class SimulatedHost:
         self.random = random.Random(name)
         self.jobs: list[Job | None] = [None] * GPUS_PER_HOST
         self.next_pid = 4000
+        self.down_until = 0
 
     def _maybe_start_jobs(self, now: int, seconds: int) -> None:
         daytime = 9 <= time.localtime(now).tm_hour < 23
@@ -88,6 +92,16 @@ class SimulatedHost:
                 self.jobs[gpu_index] = job
 
     def sample(self, now: int, seconds: int) -> CollectionResult:
+        if now >= self.down_until and self.random.random() < 1 - math.exp(-seconds / OUTAGE_EVERY_SECONDS):
+            self.down_until = now + max(120, int(self.random.expovariate(1 / OUTAGE_MEAN_SECONDS)))
+        if now < self.down_until:
+            return CollectionResult(
+                host=self.name,
+                sampled_at=now,
+                duration_ms=12000,
+                success=False,
+                error=f"ssh: connect to host {self.name} port 22: Connection timed out",
+            )
         self.jobs = [job if job and job.ends_at > now else None for job in self.jobs]
         self._maybe_start_jobs(now, seconds)
         gpus: list[GPUStat] = []

@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import GhostNav from '../components/layout/GhostNav';
 import HostCard from '../components/top/HostCard';
 import LoginCard from '../components/top/LoginCard';
+import UptimeCard from '../components/top/UptimeCard';
 import UsageChart from '../components/top/UsageChart';
 import UserRanking from '../components/top/UserRanking';
 import {
@@ -59,8 +60,8 @@ function Freshness({ overview, now }) {
   );
 }
 
-function LiveTiles({ hosts, allHosts }) {
-  const summary = summarize(hosts);
+function LiveTiles({ hosts, allHosts, now }) {
+  const summary = summarize(hosts, now);
   const idle = summary.gpusTotal - summary.gpusBusy;
   return (
     <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -142,9 +143,14 @@ export default function Top() {
     range.value === '1h' ? LIVE_REFRESH_MS : HISTORY_REFRESH_MS,
     token,
   );
+  const uptime = useStatusFile(
+    `uptime-${range.value}`,
+    range.value === '1h' ? LIVE_REFRESH_MS : HISTORY_REFRESH_MS,
+    token,
+  );
 
   // An expired session, or one from before a password change, is rejected.
-  const rejected = [overview, stats, history].some((query) => query.error?.status === 401);
+  const rejected = [overview, stats, history, uptime].some((query) => query.error?.status === 401);
   useEffect(() => {
     if (rejected) signOut();
   }, [rejected, signOut]);
@@ -239,7 +245,7 @@ export default function Top() {
               <section className="mb-16" aria-labelledby="top-now">
                 <h2 id="top-now" className="sr-only">Right now</h2>
                 <SectionLabel>Right now</SectionLabel>
-                <LiveTiles hosts={selectedHosts} allHosts={host === 'all'} />
+                <LiveTiles hosts={selectedHosts} allHosts={host === 'all'} now={now} />
                 <div className="space-y-6">
                   {selectedHosts.map((item) => (
                     <HostCard key={item.name} host={item} now={now} />
@@ -269,6 +275,15 @@ export default function Top() {
                   ) : (
                     <Notice title={history.isError ? 'Trend unavailable' : 'Loading trend…'}>
                       {history.isError ? 'This period has not been published yet.' : 'Fetching usage history.'}
+                    </Notice>
+                  )}
+                </div>
+                <div className={`mb-6 transition-opacity duration-300 ${uptime.isPlaceholderData ? 'opacity-50' : ''}`}>
+                  {uptime.data ? (
+                    <UptimeCard uptime={uptime.data} hosts={selectedHosts} range={range} />
+                  ) : (
+                    <Notice title={uptime.isError ? 'Availability unavailable' : 'Loading availability…'}>
+                      {uptime.isError ? 'This period has not been published yet.' : 'Fetching server availability.'}
                     </Notice>
                   )}
                 </div>

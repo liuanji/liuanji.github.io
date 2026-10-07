@@ -28,10 +28,11 @@ class Tier:
     seconds: int
     gpu_table: str
     user_table: str
+    check_table: str
 
 
-MINUTE = Tier(60, "gpu_minute", "user_minute")
-HOUR = Tier(3600, "gpu_hour", "user_hour")
+MINUTE = Tier(60, "gpu_minute", "user_minute", "check_minute")
+HOUR = Tier(3600, "gpu_hour", "user_hour", "check_hour")
 TIERS = (MINUTE, HOUR)
 
 # Version 1 kept every sample; initialize() converts it to version 2.
@@ -111,6 +112,25 @@ CREATE TABLE IF NOT EXISTS user_hour (
     PRIMARY KEY (bucket, host, username)
 ) WITHOUT ROWID;
 
+-- Time each host was checked, and found unreachable, within the bucket. A
+-- check covers the time since that host's previous one, so hours when the
+-- monitor itself was not running have no checks rather than downtime.
+CREATE TABLE IF NOT EXISTS check_minute (
+    bucket INTEGER NOT NULL,
+    host TEXT NOT NULL,
+    checked_seconds REAL NOT NULL,
+    down_seconds REAL NOT NULL,
+    PRIMARY KEY (bucket, host)
+) WITHOUT ROWID;
+
+CREATE TABLE IF NOT EXISTS check_hour (
+    bucket INTEGER NOT NULL,
+    host TEXT NOT NULL,
+    checked_seconds REAL NOT NULL,
+    down_seconds REAL NOT NULL,
+    PRIMARY KEY (bucket, host)
+) WITHOUT ROWID;
+
 CREATE TABLE IF NOT EXISTS app_metadata (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -131,6 +151,13 @@ ON CONFLICT (bucket, host, gpu_index) DO UPDATE SET
     temperature_count = temperature_count + excluded.temperature_count,
     power_sum = power_sum + excluded.power_sum,
     power_count = power_count + excluded.power_count
+"""
+
+CHECK_UPSERT = """
+INSERT INTO {table} (bucket, host, checked_seconds, down_seconds) VALUES (?, ?, ?, ?)
+ON CONFLICT (bucket, host) DO UPDATE SET
+    checked_seconds = checked_seconds + excluded.checked_seconds,
+    down_seconds = down_seconds + excluded.down_seconds
 """
 
 USER_UPSERT = """
@@ -227,10 +254,12 @@ class Database:
 
     def _save(self, connection: sqlite3.Connection, result: CollectionResult) -> None:
         state = connection.execute(
-            "SELECT data_sampled_at FROM host_state WHERE host = ?", (result.host,)
+            "SELECT attempted_at, data_sampled_at FROM host_state WHERE host = ?",
+            (result.host,),
         ).fetchone()
         previous = state["data_sampled_at"] if state else None
         self._store_state(connection, result)
+        self._add_check(connection, result, state["attempted_at"] if state else None)
         if not result.success:
             return
         self._add_gpu_sums(connection, result)
@@ -289,6 +318,64 @@ class Database:
                 snapshot,
             ),
         )
+
+    def _add_check(
+        self,
+        connection: sqlite3.Connection,
+        result: CollectionResult,
+        previous_attempt: int | None,
+    ) -> None:
+        """Credit the time since the host's previous check as checked, and as down
+        if this check failed. Gaps longer than two intervals count only in part."""
+        duration = (
+            self.interval_seconds
+            if previous_attempt is None
+            else min(max(result.sampled_at - int(previous_attempt), 0), self.interval_seconds * 2)
+        )
+        down = 0.0 if result.success else 1.0
+        start = result.sampled_at - duration
+        for tier in TIERS:
+            connection.executemany(
+                CHECK_UPSERT.format(table=tier.check_table),
+                [
+                    (bucket, result.host, seconds, seconds * down)
+                    for bucket, seconds in _segments(start, result.sampled_at, tier.seconds)
+                ],
+            )
+
+    def availability(
+        self, hosts: Iterable[str], start: int, bar_seconds: int, bars: int
+    ) -> list[dict[str, Any]]:
+        """Checked and down seconds per host in each of `bars` consecutive bars
+        from start. Bars shorter than an hour need minute buckets, so they must
+        lie within the minute retention; longer bars must start on an hour."""
+        tier = MINUTE if bar_seconds < HOUR.seconds else HOUR
+        end = start + bar_seconds * bars
+        hosts = list(hosts)
+        series = {host: ([0.0] * bars, [0.0] * bars) for host in hosts}
+        with self.connect() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT bucket, host, checked_seconds, down_seconds FROM {tier.check_table}
+                WHERE bucket >= ? AND bucket < ?
+                """,
+                (start, end),
+            )
+            for row in rows:
+                if row["host"] not in series:
+                    continue
+                checked, down = series[row["host"]]
+                index = (int(row["bucket"]) - start) // bar_seconds
+                checked[index] += row["checked_seconds"]
+                down[index] += row["down_seconds"]
+        return [
+            {
+                "name": host,
+                "checked": [round(value) for value in series[host][0]],
+                "down": [round(value) for value in series[host][1]],
+            }
+            for host in hosts
+        ]
 
     @staticmethod
     def _add_gpu_sums(connection: sqlite3.Connection, result: CollectionResult) -> None:
@@ -675,7 +762,7 @@ class Database:
                 (MINUTE, now - MINUTE_RETENTION_SECONDS),
                 (HOUR, now - rollup_retention_days * 86400),
             ):
-                for table in (tier.gpu_table, tier.user_table):
+                for table in (tier.gpu_table, tier.user_table, tier.check_table):
                     connection.execute(f"DELETE FROM {table} WHERE bucket < ?", (before,))
 
     def _migrate_legacy(self, connection: sqlite3.Connection, legacy: set[str]) -> None:

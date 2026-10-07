@@ -1,8 +1,9 @@
 """Pushes the public /top page's files to the relay Worker (worker/README.md).
 
-The page refreshes the overview and 1h histories every minute and everything
-else every 5 minutes, so uploads follow the same cadence. That is about 14,000
-D1 row writes a day for three hosts, well inside the free plan's 100,000.
+The page refreshes the overview and the 1h histories and availability every
+minute and everything else every 5 minutes, so uploads follow the same cadence.
+That is about 17,000 D1 row writes a day for three hosts, well inside the free
+plan's 100,000.
 """
 
 from __future__ import annotations

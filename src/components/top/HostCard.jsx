@@ -5,6 +5,7 @@ import {
   formatMemory,
   formatMemoryOf,
   gpuModels,
+  hasCurrentData,
   powerLevel,
   ramLevel,
   temperatureLevel,
@@ -150,6 +151,8 @@ function GpuRow({ gpu }) {
 
 export default function HostCard({ host, now }) {
   const busy = host.gpus.filter((gpu) => gpu.busy).length;
+  // A server that stopped reporting keeps its last readings, dimmed and labelled.
+  const outdated = host.data_sampled_at != null && !hasCurrentData(host, now);
   return (
     <article className="bg-white rounded-2xl border border-border-light overflow-hidden">
       <header className="flex flex-col gap-3 border-b border-border-light px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -166,27 +169,35 @@ export default function HostCard({ host, now }) {
           <StatusPill status={host.status} />
         </div>
       </header>
-      {host.system && <SystemStrip system={host.system} />}
-      {host.gpus.length ? (
-        <>
-          <div
-            className={`${ROW_GRID} hidden border-b border-border-light px-6 py-2 font-mono text-[11px] uppercase tracking-wider text-data-grey/70 md:grid`}
-          >
-            <span>GPU</span>
-            <span>Compute</span>
-            <span>Memory</span>
-            <span>Temp · Power</span>
-            <span>Users</span>
-          </div>
-          <div className="divide-y divide-border-light">
-            {host.gpus.map((gpu) => (
-              <GpuRow key={gpu.index} gpu={gpu} />
-            ))}
-          </div>
-        </>
-      ) : (
-        <p className="px-6 py-8 text-sm text-data-grey">No data from this server right now.</p>
+      {outdated && (
+        <p className="border-b border-border-light bg-paper/60 px-6 py-2.5 text-xs text-data-grey">
+          Last reported {formatAgo(now - host.data_sampled_at)}. The readings below may be out of date and are left
+          out of the totals.
+        </p>
       )}
+      <div className={outdated ? 'opacity-50' : undefined}>
+        {host.system && <SystemStrip system={host.system} />}
+        {host.gpus.length ? (
+          <>
+            <div
+              className={`${ROW_GRID} hidden border-b border-border-light px-6 py-2 font-mono text-[11px] uppercase tracking-wider text-data-grey/70 md:grid`}
+            >
+              <span>GPU</span>
+              <span>Compute</span>
+              <span>Memory</span>
+              <span>Temp · Power</span>
+              <span>Users</span>
+            </div>
+            <div className="divide-y divide-border-light">
+              {host.gpus.map((gpu) => (
+                <GpuRow key={gpu.index} gpu={gpu} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="px-6 py-8 text-sm text-data-grey">No data from this server right now.</p>
+        )}
+      </div>
     </article>
   );
 }

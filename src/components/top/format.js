@@ -1,8 +1,15 @@
-import { DELAYED_AFTER_SECONDS, POWER_LEVELS, RAM_LEVELS, TEMPERATURE_LEVELS_C } from './config';
+import {
+  DELAYED_AFTER_SECONDS,
+  POWER_LEVELS,
+  RAM_LEVELS,
+  TEMPERATURE_LEVELS_C,
+  UPTIME_PARTIAL_AT,
+} from './config';
 
 const decimal = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
 const clock = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const day = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
+const weekday = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 const dayAndClock = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'short',
@@ -57,6 +64,49 @@ export function formatHours(hours) {
   return decimal.format(value >= 10 ? Math.round(value) : value);
 }
 
+// "45 s", "12 min", "2 h 5 min", "3 d 4 h".
+export function formatDuration(seconds) {
+  const value = Math.max(0, Math.round(seconds));
+  if (value < 60) return `${value} s`;
+  const minutes = Math.round(value / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const [hours, days] = [Math.floor(minutes / 60), Math.floor(minutes / 1440)];
+  if (days < 1) return minutes % 60 ? `${hours} h ${minutes % 60} min` : `${hours} h`;
+  return hours % 24 ? `${days} d ${hours % 24} h` : `${days} d`;
+}
+
+export function uptimeState(checkedSeconds, downSeconds) {
+  if (!checkedSeconds) return 'none';
+  if (!downSeconds) return 'up';
+  return 1 - downSeconds / checkedSeconds >= UPTIME_PARTIAL_AT ? 'partial' : 'down';
+}
+
+// Never rounds a little downtime up to 100%.
+export function formatUptime(checkedSeconds, downSeconds) {
+  if (!downSeconds) return '100%';
+  const percent = Math.min(99.99, Math.floor((1 - downSeconds / checkedSeconds) * 10000) / 100);
+  return `${percent.toFixed(2)}%`;
+}
+
+// The span one availability bar covers, e.g. "21:34", "Tue 7 Oct" or "1 Oct – 7 Oct".
+export function formatBar(start, barSeconds) {
+  const from = new Date(start * 1000);
+  const to = new Date((start + barSeconds) * 1000);
+  if (barSeconds <= 60) return clock.format(from);
+  if (barSeconds < 86400) {
+    const span = `${clock.format(from)}–${clock.format(to)}`;
+    return barSeconds < 3600 ? span : `${day.format(from)}, ${span}`;
+  }
+  if (barSeconds === 86400) return weekday.format(from);
+  return `${day.format(from)} – ${day.format(new Date((start + barSeconds - 1) * 1000))}`;
+}
+
+export function formatBarLength(barSeconds) {
+  if (barSeconds < 3600) return barSeconds === 60 ? '1 minute' : `${barSeconds / 60} minutes`;
+  if (barSeconds < 86400) return barSeconds === 3600 ? '1 hour' : `${barSeconds / 3600} hours`;
+  return barSeconds === 86400 ? '1 day' : `${barSeconds / 86400 / 7} week${barSeconds === 7 * 86400 ? '' : 's'}`;
+}
+
 export function formatAgo(seconds) {
   const value = Math.max(0, Math.round(seconds));
   if (value < 10) return 'just now';
@@ -84,6 +134,11 @@ export function formatFullTime(timestamp) {
 
 // A host's status is only as fresh as the overview it came in, so age it here:
 // "online" data that has not been refreshed for a while is shown as delayed.
+// Readings older than this are left out of totals and dimmed on the server's card.
+export function hasCurrentData(host, now) {
+  return host.data_sampled_at != null && now - host.data_sampled_at <= DELAYED_AFTER_SECONDS;
+}
+
 export function currentStatus(host, now) {
   const age = host.data_sampled_at ? now - host.data_sampled_at : 0;
   return host.status === 'online' && age > DELAYED_AFTER_SECONDS ? 'stale' : host.status;
@@ -94,8 +149,9 @@ export function gpuModels(gpus) {
 }
 
 // Current totals for any set of hosts, so "All" and a single host read the same way.
-export function summarize(hosts) {
-  const gpus = hosts.flatMap((host) => host.gpus);
+// GPUs of a server that has stopped reporting are not counted.
+export function summarize(hosts, now) {
+  const gpus = hosts.filter((host) => hasCurrentData(host, now)).flatMap((host) => host.gpus);
   const sum = (key) => gpus.reduce((total, gpu) => total + (Number(gpu[key]) || 0), 0);
   const busy = gpus.filter((gpu) => gpu.busy).length;
   return {

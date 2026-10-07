@@ -4,10 +4,10 @@ import unittest
 from dataclasses import replace
 from pathlib import Path
 
-from servermonitor.collector import SystemStat
+from servermonitor.collector import CollectionResult, SystemStat
 from servermonitor.config import Settings
 from servermonitor.database import Database
-from servermonitor.publish import build_files, write_files
+from servermonitor.publish import build_files, uptime_window, write_files
 from tests.test_database import successful_result
 
 
@@ -38,7 +38,7 @@ class PublishTest(unittest.TestCase):
             f"{kind}-{host}{suffix}"
             for host in ("all", "brezel", "toast")
             for kind, suffix in [("stats", "")] + [("history", f"-{name}") for name in ranges]
-        }
+        } | {f"uptime-{name}" for name in ranges}
         self.assertEqual(set(files), expected)
 
     def test_live_only_publishes_overview_and_hour_histories(self) -> None:
@@ -46,8 +46,33 @@ class PublishTest(unittest.TestCase):
 
         self.assertEqual(
             set(files),
-            {"overview", "history-all-1h", "history-brezel-1h", "history-toast-1h"},
+            {"overview", "history-all-1h", "history-brezel-1h", "history-toast-1h", "uptime-1h"},
         )
+
+    def test_uptime_bars_end_at_local_boundaries(self) -> None:
+        singapore = 8 * 3600
+        now = 1_700_000_000  # 2023-11-15 06:13:20 in Singapore
+        local_midnight = now - (now + singapore) % 86400
+
+        self.assertEqual(uptime_window(now, 86400, 30, singapore), local_midnight + 86400 - 30 * 86400)
+        self.assertEqual(uptime_window(now, 7 * 86400, 52, singapore), local_midnight + 86400 - 52 * 7 * 86400)
+        self.assertEqual(uptime_window(now, 60, 60, singapore), now - now % 60 + 60 - 3600)
+
+    def test_uptime_counts_failed_checks_as_down(self) -> None:
+        failure = CollectionResult(
+            host="brezel", sampled_at=self.start + 120, duration_ms=12000, success=False, error="timed out"
+        )
+        self.database.save(failure)
+
+        uptime = build_files(self.settings, self.database, now=self.start + 120, utc_offset=0)["uptime-1h"]
+
+        self.assertEqual((uptime["bar_seconds"], len(uptime["hosts"][0]["checked"])), (60, 60))
+        brezel, toast = uptime["hosts"]
+        self.assertEqual(brezel["name"], "brezel")
+        # The first check counts one interval, each later one the time since the last.
+        self.assertEqual(sum(brezel["checked"]), 180)
+        self.assertEqual(sum(brezel["down"]), 60)
+        self.assertEqual((sum(toast["checked"]), sum(toast["down"])), (0, 0))
 
     def test_overview_drops_process_details_but_keeps_users_and_system(self) -> None:
         overview = build_files(self.settings, self.database, now=self.start + 60)["overview"]

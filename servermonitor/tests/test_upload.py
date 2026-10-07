@@ -68,8 +68,8 @@ class UploaderTest(unittest.TestCase):
         self.assertEqual(request.full_url, "https://relay.example/upload")
         self.assertEqual(request.get_header("Authorization"), "Bearer secret")
         names = set(json.loads(request.data)["files"])
-        self.assertEqual(names, {"overview", "history-all-1h", "history-brezel-1h"})
-        self.assertEqual(count, 3)
+        self.assertEqual(names, {"overview", "history-all-1h", "history-brezel-1h", "uptime-1h"})
+        self.assertEqual(count, 4)
 
     def test_missing_token_is_an_upload_error(self) -> None:
         self.token_path.unlink()

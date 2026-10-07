@@ -1,13 +1,14 @@
 """JSON files read by the public /top page through the relay Worker.
 
-Every file name is "<kind>-<host>" or "<kind>-<host>-<range>", where host is a
-monitored host or "all":
+File names are "<kind>-<host>", "<kind>-<host>-<range>" or "<kind>-<range>",
+where host is a monitored host or "all":
 
 - overview: Database.overview, the live per-GPU state of every host, without
   process paths and GPU UUIDs (paths reveal home directories and projects)
 - stats-<host>: rolling-window summaries and user rankings for every period
 - history-<host>-<range>: trend points for the chart, for every period, with
   only the fields the chart draws
+- uptime-<range>: every host's checked and down seconds per bar, for every period
 """
 
 from __future__ import annotations
@@ -57,21 +58,62 @@ def public_overview(overview: dict[str, Any]) -> dict[str, Any]:
 
 LIVE_PERIODS = PERIODS[:1]
 
+# Availability bars per period: (bar length in seconds, number of bars).
+UPTIME_BARS = {
+    "1h": (60, 60),
+    "24h": (1800, 48),
+    "7d": (7200, 84),
+    "30d": (86400, 30),
+    "90d": (86400, 90),
+    "365d": (7 * 86400, 52),
+}
+
+
+def uptime_window(now: int, bar_seconds: int, bars: int, utc_offset: int) -> int:
+    """Start of the first bar. The last bar holds now; on the local clock, bars
+    start on whole multiples of their length, and bars of a day or longer end
+    at midnight."""
+    unit = min(bar_seconds, 86400)
+    local = now + utc_offset
+    end = local - local % unit + unit - utc_offset
+    return end - bar_seconds * bars
+
+
+def public_uptime(
+    settings: Settings, database: Database, name: str, now: int, utc_offset: int
+) -> dict[str, Any]:
+    bar_seconds, bars = UPTIME_BARS[name]
+    start = uptime_window(now, bar_seconds, bars, utc_offset)
+    return {
+        "generated_at": now,
+        "range": name,
+        "bar_seconds": bar_seconds,
+        "start": start,
+        "end": start + bar_seconds * bars,
+        "hosts": database.availability(settings.hosts, start, bar_seconds, bars),
+    }
+
 
 def build_files(
     settings: Settings,
     database: Database,
     now: int | None = None,
     live_only: bool = False,
+    utc_offset: int | None = None,
 ) -> dict[str, Any]:
     """live_only builds just the files the page refreshes every minute: the
-    overview and the 1h histories."""
+    overview and the 1h histories and availability. Availability bars follow
+    this machine's local clock unless utc_offset is given."""
     now = int(time.time()) if now is None else now
+    if utc_offset is None:
+        utc_offset = time.localtime(now).tm_gmtoff
     files: dict[str, Any] = {
         "overview": public_overview(
             database.overview(settings.hosts, settings.stale_after_seconds, now=now)
         )
     }
+    for name, _ in LIVE_PERIODS if live_only else PERIODS:
+        files[f"uptime-{name}"] = public_uptime(settings, database, name, now, utc_offset)
     for host in (None, *settings.hosts):
         key = host or "all"
         if not live_only:
