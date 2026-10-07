@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:top": "GPU_STATUS_PREVIEW=1 VITE_GPU_STATUS_URL=/__gpu-status vite --open /top",
     "build": "vite build && cp dist/index.html dist/404.html",
     "lint": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --fix",

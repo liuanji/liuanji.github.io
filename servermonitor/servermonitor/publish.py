@@ -13,6 +13,7 @@ monitored host or "all":
 from __future__ import annotations
 
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any
@@ -88,9 +89,13 @@ def build_files(
 
 
 def write_files(files: dict[str, Any], directory: Path) -> None:
+    """Write each file as <name>.json, replacing it atomically so a reader never
+    sees a partly written file."""
     directory.mkdir(parents=True, exist_ok=True)
     for name, payload in files.items():
-        (directory / f"{name}.json").write_text(
+        temporary = directory / f".{name}.json.tmp"
+        temporary.write_text(
             json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
             encoding="utf-8",
         )
+        os.replace(temporary, directory / f"{name}.json")

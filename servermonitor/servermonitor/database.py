@@ -217,21 +217,29 @@ class Database:
                 connection.close()
 
     def save(self, result: CollectionResult) -> None:
+        self.save_many((result,))
+
+    def save_many(self, results: Iterable[CollectionResult]) -> None:
+        """Save results in order, in one transaction."""
         with self.connect() as connection:
-            state = connection.execute(
-                "SELECT data_sampled_at FROM host_state WHERE host = ?", (result.host,)
-            ).fetchone()
-            previous = state["data_sampled_at"] if state else None
-            self._store_state(connection, result)
-            if not result.success:
-                return
-            self._add_gpu_sums(connection, result)
-            if previous is not None:
-                duration = min(
-                    max(result.sampled_at - int(previous), 0),
-                    self.interval_seconds * 2,
-                )
-                self._add_user_sums(connection, result, duration)
+            for result in results:
+                self._save(connection, result)
+
+    def _save(self, connection: sqlite3.Connection, result: CollectionResult) -> None:
+        state = connection.execute(
+            "SELECT data_sampled_at FROM host_state WHERE host = ?", (result.host,)
+        ).fetchone()
+        previous = state["data_sampled_at"] if state else None
+        self._store_state(connection, result)
+        if not result.success:
+            return
+        self._add_gpu_sums(connection, result)
+        if previous is not None:
+            duration = min(
+                max(result.sampled_at - int(previous), 0),
+                self.interval_seconds * 2,
+            )
+            self._add_user_sums(connection, result, duration)
 
     @staticmethod
     def _store_state(connection: sqlite3.Connection, result: CollectionResult) -> None:
