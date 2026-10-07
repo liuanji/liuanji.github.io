@@ -34,9 +34,16 @@ export const HOST_STATUS = {
 // Unreachable statuses, darkened so the text keeps 4.5:1 on white and on the tint.
 export const TEMPERATURE_LEVELS_C = { warm: 75, hot: 85 };
 export const POWER_LEVELS = { warm: 0.7, hot: 0.9 };
+// A server's RAM as a share of its total; jobs get killed when it runs out.
+export const RAM_LEVELS = { warm: 0.8, hot: 0.9 };
 export const READING_STYLES = {
   warm: { color: '#A15C07' },
   hot: { color: '#B33A3A', backgroundColor: '#B33A3A1A' },
+};
+// Meter bars in the same hues, for readings shown as a bar.
+export const LEVEL_SERIES = {
+  warm: { color: '#A15C07', track: '#A15C0724' },
+  hot: { color: '#B33A3A', track: '#B33A3A24' },
 };
 
 // Age of the newest published overview before the page calls it delayed / offline.

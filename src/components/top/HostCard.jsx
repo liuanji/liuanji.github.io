@@ -1,30 +1,49 @@
-import { READING_STYLES, SERIES } from './config';
+import { LEVEL_SERIES, READING_STYLES, SERIES } from './config';
 import { StatusPill } from './controls';
-import { formatAgo, formatMemory, formatMemoryOf, gpuModels, powerLevel, temperatureLevel } from './format';
+import {
+  formatAgo,
+  formatMemory,
+  formatMemoryOf,
+  gpuModels,
+  powerLevel,
+  ramLevel,
+  temperatureLevel,
+} from './format';
 
 const ROW_GRID =
   'grid grid-cols-2 gap-x-4 gap-y-2 md:grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,1fr)_7.5rem_minmax(0,1.3fr)] md:items-center md:gap-x-6';
 
 // In GPU rows the column headers name each meter on wide screens, so the label
-// only shows on narrow ones unless alwaysLabel is set.
-function Meter({ label, value, max, display, series, alwaysLabel = false }) {
+// only shows on narrow ones unless alwaysLabel is set. A warm or hot level
+// recolours the value and the bar.
+function Meter({ label, value, max, display, series, level = null, alwaysLabel = false }) {
   const percent = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
+  const bar = LEVEL_SERIES[level] ?? series;
   return (
     <div className="min-w-0">
       <div className="mb-1 flex items-baseline justify-between gap-2">
         <span className={`text-xs text-data-grey ${alwaysLabel ? '' : 'md:hidden'}`}>{label}</span>
-        <span className="ml-auto whitespace-nowrap font-mono text-xs tabular-nums text-inkwell">{display}</span>
+        {level ? (
+          <span
+            className="-my-0.5 -mr-1 ml-auto whitespace-nowrap rounded px-1 py-0.5 font-mono text-xs font-medium tabular-nums"
+            style={READING_STYLES[level]}
+          >
+            {display}
+          </span>
+        ) : (
+          <span className="ml-auto whitespace-nowrap font-mono text-xs tabular-nums text-inkwell">{display}</span>
+        )}
       </div>
       <div
         className="h-1.5 overflow-hidden rounded-full"
-        style={{ backgroundColor: series.track }}
+        style={{ backgroundColor: bar.track }}
         role="meter"
         aria-label={label}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(percent)}
       >
-        <div className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: series.color }} />
+        <div className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: bar.color }} />
       </div>
     </div>
   );
@@ -50,6 +69,7 @@ function SystemStrip({ system }) {
         max={system.memory_total_mb ?? 0}
         display={ramKnown ? formatMemoryOf(system.memory_used_mb, system.memory_total_mb) : '—'}
         series={SERIES.memory}
+        level={ramKnown ? ramLevel(system.memory_used_mb, system.memory_total_mb) : null}
         alwaysLabel
       />
     </div>

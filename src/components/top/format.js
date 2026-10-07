@@ -1,4 +1,4 @@
-import { DELAYED_AFTER_SECONDS, POWER_LEVELS, TEMPERATURE_LEVELS_C } from './config';
+import { DELAYED_AFTER_SECONDS, POWER_LEVELS, RAM_LEVELS, TEMPERATURE_LEVELS_C } from './config';
 
 const decimal = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
 const clock = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
@@ -33,6 +33,10 @@ export function temperatureLevel(celsius) {
 
 export function powerLevel(watts, limitWatts) {
   return level(watts != null && limitWatts ? watts / limitWatts : null, POWER_LEVELS);
+}
+
+export function ramLevel(usedMb, totalMb) {
+  return level(usedMb != null && totalMb ? usedMb / totalMb : null, RAM_LEVELS);
 }
 
 export function formatMemory(mb) {
