@@ -1,8 +1,29 @@
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SERIES } from './config';
 import { formatHours } from './format';
 
-const WEIGHTED_HELP =
-  'Estimate: GPU compute load × time, split by memory share when several users share a GPU.';
+function WeightedHelp() {
+  return (
+    <Popover>
+      <PopoverTrigger className="uppercase tracking-wider underline decoration-dotted underline-offset-2 transition-colors hover:text-inkwell">
+        Weighted
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className="w-72 rounded-xl border-border-light bg-white p-4 text-left text-xs leading-relaxed text-data-grey shadow-lg"
+      >
+        <p className="font-semibold text-inkwell">Weighted GPU-hours</p>
+        <p className="mt-1.5">
+          GPU-hours scaled by how busy the GPU was: an hour at 50% compute load counts as 0.5 h. When several users
+          share a GPU, its time is split by their share of its memory.
+        </p>
+        <p className="mt-1.5">
+          It is an estimate. A big gap from GPU-hours means GPUs were held but mostly idle.
+        </p>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export default function UserRanking({ users, rangeTitle, showHosts }) {
   const maxHours = Math.max(0.001, ...users.map((user) => user.gpu_hours));
@@ -23,9 +44,7 @@ export default function UserRanking({ users, rangeTitle, showHosts }) {
                 <th scope="col" className="py-2.5 pr-4 text-left font-normal sm:w-44">User</th>
                 <th scope="col" className="py-2.5 pr-4 text-left font-normal">GPU-hours</th>
                 <th scope="col" className="hidden py-2.5 pr-4 text-right font-normal sm:table-cell">
-                  <span title={WEIGHTED_HELP} className="cursor-help underline decoration-dotted underline-offset-2">
-                    Weighted
-                  </span>
+                  <WeightedHelp />
                 </th>
                 {showHosts && (
                   <th scope="col" className="hidden py-2.5 pr-6 text-left font-normal md:table-cell">Servers</th>

@@ -4,7 +4,7 @@ const profile = {
 };
 
 const myCopyrightBody = "© 2026 Anji Liu · NUS Computer Science";
-const myUpdateInfo = "Updated June 2026";
+const myUpdateInfo = "Updated October 2026";
 
 export default profile;
 export { myCopyrightBody };
