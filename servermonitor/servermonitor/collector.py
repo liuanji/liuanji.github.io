@@ -26,7 +26,8 @@ timeout 10 df -P -B1 /scratch* 2>/dev/null || true
 # The system section prints the aggregate "cpu" line of /proc/stat from before
 # the GPU queries and again at least a second later, so CPU load is measured
 # over that span, plus memory and swap from /proc/meminfo, the CPU count, the
-# load averages, the uptime and the CPU model.
+# load averages, the uptime, the CPU model and how many sockets and physical
+# cores carry those CPUs (nproc counts hyper-threads).
 COLLECT_SCRIPT = f"""\
 set -eu
 export LC_ALL=C
@@ -50,6 +51,8 @@ nproc 2>/dev/null || true
 cat /proc/loadavg 2>/dev/null || true
 printf 'uptime %s\\n' "$(cut -d ' ' -f 1 /proc/uptime 2>/dev/null)"
 grep -m 1 '^model name' /proc/cpuinfo 2>/dev/null || true
+printf 'sockets %s\\n' "$(grep '^physical id' /proc/cpuinfo 2>/dev/null | sort -u | wc -l)"
+printf 'cores %s\\n' "$(awk -F: '/^physical id/ {{p = $2}} /^core id/ {{print p "/" $2}}' /proc/cpuinfo 2>/dev/null | sort -u | wc -l)"
 """
 
 
@@ -89,6 +92,8 @@ class SystemStat:
     load_averages: tuple[float, float, float] | None = None
     uptime_seconds: float | None = None
     cpu_model: str | None = None
+    cpu_sockets: int | None = None
+    cpu_cores: int | None = None
 
 
 @dataclass(frozen=True)
@@ -164,6 +169,7 @@ def _system(lines: list[str]) -> SystemStat | None:
         load_averages = None
         uptime_seconds = None
         cpu_model = None
+        topology: dict[str, int] = {}
         for line in lines:
             key, _, value = line.partition(":")
             fields = line.split()
@@ -177,6 +183,10 @@ def _system(lines: list[str]) -> SystemStat | None:
                 uptime_seconds = float(fields[1])
             elif key.strip() == "model name" and value.strip():
                 cpu_model = " ".join(value.split())
+            elif len(fields) == 2 and fields[0] in ("sockets", "cores") and fields[1].isdigit():
+                # 0 when /proc/cpuinfo lacks the fields, as on some virtual machines.
+                if int(fields[1]) > 0:
+                    topology[fields[0]] = int(fields[1])
     except ValueError:
         return None
 
@@ -206,6 +216,8 @@ def _system(lines: list[str]) -> SystemStat | None:
         load_averages=load_averages,
         uptime_seconds=round(uptime_seconds) if uptime_seconds is not None else None,
         cpu_model=cpu_model,
+        cpu_sockets=topology.get("sockets"),
+        cpu_cores=topology.get("cores"),
     )
 
 

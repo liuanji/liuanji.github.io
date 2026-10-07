@@ -4,6 +4,7 @@ import { StatusPill } from './controls';
 import { CpuDetails, DetailsPopover, GpuDetails, RamDetails } from './DetailBoxes';
 import {
   formatAgo,
+  formatCpuCount,
   formatMemory,
   formatMemoryOf,
   gpuModels,
@@ -86,7 +87,7 @@ function SystemStrip({ system, host, interactive }) {
         className={meterBox}
       >
         <Meter
-          label={system.cpu_count ? `CPU · ${system.cpu_count} cores` : 'CPU'}
+          label={formatCpuCount(system) ? `CPU · ${formatCpuCount(system)}` : 'CPU'}
           value={cpu ?? 0}
           max={100}
           display={cpu == null ? '—' : `${Math.round(cpu)}%`}

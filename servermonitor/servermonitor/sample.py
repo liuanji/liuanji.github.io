@@ -171,6 +171,8 @@ class SimulatedHost:
                 ),
                 uptime_seconds=31 * 86400 + 4 * 3600,
                 cpu_model="AMD EPYC 9555 64-Core Processor",
+                cpu_sockets=2,
+                cpu_cores=self.cpu_count,
             ),
         )
 

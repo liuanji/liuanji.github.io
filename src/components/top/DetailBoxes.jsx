@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, TEMPERATURE_ICON_RANGE } from './config';
-import { formatMemory, formatMemoryOf, gpuModels, userColor } from './format';
+import { formatCpuCount, formatCpuModel, formatMemory, formatMemoryOf, gpuModels, userColor } from './format';
 import { idleGpuPhrase, pressurePhrase } from './easterEggs';
 
 // The detail boxes a GPU, CPU or RAM reading opens on wider screens, in both the
@@ -426,15 +426,16 @@ export function CpuDetails({ host, system }) {
         <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">
           {host} <span className="text-data-grey/60">·</span> CPU
         </h4>
-        <p className="mt-0.5 truncate font-mono text-[11px] text-data-grey">{system.cpu_model ?? 'Processor'}</p>
+        <p className="mt-0.5 truncate font-mono text-[11px] text-data-grey">{formatCpuModel(system) ?? 'Processor'}</p>
         <div className="mt-4">
           <Metric label="Load now" value={`${percent}%`} share={percent / 100} series={RING_SERIES.compute} />
         </div>
         {load && (
           <div className="mt-3.5">
-            {/* Load averages count runnable threads, so the thread count gives them scale. */}
+            {/* Load averages count runnable threads, so the core and thread counts give them scale. */}
             <span className="font-mono text-[11px] text-data-grey">
-              Load average{system.cpu_count ? <span className="text-data-grey/60"> · {system.cpu_count} threads</span> : null}
+              Load average
+              {formatCpuCount(system) && <span className="text-data-grey/60"> · {formatCpuCount(system)}</span>}
             </span>
             <div className="mt-1.5 grid grid-cols-3 gap-2">
               {['1 min', '5 min', '15 min'].map((window, index) => (

@@ -71,6 +71,8 @@ class CollectorParserTest(unittest.TestCase):
             "5.39 5.17 5.13 5/6604 707676\n"
             "uptime 2692648.60\n"
             "model name\t: AMD EPYC 9555 64-Core Processor\n"
+            "sockets 2\n"
+            "cores 128\n"
         )
 
         system = parse_collector_output("brezel", output, 1_700_000_000, 123).system
@@ -85,6 +87,7 @@ class CollectorParserTest(unittest.TestCase):
         self.assertEqual(system.load_averages, (5.39, 5.17, 5.13))
         self.assertEqual(system.uptime_seconds, 2692649)
         self.assertEqual(system.cpu_model, "AMD EPYC 9555 64-Core Processor")
+        self.assertEqual((system.cpu_sockets, system.cpu_cores), (2, 128))
 
     def test_system_extras_are_optional(self) -> None:
         output = SAMPLE_OUTPUT + (
@@ -100,6 +103,7 @@ class CollectorParserTest(unittest.TestCase):
         self.assertIsNone(system.load_averages)
         self.assertIsNone(system.uptime_seconds)
         self.assertIsNone(system.swap_total_mb)
+        self.assertIsNone(system.cpu_sockets)
 
     def test_system_is_optional(self) -> None:
         self.assertIsNone(parse_collector_output("brezel", SAMPLE_OUTPUT, 1, 1).system)

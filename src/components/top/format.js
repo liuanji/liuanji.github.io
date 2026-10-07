@@ -29,6 +29,21 @@ export function userColor(username) {
   return USER_COLORS[(hash >>> 0) % USER_COLORS.length];
 }
 
+// "128 cores · 256 threads", or "128 cores" without hyper-threading. Older data
+// only knows the thread count (nproc), so says just that.
+export function formatCpuCount(system) {
+  const { cpu_cores: cores, cpu_count: threads } = system;
+  if (cores && threads && cores !== threads) return `${cores} cores · ${threads} threads`;
+  if (cores) return `${cores} cores`;
+  return threads ? `${threads} threads` : null;
+}
+
+// "2 × AMD EPYC 9555 64-Core Processor" on a two-socket server.
+export function formatCpuModel(system) {
+  if (!system.cpu_model) return null;
+  return system.cpu_sockets > 1 ? `${system.cpu_sockets} × ${system.cpu_model}` : system.cpu_model;
+}
+
 export function formatPercent(value) {
   return `${Math.round(Number(value) || 0)}%`;
 }
