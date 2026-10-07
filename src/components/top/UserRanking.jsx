@@ -52,8 +52,9 @@ export default function UserRanking({ users, rangeTitle, showHosts }) {
                   <td className="py-3 pl-6 font-mono text-xs text-data-grey">{index + 1}</td>
                   <td className="py-3 pr-4 font-mono text-sm text-inkwell">{user.username}</td>
                   <td className="py-3 pr-4">
+                    {/* The label has a fixed width so every row's track is the same length. */}
                     <div className="flex items-center gap-3">
-                      <div className="hidden h-2 w-full max-w-[14rem] sm:block" aria-hidden="true">
+                      <div className="hidden h-2 min-w-0 max-w-[14rem] flex-1 sm:block" aria-hidden="true">
                         <div
                           className="h-full rounded-r-[4px]"
                           style={{
@@ -62,7 +63,7 @@ export default function UserRanking({ users, rangeTitle, showHosts }) {
                           }}
                         />
                       </div>
-                      <span className="whitespace-nowrap font-mono text-xs tabular-nums text-inkwell">
+                      <span className="w-14 flex-shrink-0 whitespace-nowrap text-right font-mono text-xs tabular-nums text-inkwell">
                         {formatHours(user.gpu_hours)} h
                       </span>
                     </div>
