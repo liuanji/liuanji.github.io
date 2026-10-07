@@ -29,6 +29,29 @@ class CollectorParserTest(unittest.TestCase):
         self.assertEqual([process.username for process in result.processes], ["alice", "bob"])
         self.assertEqual(result.processes[0].used_memory_mb, 30000)
 
+    def test_parses_cpu_load_and_memory(self) -> None:
+        output = SAMPLE_OUTPUT + (
+            "__SERVERMONITOR_SYSTEM__\n"
+            "cpu  1000 0 1000 7000 1000 0 0 0 0 0\n"
+            "cpu  1300 0 1200 7400 1100 0 0 0 0 0\n"
+            "MemTotal:       1048576 kB\n"
+            "MemAvailable:    786432 kB\n"
+            "128\n"
+        )
+
+        system = parse_collector_output("brezel", output, 1_700_000_000, 123).system
+
+        # 1000 ticks passed, of which 400 idle and 100 iowait.
+        self.assertEqual(system.cpu_percent, 50.0)
+        self.assertEqual(system.cpu_count, 128)
+        self.assertEqual(system.memory_total_mb, 1024)
+        self.assertEqual(system.memory_used_mb, 256)
+
+    def test_system_is_optional(self) -> None:
+        self.assertIsNone(parse_collector_output("brezel", SAMPLE_OUTPUT, 1, 1).system)
+        partial = SAMPLE_OUTPUT + "__SERVERMONITOR_SYSTEM__\n\ncpu  1 2 3 4 5 6 7 8 0 0\n"
+        self.assertIsNone(parse_collector_output("brezel", partial, 1, 1).system)
+
     def test_rejects_output_without_gpu_rows(self) -> None:
         with self.assertRaisesRegex(ValueError, "no GPU rows"):
             parse_collector_output("toast", "", 1_700_000_000, 2)

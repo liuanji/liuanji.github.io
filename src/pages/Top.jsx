@@ -69,16 +69,16 @@ function LiveTiles({ hosts, allHosts }) {
         caption={allHosts ? `${idle} idle · ${summary.hostsOnline}/${summary.hostsTotal} servers online` : `${idle} idle`}
       />
       <StatTile
-        label="Compute load"
+        label="GPU compute"
         value={formatPercent(summary.computeLoad)}
         caption={`Average across ${summary.gpusTotal} GPUs`}
       />
       <StatTile
-        label="Memory"
+        label="GPU memory"
         value={formatPercent(summary.memoryTotalMb ? (summary.memoryUsedMb / summary.memoryTotalMb) * 100 : 0)}
         caption={`${formatMemory(summary.memoryUsedMb)} of ${formatMemory(summary.memoryTotalMb)}`}
       />
-      <StatTile label="Power" value={formatPower(summary.powerW)} caption="Current total draw" />
+      <StatTile label="GPU power" value={formatPower(summary.powerW)} caption="Current total draw" />
     </div>
   );
 }
@@ -101,17 +101,17 @@ function PeriodTiles({ period, range }) {
           caption={ready ? `${formatPercent(period.gpu_usage_percent)} of GPUs on average` : 'No data yet'}
         />
         <StatTile
-          label="Compute load"
+          label="GPU compute"
           value={ready ? formatPercent(period.compute_load) : '—'}
           caption="Average across GPUs"
         />
         <StatTile
-          label="Memory"
+          label="GPU memory"
           value={ready ? formatPercent(period.memory_percent) : '—'}
           caption="Average share in use"
         />
         <StatTile
-          label="Power"
+          label="GPU power"
           value={ready ? formatPower(period.average_power_w) : '—'}
           caption="Average total draw"
         />

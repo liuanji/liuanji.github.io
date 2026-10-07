@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { rmSync } from 'node:fs';
 import { access, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -33,6 +34,8 @@ export default function gpuStatusPreview() {
       if (!process.env.GPU_STATUS_PREVIEW) return;
       const workDir = path.join(tmpdir(), 'gpu-status-preview');
       const filesDir = path.join(workDir, 'files');
+      // Never serve a previous run's files while this run is still simulating.
+      rmSync(filesDir, { recursive: true, force: true });
       const python = process.env.PYTHON || 'python3';
       const sampler = spawn(python, ['-m', 'servermonitor.sample', workDir, '--live'], {
         cwd: path.resolve(server.config.root, 'servermonitor'),

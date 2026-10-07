@@ -5,12 +5,14 @@ import { formatAgo, formatMemory, formatMemoryOf, gpuModels } from './format';
 const ROW_GRID =
   'grid grid-cols-2 gap-x-4 gap-y-2 md:grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,1fr)_7.5rem_minmax(0,1.3fr)] md:items-center md:gap-x-6';
 
-function Meter({ label, value, max, display, series }) {
+// In GPU rows the column headers name each meter on wide screens, so the label
+// only shows on narrow ones unless alwaysLabel is set.
+function Meter({ label, value, max, display, series, alwaysLabel = false }) {
   const percent = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
   return (
     <div className="min-w-0">
       <div className="mb-1 flex items-baseline justify-between gap-2">
-        <span className="text-xs text-data-grey md:hidden">{label}</span>
+        <span className={`text-xs text-data-grey ${alwaysLabel ? '' : 'md:hidden'}`}>{label}</span>
         <span className="ml-auto whitespace-nowrap font-mono text-xs tabular-nums text-inkwell">{display}</span>
       </div>
       <div
@@ -24,6 +26,32 @@ function Meter({ label, value, max, display, series }) {
       >
         <div className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: series.color }} />
       </div>
+    </div>
+  );
+}
+
+// The server as a whole: CPU load across all cores and RAM in use.
+function SystemStrip({ system }) {
+  const cpu = system.cpu_percent;
+  const ramKnown = system.memory_used_mb != null && system.memory_total_mb;
+  return (
+    <div className="grid gap-x-6 gap-y-3 border-b border-border-light bg-paper/60 px-6 py-3.5 sm:grid-cols-2">
+      <Meter
+        label={system.cpu_count ? `CPU · ${system.cpu_count} cores` : 'CPU'}
+        value={cpu ?? 0}
+        max={100}
+        display={cpu == null ? '—' : `${Math.round(cpu)}%`}
+        series={SERIES.compute}
+        alwaysLabel
+      />
+      <Meter
+        label="RAM"
+        value={system.memory_used_mb ?? 0}
+        max={system.memory_total_mb ?? 0}
+        display={ramKnown ? formatMemoryOf(system.memory_used_mb, system.memory_total_mb) : '—'}
+        series={SERIES.memory}
+        alwaysLabel
+      />
     </div>
   );
 }
@@ -98,6 +126,7 @@ export default function HostCard({ host, now }) {
           <StatusPill status={host.status} />
         </div>
       </header>
+      {host.system && <SystemStrip system={host.system} />}
       {host.gpus.length ? (
         <>
           <div

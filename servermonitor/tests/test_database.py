@@ -3,7 +3,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from servermonitor.collector import CollectionResult, GPUStat, ProcessStat
+from dataclasses import replace
+
+from servermonitor.collector import CollectionResult, GPUStat, ProcessStat, SystemStat
 from servermonitor.database import Database
 
 
@@ -197,6 +199,21 @@ class DatabaseTest(unittest.TestCase):
         self.assertEqual(overview["hosts"][0]["status"], "error")
         self.assertEqual(len(overview["hosts"][0]["gpus"]), 2)
         self.assertEqual(overview["hosts"][0]["error"], "timeout")
+
+    def test_overview_reports_host_cpu_and_memory(self) -> None:
+        timestamp = 1_700_000_000
+        system = SystemStat(cpu_percent=42.5, cpu_count=64, memory_used_mb=1024, memory_total_mb=4096)
+        self.database.save(replace(successful_result(timestamp), system=system))
+        self.database.save(successful_result(timestamp, "toast"))
+
+        hosts = self.database.overview(["brezel", "toast", "croissant"], 180, now=timestamp)["hosts"]
+
+        self.assertEqual(
+            hosts[0]["system"],
+            {"cpu_percent": 42.5, "cpu_count": 64, "memory_used_mb": 1024, "memory_total_mb": 4096},
+        )
+        self.assertIsNone(hosts[1]["system"])
+        self.assertIsNone(hosts[2]["system"])
 
     def test_stores_sums_not_samples(self) -> None:
         start = 1_699_999_980

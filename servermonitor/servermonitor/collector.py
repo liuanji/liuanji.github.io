@@ -10,10 +10,15 @@ from dataclasses import dataclass
 GPU_MARKER = "__SERVERMONITOR_GPUS__"
 APP_MARKER = "__SERVERMONITOR_APPS__"
 USER_MARKER = "__SERVERMONITOR_USERS__"
+SYSTEM_MARKER = "__SERVERMONITOR_SYSTEM__"
 
+# The system section prints the aggregate "cpu" line of /proc/stat from before
+# the GPU queries and again at least a second later, so CPU load is measured
+# over that span, plus MemTotal/MemAvailable and the CPU count.
 COLLECT_SCRIPT = f"""\
 set -eu
 export LC_ALL=C
+cpu_before="$(head -n 1 /proc/stat 2>/dev/null || true)"
 printf '%s\\n' '{GPU_MARKER}'
 nvidia-smi --query-gpu=index,uuid,name,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw --format=csv,noheader,nounits
 printf '%s\\n' '{APP_MARKER}'
@@ -24,6 +29,12 @@ pids="$(printf '%s\\n' "$apps" | awk -F, '{{gsub(/ /,"",$2); if ($2 ~ /^[0-9]+$/
 if [ -n "$pids" ]; then
     ps -o pid= -o user= -p "$pids"
 fi
+printf '%s\\n' '{SYSTEM_MARKER}'
+sleep 1
+printf '%s\\n' "$cpu_before"
+head -n 1 /proc/stat 2>/dev/null || true
+grep -E '^(MemTotal|MemAvailable):' /proc/meminfo 2>/dev/null || true
+nproc 2>/dev/null || true
 """
 
 
@@ -49,6 +60,14 @@ class ProcessStat:
 
 
 @dataclass(frozen=True)
+class SystemStat:
+    cpu_percent: float | None
+    cpu_count: int | None
+    memory_used_mb: float | None
+    memory_total_mb: float | None
+
+
+@dataclass(frozen=True)
 class CollectionResult:
     host: str
     sampled_at: int
@@ -57,6 +76,7 @@ class CollectionResult:
     gpus: tuple[GPUStat, ...] = ()
     processes: tuple[ProcessStat, ...] = ()
     error: str | None = None
+    system: SystemStat | None = None
 
 
 def _number(value: str, *, optional: bool = False) -> float | None:
@@ -73,6 +93,7 @@ def _sections(output: str) -> dict[str, list[str]]:
         GPU_MARKER: [],
         APP_MARKER: [],
         USER_MARKER: [],
+        SYSTEM_MARKER: [],
     }
     current: str | None = None
     for raw_line in output.splitlines():
@@ -82,6 +103,46 @@ def _sections(output: str) -> dict[str, list[str]]:
         elif current is not None and line.strip():
             sections[current].append(line)
     return sections
+
+
+def _system(lines: list[str]) -> SystemStat | None:
+    """CPU load between the two /proc/stat readings (busy share of all CPU time,
+    counting iowait as idle) and memory in use (MemTotal - MemAvailable)."""
+    try:
+        cpu_readings = [
+            [int(value) for value in line.split()[1:9]]  # user .. steal
+            for line in lines
+            if line.startswith("cpu ")
+        ]
+        memory: dict[str, float] = {}
+        cpu_count = None
+        for line in lines:
+            key, _, value = line.partition(":")
+            if key in ("MemTotal", "MemAvailable") and value.split():
+                memory[key] = int(value.split()[0]) / 1024
+            elif line.strip().isdigit():
+                cpu_count = int(line)
+    except ValueError:
+        return None
+
+    cpu_percent = None
+    if len(cpu_readings) == 2:
+        before, after = cpu_readings
+        total = sum(after) - sum(before)
+        idle = sum(after[3:5]) - sum(before[3:5])
+        if total > 0:
+            cpu_percent = round(max(0.0, min(100.0, (1 - idle / total) * 100)), 1)
+    total_mb = memory.get("MemTotal")
+    available_mb = memory.get("MemAvailable")
+    used_mb = round(total_mb - available_mb, 1) if total_mb and available_mb is not None else None
+    if cpu_percent is None and used_mb is None:
+        return None
+    return SystemStat(
+        cpu_percent=cpu_percent,
+        cpu_count=cpu_count,
+        memory_used_mb=used_mb,
+        memory_total_mb=round(total_mb, 1) if total_mb else None,
+    )
 
 
 def parse_collector_output(host: str, output: str, sampled_at: int, duration_ms: int) -> CollectionResult:
@@ -138,6 +199,7 @@ def parse_collector_output(host: str, output: str, sampled_at: int, duration_ms:
         success=True,
         gpus=tuple(sorted(gpus, key=lambda gpu: gpu.index)),
         processes=tuple(processes),
+        system=_system(sections[SYSTEM_MARKER]),
     )
 
 

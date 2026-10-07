@@ -261,6 +261,7 @@ class Database:
             {
                 "gpus": [asdict(gpu) for gpu in result.gpus],
                 "processes": [asdict(process) for process in result.processes],
+                "system": asdict(result.system) if result.system else None,
             },
             separators=(",", ":"),
         )
@@ -474,7 +475,9 @@ class Database:
         for host in hosts:
             state = states.get(host)
             if state is None:
-                host_items.append({"name": host, "status": "unseen", "error": None, "gpus": []})
+                host_items.append(
+                    {"name": host, "status": "unseen", "error": None, "system": None, "gpus": []}
+                )
                 continue
 
             age = max(0, now - int(state["attempted_at"]))
@@ -530,6 +533,7 @@ class Database:
                     "age_seconds": age,
                     "duration_ms": state["duration_ms"],
                     "error": state["error"],
+                    "system": snapshot.get("system"),
                     "gpus": gpu_items,
                 }
             )
