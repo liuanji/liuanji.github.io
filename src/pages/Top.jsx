@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import GhostNav from '../components/layout/GhostNav';
+import CompactHosts from '../components/top/CompactHosts';
 import DiskCard from '../components/top/DiskCard';
 import HostCard from '../components/top/HostCard';
 import LoginCard from '../components/top/LoginCard';
@@ -17,7 +18,7 @@ import {
   OFFLINE_AFTER_SECONDS,
   RANGES,
 } from '../components/top/config';
-import { LiveDot, Notice, SectionLabel, SegmentedControl, StatTile } from '../components/top/controls';
+import { LiveDot, Notice, SectionLabel, SegmentedControl, StatTile, Switch } from '../components/top/controls';
 import {
   currentStatus,
   formatAgo,
@@ -32,6 +33,7 @@ import { useNow, useStatusFile } from '../components/top/useStatusFile';
 import { gpuStatusUrl } from '../data/servers';
 import { myCopyrightBody, myUpdateInfo } from '../data/profile';
 import { useDocumentTitle } from '../hooks/use-document-title';
+import { useStoredFlag } from '../hooks/use-stored-flag';
 
 const EASE = [0.16, 1, 0.3, 1];
 const FILE_KEY = /^[a-z0-9][a-z0-9._-]*$/;
@@ -130,6 +132,7 @@ export default function Top() {
   const [params, setParams] = useSearchParams();
   const now = useNow();
   const { token, signIn, signOut } = useSession();
+  const [compact, setCompact] = useStoredFlag('gpu-status-compact', false);
   const overview = useStatusFile('overview', LIVE_REFRESH_MS, token);
   const hosts = (overview.data?.hosts ?? []).map((item) => ({ ...item, status: currentStatus(item, now) }));
 
@@ -250,13 +253,25 @@ export default function Top() {
 
               <section className="mb-16" aria-labelledby="top-now">
                 <h2 id="top-now" className="sr-only">Right now</h2>
-                <SectionLabel>Right now</SectionLabel>
+                <SectionLabel
+                  aside={
+                    host === 'all' && hosts.length > 1 && (
+                      <Switch label="Compact" checked={compact} onChange={setCompact} />
+                    )
+                  }
+                >
+                  Right now
+                </SectionLabel>
                 <LiveTiles hosts={selectedHosts} allHosts={host === 'all'} now={now} />
-                <div className="space-y-6">
-                  {selectedHosts.map((item) => (
-                    <HostCard key={item.name} host={item} now={now} />
-                  ))}
-                </div>
+                {host === 'all' && compact ? (
+                  <CompactHosts hosts={selectedHosts} now={now} />
+                ) : (
+                  <div className="space-y-6">
+                    {selectedHosts.map((item) => (
+                      <HostCard key={item.name} host={item} now={now} />
+                    ))}
+                  </div>
+                )}
               </section>
 
               <section aria-labelledby="top-history">
@@ -306,16 +321,11 @@ export default function Top() {
                 <h2 id="top-storage" className="sr-only">Storage</h2>
                 <SectionLabel>Storage</SectionLabel>
                 {diskHosts.length ? (
-                  <>
-                    <div className={`grid gap-6 ${diskHosts.length > 1 ? 'lg:grid-cols-3' : ''}`}>
-                      {diskHosts.map((item) => (
-                        <DiskCard key={item.name} host={item} now={now} stacked={diskHosts.length > 1} />
-                      ))}
-                    </div>
-                    <p className="mt-4 font-mono text-xs text-data-grey/70">
-                      Every /scratch disk, checked every 30 minutes.
-                    </p>
-                  </>
+                  <div className={`grid gap-6 ${diskHosts.length > 1 ? 'lg:grid-cols-3' : ''}`}>
+                    {diskHosts.map((item) => (
+                      <DiskCard key={item.name} host={item} now={now} stacked={diskHosts.length > 1} />
+                    ))}
+                  </div>
                 ) : (
                   <Notice title={disks.isLoading ? 'Loading disk usage…' : 'Disk usage not available yet'}>
                     {disks.isLoading

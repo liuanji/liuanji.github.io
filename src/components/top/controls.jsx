@@ -1,8 +1,38 @@
 import { HOST_STATUS } from './config';
 
-export function SectionLabel({ children }) {
+// aside sits at the right end of the label's row, e.g. a view switch.
+export function SectionLabel({ children, aside = null }) {
   return (
-    <div className="font-mono text-xs text-data-grey/70 uppercase tracking-widest mb-5">{children}</div>
+    <div className="mb-5 flex min-h-6 items-center justify-between gap-4">
+      <div className="font-mono text-xs text-data-grey/70 uppercase tracking-widest">{children}</div>
+      {aside}
+    </div>
+  );
+}
+
+export function Switch({ label, checked, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="group inline-flex items-center gap-2.5 rounded-full py-0.5 font-mono text-xs text-data-grey transition-colors hover:text-inkwell focus-visible:outline-none"
+    >
+      {label}
+      <span
+        className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full transition-colors duration-200 group-focus-visible:ring-2 group-focus-visible:ring-inkwell/30 group-focus-visible:ring-offset-2 ${
+          checked ? 'bg-inkwell' : 'bg-border-light group-hover:bg-data-grey/30'
+        }`}
+        aria-hidden="true"
+      >
+        <span
+          className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out ${
+            checked ? 'translate-x-4' : 'translate-x-0'
+          }`}
+        />
+      </span>
+    </button>
   );
 }
 
