@@ -17,9 +17,6 @@ function WeightedHelp() {
           GPU-hours scaled by how busy the GPU was: an hour at 50% compute load counts as 0.5 h. When several users
           share a GPU, its time is split by their share of its memory.
         </p>
-        <p className="mt-1.5">
-          It is an estimate. A big gap from GPU-hours means GPUs were held but mostly idle.
-        </p>
       </PopoverContent>
     </Popover>
   );
