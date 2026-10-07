@@ -102,9 +102,11 @@ export default function UsageChart({ history, range }) {
                 width={44}
               />
               <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#94A3B8', strokeWidth: 1 }} isAnimationActive={false} />
+              {/* Monotone curves pass through every point without overshooting it. */}
               {SERIES_KEYS.map((key) => (
                 <Line
                   key={key}
+                  type="monotone"
                   dataKey={key}
                   name={SERIES[key].label}
                   stroke={SERIES[key].color}

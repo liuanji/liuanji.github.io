@@ -170,7 +170,7 @@ export default function CompactHosts({ hosts, now }) {
         </LegendItem>
         <LegendItem>
           <HeatScale Icon={Thermometer} />
-          70–90°C; outlined from 85°C
+          70–90°C
         </LegendItem>
         <LegendItem>
           <HeatScale Icon={Zap} />
