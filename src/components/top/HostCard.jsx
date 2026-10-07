@@ -1,5 +1,7 @@
+import { useIsMobile } from '@/hooks/use-mobile';
 import { LEVEL_SERIES, READING_STYLES, SERIES } from './config';
 import { StatusPill } from './controls';
+import { CpuDetails, DetailsPopover, GpuDetails, RamDetails } from './DetailBoxes';
 import {
   formatAgo,
   formatMemory,
@@ -50,29 +52,64 @@ function Meter({ label, value, max, display, series, level = null, alwaysLabel =
   );
 }
 
-// The server as a whole: CPU load across all cores and RAM in use.
-function SystemStrip({ system }) {
+// A part of the card that opens a detail box on wider screens: a button with
+// the box when there is one, otherwise a plain block.
+function Opens({ details, width, label, className, children }) {
+  if (!details) return <div className={className}>{children}</div>;
+  return (
+    <DetailsPopover content={details} width={width}>
+      <button
+        type="button"
+        aria-label={`${label}. Show details.`}
+        className={`${className} w-full cursor-pointer text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-inkwell/20`}
+      >
+        {children}
+      </button>
+    </DetailsPopover>
+  );
+}
+
+// The server as a whole: CPU load across all cores and RAM in use. On wider
+// screens each opens its box, as in the compact view.
+function SystemStrip({ system, host, interactive }) {
   const cpu = system.cpu_percent;
   const ramKnown = system.memory_used_mb != null && system.memory_total_mb;
+  const ram = ramKnown ? ramLevel(system.memory_used_mb, system.memory_total_mb) : null;
+  const meterBox =
+    '-mx-2 -my-1.5 rounded-lg px-2 py-1.5 hover:bg-white data-[state=open]:bg-white';
   return (
     <div className="grid gap-x-6 gap-y-3 border-b border-border-light bg-paper/60 px-6 py-3.5 sm:grid-cols-2">
-      <Meter
-        label={system.cpu_count ? `CPU · ${system.cpu_count} cores` : 'CPU'}
-        value={cpu ?? 0}
-        max={100}
-        display={cpu == null ? '—' : `${Math.round(cpu)}%`}
-        series={SERIES.compute}
-        alwaysLabel
-      />
-      <Meter
-        label="RAM"
-        value={system.memory_used_mb ?? 0}
-        max={system.memory_total_mb ?? 0}
-        display={ramKnown ? formatMemoryOf(system.memory_used_mb, system.memory_total_mb) : '—'}
-        series={SERIES.memory}
-        level={ramKnown ? ramLevel(system.memory_used_mb, system.memory_total_mb) : null}
-        alwaysLabel
-      />
+      <Opens
+        details={interactive && cpu != null ? <CpuDetails host={host} system={system} /> : null}
+        width="w-[440px]"
+        label={`${host} CPU ${cpu == null ? '' : `${Math.round(cpu)}%`}`}
+        className={meterBox}
+      >
+        <Meter
+          label={system.cpu_count ? `CPU · ${system.cpu_count} cores` : 'CPU'}
+          value={cpu ?? 0}
+          max={100}
+          display={cpu == null ? '—' : `${Math.round(cpu)}%`}
+          series={SERIES.compute}
+          alwaysLabel
+        />
+      </Opens>
+      <Opens
+        details={interactive && ramKnown ? <RamDetails host={host} system={system} level={ram} /> : null}
+        width="w-[440px]"
+        label={`${host} RAM ${ramKnown ? formatMemoryOf(system.memory_used_mb, system.memory_total_mb) : ''}`}
+        className={meterBox}
+      >
+        <Meter
+          label="RAM"
+          value={system.memory_used_mb ?? 0}
+          max={system.memory_total_mb ?? 0}
+          display={ramKnown ? formatMemoryOf(system.memory_used_mb, system.memory_total_mb) : '—'}
+          series={SERIES.memory}
+          level={ram}
+          alwaysLabel
+        />
+      </Opens>
     </div>
   );
 }
@@ -90,7 +127,7 @@ function Reading({ text, level, title }) {
   );
 }
 
-function GpuRow({ gpu }) {
+function GpuRow({ gpu, host, interactive }) {
   const thermal = gpu.temperature_c == null ? '—' : `${Math.round(gpu.temperature_c)}°C`;
   const power = gpu.power_w == null ? '—' : `${Math.round(gpu.power_w)} W`;
   const powerTitle =
@@ -98,7 +135,12 @@ function GpuRow({ gpu }) {
       ? `${Math.round(gpu.power_w)} W of ${Math.round(gpu.power_limit_w)} W limit (${Math.round((gpu.power_w / gpu.power_limit_w) * 100)}%)`
       : undefined;
   return (
-    <div className={`${ROW_GRID} px-6 py-3.5`}>
+    <Opens
+      details={interactive ? <GpuDetails gpu={gpu} host={host} /> : null}
+      width="w-[460px]"
+      label={`${host} GPU ${gpu.index}, ${Math.round(gpu.utilization)}% compute`}
+      className={`${ROW_GRID} px-6 py-3.5 ${interactive ? 'hover:bg-paper data-[state=open]:bg-[#F1F3F6]' : ''}`}
+    >
       <div className="order-1 flex items-center gap-2 md:order-none">
         <span
           className={`h-2 w-2 rounded-full ${gpu.busy ? 'bg-synapse' : 'ring-1 ring-inset ring-data-grey/50'}`}
@@ -145,12 +187,14 @@ function GpuRow({ gpu }) {
           <span className="font-mono text-xs text-data-grey/60">{gpu.busy ? 'In use' : 'Idle'}</span>
         )}
       </div>
-    </div>
+    </Opens>
   );
 }
 
 export default function HostCard({ host, now }) {
   const busy = host.gpus.filter((gpu) => gpu.busy).length;
+  // Detail boxes need room beside the card, so phones go without them.
+  const interactive = !useIsMobile();
   // A server that stopped reporting keeps its last readings, dimmed and labelled.
   const outdated = host.data_sampled_at != null && !hasCurrentData(host, now);
   return (
@@ -176,7 +220,7 @@ export default function HostCard({ host, now }) {
         </p>
       )}
       <div className={outdated ? 'opacity-50' : undefined}>
-        {host.system && <SystemStrip system={host.system} />}
+        {host.system && <SystemStrip system={host.system} host={host.name} interactive={interactive} />}
         {host.gpus.length ? (
           <>
             <div
@@ -190,7 +234,7 @@ export default function HostCard({ host, now }) {
             </div>
             <div className="divide-y divide-border-light">
               {host.gpus.map((gpu) => (
-                <GpuRow key={gpu.index} gpu={gpu} />
+                <GpuRow key={gpu.index} gpu={gpu} host={host.name} interactive={interactive} />
               ))}
             </div>
           </>
