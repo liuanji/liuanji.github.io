@@ -229,10 +229,15 @@ const GLYPH = { outline: '#CBD5E1', unlit: '#E9EEF4', contacts: '#E2C26F' };
 
 // A tiny CPU chip: a 4 x 4 grid of cores that light up from the bottom row
 // with the load, the last one partly.
-export function ChipGlyph({ share, color, size = 26 }) {
+// With animated set, the lit cores pulse out of step with each other, faster
+// the higher the load; idle chips and viewers who prefer reduced motion get a
+// still chip.
+export function ChipGlyph({ share, color, size = 26, animated = false }) {
   const cells = 4;
   const lit = share * cells * cells;
   const pins = [7.5, 11, 14.5];
+  // Seconds per pulse: 2.8 at the lightest load down to 1 at full load.
+  const pulse = animated && share >= 0.02 ? 2.8 - 1.8 * share : null;
   return (
     <svg width={size} height={size} viewBox="0 0 22 22" aria-hidden="true">
       {pins.map((at) => (
@@ -254,7 +259,17 @@ export function ChipGlyph({ share, color, size = 26 }) {
           <g key={index}>
             <rect x={x} y={y} width="2.25" height="2.25" rx="0.5" fill={GLYPH.unlit} />
             {amount > 0 && (
-              <rect x={x} y={y} width="2.25" height="2.25" rx="0.5" fill={color} opacity={0.3 + 0.7 * amount} />
+              // The group pulses, so a partly lit core keeps its own dimmer opacity.
+              <g
+                className={pulse ? 'motion-safe:animate-pulse' : undefined}
+                style={
+                  pulse
+                    ? { animationDuration: `${pulse}s`, animationDelay: `-${(((index * 7) % 16) / 16) * pulse}s` }
+                    : undefined
+                }
+              >
+                <rect x={x} y={y} width="2.25" height="2.25" rx="0.5" fill={color} opacity={0.3 + 0.7 * amount} />
+              </g>
             )}
           </g>
         );
@@ -404,7 +419,7 @@ export function CpuDetails({ host, system }) {
   return (
     <div className="flex gap-6">
       <div className="flex w-[104px] flex-shrink-0 flex-col items-center justify-center">
-        <ChipGlyph share={percent / 100} color={RING_SERIES.compute.color} size={92} />
+        <ChipGlyph share={percent / 100} color={RING_SERIES.compute.color} size={92} animated />
         <span className="mt-1 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell">{percent}%</span>
       </div>
       <div className="min-w-0 flex-1">
