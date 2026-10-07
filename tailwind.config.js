@@ -79,11 +79,19 @@ module.exports = {
   			'accordion-up': {
   				from: { height: 'var(--radix-accordion-content-height)' },
   				to: { height: '0' }
+  			},
+  			// /top's heat scale (heatColor in DetailBoxes.jsx at 0, 0.5 and 1), so one
+  			// legend icon can show the whole range.
+  			heat: {
+  				'0%, 100%': { color: 'hsl(40, 30%, 72%)' },
+  				'25%, 75%': { color: 'hsl(20, 40.5%, 59%)' },
+  				'50%': { color: 'hsl(0, 51%, 46%)' }
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			heat: 'heat 4s ease-in-out infinite'
   		}
   	}
   },

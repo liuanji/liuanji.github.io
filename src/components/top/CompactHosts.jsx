@@ -255,14 +255,16 @@ function CompactHost({ host, now, interactive }) {
   );
 }
 
-// The icon at the start, middle and top of its range.
+// One icon that breathes through its heat colours, dim to hot and back; with
+// reduced motion it holds the middle colour.
 function HeatScale({ Icon }) {
   return (
-    <span className="inline-flex items-center" aria-hidden="true">
-      {[0, 0.5, 1].map((amount) => (
-        <Icon key={amount} className="h-3.5 w-3.5" style={{ color: heatColor(amount) }} strokeWidth={2.25} />
-      ))}
-    </span>
+    <Icon
+      className="h-3.5 w-3.5 motion-safe:animate-heat"
+      style={{ color: heatColor(0.5) }}
+      strokeWidth={2.25}
+      aria-hidden="true"
+    />
   );
 }
 
