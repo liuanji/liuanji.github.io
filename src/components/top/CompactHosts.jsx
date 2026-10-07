@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Thermometer, Zap } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { POWER_ICON_RANGE, TEMPERATURE_ICON_RANGE } from './config';
+import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, TEMPERATURE_ICON_RANGE } from './config';
 import { StatusPill } from './controls';
 import {
   formatAgo,
@@ -10,6 +10,7 @@ import {
   formatMemoryOf,
   gpuModels,
   hasCurrentData,
+  ramLevel,
   temperatureLevel,
   userColor,
 } from './format';
@@ -347,6 +348,134 @@ function DetailsPopover({ gpu, host, children }) {
   );
 }
 
+// Outline, unlit and contact colours shared by the CPU and RAM glyphs.
+const GLYPH = { outline: '#CBD5E1', unlit: '#E9EEF4', contacts: '#E2C26F' };
+
+// A tiny CPU chip: a 4 x 4 grid of cores that light up from the bottom row
+// with the load, the last one partly.
+function ChipGlyph({ share, color }) {
+  const cells = 4;
+  const lit = share * cells * cells;
+  const pins = [7.5, 11, 14.5];
+  return (
+    <svg width="26" height="26" viewBox="0 0 22 22" aria-hidden="true">
+      {pins.map((at) => (
+        <g key={at} stroke={GLYPH.outline} strokeWidth="1.3" strokeLinecap="round">
+          <line x1={at} y1="0.9" x2={at} y2="3" />
+          <line x1={at} y1="19" x2={at} y2="21.1" />
+          <line x1="0.9" y1={at} x2="3" y2={at} />
+          <line x1="19" y1={at} x2="21.1" y2={at} />
+        </g>
+      ))}
+      <rect x="3.5" y="3.5" width="15" height="15" rx="3" fill="white" stroke={GLYPH.outline} strokeWidth="1.3" />
+      {Array.from({ length: cells * cells }, (_, index) => {
+        const row = cells - 1 - Math.floor(index / cells);
+        const column = index % cells;
+        const amount = Math.min(1, Math.max(0, lit - index));
+        const x = 6 + column * 2.75;
+        const y = 6 + row * 2.75;
+        return (
+          <g key={index}>
+            <rect x={x} y={y} width="2.25" height="2.25" rx="0.5" fill={GLYPH.unlit} />
+            {amount > 0 && (
+              <rect x={x} y={y} width="2.25" height="2.25" rx="0.5" fill={color} opacity={0.3 + 0.7 * amount} />
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+// A tiny memory stick whose six chips fill from the left with the RAM in use,
+// above a row of gold contacts with the key notch.
+function StickGlyph({ share, color }) {
+  const chips = 6;
+  const filled = share * chips;
+  return (
+    // The viewBox centres the stick's body; the contacts hang below it, so the
+    // body lines up with the text beside it.
+    <svg width="44" height="23" viewBox="0 -2.2 36 18.9" aria-hidden="true">
+      <rect x="0.65" y="1.65" width="34.7" height="11.2" rx="2" fill="white" stroke={GLYPH.outline} strokeWidth="1.3" />
+      {Array.from({ length: chips }, (_, index) => {
+        const amount = Math.min(1, Math.max(0, filled - index));
+        const x = 3.2 + index * 5.05;
+        return (
+          <g key={index}>
+            <rect x={x} y="4.2" width="3.9" height="6.1" rx="0.7" fill={GLYPH.unlit} />
+            {amount > 0 && <rect x={x} y="4.2" width={3.9 * amount} height="6.1" rx="0.7" fill={color} />}
+          </g>
+        );
+      })}
+      {Array.from({ length: 11 }, (_, index) => index)
+        .filter((index) => index !== 4)
+        .map((index) => (
+          <line
+            key={index}
+            x1={3 + index * 3}
+            y1="14.4"
+            x2={3 + index * 3}
+            y2="16.6"
+            stroke={GLYPH.contacts}
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          />
+        ))}
+    </svg>
+  );
+}
+
+// A CPU or RAM reading for a server's header: a small picture of the part, lit
+// in the rings' soft colours, and its percentage. A warm or hot level takes
+// over the picture and the value, as in the full view.
+function HeaderMeter({ label, Glyph, share, title, series, level = null }) {
+  const clamped = Math.min(1, Math.max(0, share));
+  const percent = Math.round(clamped * 100);
+  return (
+    <span className="flex items-center gap-1.5 font-mono text-xs text-data-grey" title={title}>
+      <span className="sr-only">{title}</span>
+      <span aria-hidden="true">{label}</span>
+      <Glyph share={clamped} color={(LEVEL_SERIES[level] ?? series).color} />
+      <span
+        className={`w-8 tabular-nums ${level ? 'font-medium' : 'text-inkwell'}`}
+        style={level ? { color: READING_STYLES[level].color } : undefined}
+        aria-hidden="true"
+      >
+        {percent}%
+      </span>
+    </span>
+  );
+}
+
+function SystemMeters({ system }) {
+  const ramKnown = system.memory_used_mb != null && system.memory_total_mb;
+  // Nudged down a pixel to centre on the status pill beside it, which sits a
+  // little below its own text.
+  return (
+    <span className="flex translate-y-px items-center gap-4">
+      {system.cpu_percent != null && (
+        <HeaderMeter
+          label="CPU"
+          Glyph={ChipGlyph}
+          share={system.cpu_percent / 100}
+          title={`CPU ${Math.round(system.cpu_percent)}%${system.cpu_count ? ` of ${system.cpu_count} cores` : ''}`}
+          series={RING_SERIES.compute}
+        />
+      )}
+      {ramKnown && (
+        <HeaderMeter
+          label="RAM"
+          Glyph={StickGlyph}
+          share={system.memory_used_mb / system.memory_total_mb}
+          title={`RAM ${formatMemoryOf(system.memory_used_mb, system.memory_total_mb)}`}
+          series={RING_SERIES.memory}
+          level={ramLevel(system.memory_used_mb, system.memory_total_mb)}
+        />
+      )}
+    </span>
+  );
+}
+
 function CompactHost({ host, now, interactive }) {
   const busy = host.gpus.filter((gpu) => gpu.busy).length;
   const compute = host.gpus.length
@@ -355,15 +484,24 @@ function CompactHost({ host, now, interactive }) {
   const outdated = host.data_sampled_at != null && !hasCurrentData(host, now);
   return (
     <article className="bg-white rounded-2xl border border-border-light px-4 pb-3 pt-4 sm:px-5">
-      <header className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-1 px-1">
-        <h3 className="font-tight font-semibold text-lg text-inkwell leading-tight">{host.name}</h3>
+      {/* One line on wider screens; on phones the status moves up beside the
+          name, and the summary and CPU/RAM take a line each. */}
+      <header className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-2 px-1">
+        <h3 className="order-1 font-tight font-semibold text-lg text-inkwell leading-tight">{host.name}</h3>
         {host.gpus.length > 0 && (
-          <span className="font-mono text-xs text-data-grey">
+          <span className="order-3 w-full font-mono text-xs text-data-grey sm:order-2 sm:w-auto">
             {busy}/{host.gpus.length} in use · {Math.round(compute)}% compute
           </span>
         )}
-        <span className="ml-auto flex items-center gap-3 font-mono text-xs text-data-grey">
+        <span className="order-4 flex w-full flex-wrap items-center gap-x-5 gap-y-2 font-mono text-xs text-data-grey sm:order-3 sm:ml-auto sm:w-auto">
           {outdated && <span>last reported {formatAgo(now - host.data_sampled_at)}</span>}
+          {host.system && (
+            <span className={outdated ? 'opacity-50' : undefined}>
+              <SystemMeters system={host.system} />
+            </span>
+          )}
+        </span>
+        <span className="order-2 ml-auto sm:order-4 sm:ml-0">
           <StatusPill status={host.status} />
         </span>
       </header>
