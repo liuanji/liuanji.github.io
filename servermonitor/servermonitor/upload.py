@@ -24,6 +24,9 @@ from .publish import build_files
 LOGGER = logging.getLogger(__name__)
 
 LIVE_INTERVAL_SECONDS = 60
+# Upload this far into each minute, so every host has been checked at least once
+# in the current minute: the newest availability bar is never empty at upload.
+UPLOAD_OFFSET_SECONDS = 45
 FULL_EVERY_CYCLES = 5
 # The Worker accepts at most 40 files and 1,000,000 characters per upload.
 MAX_FILES_PER_UPLOAD = 40
@@ -33,6 +36,10 @@ REQUEST_TIMEOUT_SECONDS = 30
 
 class UploadError(RuntimeError):
     pass
+
+
+def seconds_until_upload(now: float) -> float:
+    return LIVE_INTERVAL_SECONDS - (now - UPLOAD_OFFSET_SECONDS) % LIVE_INTERVAL_SECONDS
 
 
 def batches(files: dict[str, Any]) -> Iterator[str]:
@@ -131,7 +138,7 @@ class Uploader:
             cycle += 1
             if cycle % FULL_EVERY_CYCLES == 0:
                 full_due = True
-            self._stop.wait(LIVE_INTERVAL_SECONDS - time.time() % LIVE_INTERVAL_SECONDS)
+            self._stop.wait(seconds_until_upload(time.time()))
 
     def start(self) -> None:
         if self._thread is not None:

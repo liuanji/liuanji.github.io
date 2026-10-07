@@ -7,7 +7,7 @@ from unittest.mock import patch
 from servermonitor import upload
 from servermonitor.config import Settings
 from servermonitor.database import Database
-from servermonitor.upload import UploadError, Uploader, batches
+from servermonitor.upload import UploadError, Uploader, batches, seconds_until_upload
 from tests.test_database import successful_result
 
 
@@ -37,6 +37,15 @@ class BatchesTest(unittest.TestCase):
         with patch.object(upload, "MAX_UPLOAD_CHARS", 100):
             with self.assertRaisesRegex(UploadError, "huge"):
                 list(batches({"huge": "x" * 200}))
+
+
+class ScheduleTest(unittest.TestCase):
+    def test_uploads_45_seconds_into_each_minute(self) -> None:
+        minute = 1_700_000_040
+        self.assertEqual(seconds_until_upload(minute), 45)
+        self.assertEqual(seconds_until_upload(minute + 44), 1)
+        self.assertEqual(seconds_until_upload(minute + 45), 60)
+        self.assertEqual(seconds_until_upload(minute + 50), 55)
 
 
 class UploaderTest(unittest.TestCase):
