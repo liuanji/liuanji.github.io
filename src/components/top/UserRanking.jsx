@@ -34,27 +34,40 @@ export default function UserRanking({ users, rangeTitle, showHosts }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="font-mono text-[11px] uppercase tracking-wider text-data-grey/70">
-                <th scope="col" className="w-12 py-2.5 pl-6 text-left font-normal">#</th>
-                <th scope="col" className="py-2.5 pr-4 text-left font-normal sm:w-44">User</th>
-                <th scope="col" className="py-2.5 pr-4 text-left font-normal">GPU-hours</th>
-                <th scope="col" className="hidden py-2.5 pr-4 text-right font-normal sm:table-cell">
+              <tr className="whitespace-nowrap font-mono text-[11px] uppercase tracking-wider text-data-grey/70">
+                {/* Fixed-width blocks keep # and User at their widths beside the spare column. */}
+                <th scope="col" className="py-2.5 pl-6 text-left font-normal">
+                  <div className="w-6">#</div>
+                </th>
+                <th scope="col" className="py-2.5 pr-4 text-left font-normal">
+                  <div className="sm:w-40">User</div>
+                </th>
+                <th scope="col" className="py-2.5 pr-6 text-left font-normal">GPU-hours</th>
+                <th scope="col" className="hidden py-2.5 pr-8 text-left font-normal sm:table-cell">
                   <WeightedHelp />
                 </th>
+                {/* The last column takes the spare width, so the others sit close together. */}
                 {showHosts && (
-                  <th scope="col" className="hidden py-2.5 pr-6 text-left font-normal md:table-cell">Servers</th>
+                  <th scope="col" className="hidden w-full py-2.5 pr-6 text-left font-normal md:table-cell">
+                    Servers
+                  </th>
                 )}
+                <th className={`w-full p-0 ${showHosts ? 'md:hidden' : ''}`} aria-hidden="true" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border-light border-t border-border-light">
               {users.map((user, index) => (
                 <tr key={user.username} className="transition-colors hover:bg-paper">
-                  <td className="py-3 pl-6 font-mono text-xs text-data-grey">{index + 1}</td>
-                  <td className="py-3 pr-4 font-mono text-sm text-inkwell">{user.username}</td>
-                  <td className="py-3 pr-4">
-                    {/* The label has a fixed width so every row's track is the same length. */}
+                  <td className="py-3 pl-6 font-mono text-xs text-data-grey">
+                    <div className="w-6">{index + 1}</div>
+                  </td>
+                  <td className="py-3 pr-4 font-mono text-sm text-inkwell">
+                    <div className="truncate sm:w-40">{user.username}</div>
+                  </td>
+                  <td className="py-3 pr-6">
+                    {/* Fixed widths keep every row's track the same length. */}
                     <div className="flex items-center gap-3">
-                      <div className="hidden h-2 min-w-0 max-w-[14rem] flex-1 sm:block" aria-hidden="true">
+                      <div className="hidden h-2 w-40 flex-shrink-0 sm:block" aria-hidden="true">
                         <div
                           className="h-full rounded-r-[4px]"
                           style={{
@@ -63,12 +76,12 @@ export default function UserRanking({ users, rangeTitle, showHosts }) {
                           }}
                         />
                       </div>
-                      <span className="w-14 flex-shrink-0 whitespace-nowrap text-right font-mono text-xs tabular-nums text-inkwell">
+                      <span className="w-14 flex-shrink-0 whitespace-nowrap font-mono text-xs tabular-nums text-inkwell">
                         {formatHours(user.gpu_hours)} h
                       </span>
                     </div>
                   </td>
-                  <td className="hidden py-3 pr-4 text-right font-mono text-xs tabular-nums text-data-grey sm:table-cell">
+                  <td className="hidden whitespace-nowrap py-3 pr-8 font-mono text-xs tabular-nums text-data-grey sm:table-cell">
                     {formatHours(user.weighted_gpu_hours)} h
                   </td>
                   {showHosts && (
@@ -77,7 +90,7 @@ export default function UserRanking({ users, rangeTitle, showHosts }) {
                         {user.hosts.map((host) => (
                           <span
                             key={host.name}
-                            className="rounded-md border border-border-light bg-paper px-2 py-0.5 font-mono text-xs text-data-grey"
+                            className="whitespace-nowrap rounded-md border border-border-light bg-paper px-2 py-0.5 font-mono text-xs text-data-grey"
                           >
                             {host.name} <span className="text-inkwell">{formatHours(host.gpu_hours)}h</span>
                           </span>
@@ -85,6 +98,7 @@ export default function UserRanking({ users, rangeTitle, showHosts }) {
                       </div>
                     </td>
                   )}
+                  <td className={`p-0 ${showHosts ? 'md:hidden' : ''}`} aria-hidden="true" />
                 </tr>
               ))}
             </tbody>
