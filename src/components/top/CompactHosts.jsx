@@ -1,7 +1,20 @@
 import { Thermometer, Zap } from 'lucide-react';
-import { READING_STYLES, SERIES } from './config';
+import { POWER_ICON_RANGE, SERIES, TEMPERATURE_ICON_RANGE } from './config';
 import { StatusPill } from './controls';
-import { formatAgo, formatMemory, hasCurrentData, powerLevel, temperatureLevel } from './format';
+import { formatAgo, formatMemory, hasCurrentData, temperatureLevel } from './format';
+
+// How far a reading is into its icon range: null below it, 0 at the start, 1 at
+// the top and above.
+function heat(value, range) {
+  if (value == null || value < range.from) return null;
+  return Math.min(1, (value - range.from) / (range.to - range.from));
+}
+
+// Dim amber at 0, through orange, to the hot red (#B33A3A) at 1.
+function heatColor(amount) {
+  const mix = (start, end) => start + (end - start) * amount;
+  return `hsl(${mix(40, 0)}, ${mix(30, 51)}%, ${mix(72, 46)}%)`;
+}
 
 function MiniMeter({ value, max, display, series }) {
   const percent = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
@@ -34,14 +47,15 @@ function describe(gpu, host) {
 // A high temperature is worth a closer look, so a hot GPU outlines its whole
 // tile; high power is normal under load and only shows its icon.
 function GpuTile({ gpu, host }) {
-  const temperature = temperatureLevel(gpu.temperature_c);
-  const power = powerLevel(gpu.power_w, gpu.power_limit_w);
+  const hot = temperatureLevel(gpu.temperature_c) === 'hot';
+  const temperature = heat(gpu.temperature_c, TEMPERATURE_ICON_RANGE);
+  const power = heat(gpu.power_limit_w ? gpu.power_w / gpu.power_limit_w : null, POWER_ICON_RANGE);
   const [firstUser, ...otherUsers] = gpu.users;
   return (
     <div
       title={describe(gpu, host)}
       className={`min-w-0 rounded-xl border px-3 py-2.5 ${
-        temperature === 'hot' ? 'border-[#B33A3A]/50 bg-[#B33A3A]/[0.04]' : 'border-border-light bg-white'
+        hot ? 'border-[#B33A3A]/50 bg-[#B33A3A]/[0.04]' : 'border-border-light bg-white'
       }`}
     >
       <div className="mb-2 flex items-center gap-1.5">
@@ -51,20 +65,20 @@ function GpuTile({ gpu, host }) {
         />
         <span className="font-mono text-xs text-inkwell">GPU {gpu.index}</span>
         <span className="ml-auto flex items-center gap-0.5">
-          {temperature && (
+          {temperature != null && (
             <Thermometer
               className="h-3.5 w-3.5"
-              style={{ color: READING_STYLES[temperature].color }}
+              style={{ color: heatColor(temperature) }}
               strokeWidth={2.25}
-              aria-label={`${temperature === 'hot' ? 'Very hot' : 'Hot'}: ${Math.round(gpu.temperature_c)}°C`}
+              aria-label={`Temperature ${Math.round(gpu.temperature_c)}°C`}
             />
           )}
-          {power && (
+          {power != null && (
             <Zap
               className="h-3.5 w-3.5"
-              style={{ color: READING_STYLES[power].color }}
+              style={{ color: heatColor(power) }}
               strokeWidth={2.25}
-              aria-label={`High power: ${Math.round(gpu.power_w)} W`}
+              aria-label={`Power ${Math.round(gpu.power_w)} W of ${Math.round(gpu.power_limit_w)} W`}
             />
           )}
         </span>
@@ -122,6 +136,17 @@ function CompactHost({ host, now }) {
   );
 }
 
+// The icon at the start, middle and top of its range.
+function HeatScale({ Icon }) {
+  return (
+    <span className="inline-flex items-center" aria-hidden="true">
+      {[0, 0.5, 1].map((amount) => (
+        <Icon key={amount} className="h-3.5 w-3.5" style={{ color: heatColor(amount) }} strokeWidth={2.25} />
+      ))}
+    </span>
+  );
+}
+
 function LegendItem({ children }) {
   return <span className="inline-flex items-center gap-1.5">{children}</span>;
 }
@@ -144,12 +169,12 @@ export default function CompactHosts({ hosts, now }) {
           Memory
         </LegendItem>
         <LegendItem>
-          <Thermometer className="h-3.5 w-3.5" style={READING_STYLES.warm} aria-hidden="true" />
-          From 75°C; outlined from 85°C
+          <HeatScale Icon={Thermometer} />
+          70–90°C; outlined from 85°C
         </LegendItem>
         <LegendItem>
-          <Zap className="h-3.5 w-3.5" style={READING_STYLES.warm} aria-hidden="true" />
-          From 70% of power limit
+          <HeatScale Icon={Zap} />
+          70–100% of power limit
         </LegendItem>
       </div>
     </div>

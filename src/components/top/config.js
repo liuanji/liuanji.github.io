@@ -36,6 +36,12 @@ export const HOST_STATUS = {
 // Unreachable statuses, darkened so the text keeps 4.5:1 on white and on the tint.
 export const TEMPERATURE_LEVELS_C = { warm: 75, hot: 85 };
 export const POWER_LEVELS = { warm: 0.7, hot: 0.9 };
+// The compact view's thermometer and lightning icons appear at `from` and warm
+// steadily, from a dim amber to the hot red, until `to`. Temperature in °C,
+// power as a share of the GPU's enforced power limit.
+export const TEMPERATURE_ICON_RANGE = { from: 70, to: 90 };
+export const POWER_ICON_RANGE = { from: 0.7, to: 1 };
+
 // A server's RAM as a share of its total; jobs get killed when it runs out.
 export const RAM_LEVELS = { warm: 0.8, hot: 0.9 };
 // A disk's used share, as df counts it: used / (used + available).
