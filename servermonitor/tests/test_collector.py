@@ -63,7 +63,14 @@ class CollectorParserTest(unittest.TestCase):
             "cpu  1300 0 1200 7400 1100 0 0 0 0 0\n"
             "MemTotal:       1048576 kB\n"
             "MemAvailable:    786432 kB\n"
+            "Buffers:          10240 kB\n"
+            "Cached:          512000 kB\n"
+            "SwapTotal:        8192 kB\n"
+            "SwapFree:         2048 kB\n"
             "128\n"
+            "5.39 5.17 5.13 5/6604 707676\n"
+            "uptime 2692648.60\n"
+            "model name\t: AMD EPYC 9555 64-Core Processor\n"
         )
 
         system = parse_collector_output("brezel", output, 1_700_000_000, 123).system
@@ -73,6 +80,26 @@ class CollectorParserTest(unittest.TestCase):
         self.assertEqual(system.cpu_count, 128)
         self.assertEqual(system.memory_total_mb, 1024)
         self.assertEqual(system.memory_used_mb, 256)
+        self.assertEqual(system.memory_cache_mb, 510)
+        self.assertEqual((system.swap_used_mb, system.swap_total_mb), (6, 8))
+        self.assertEqual(system.load_averages, (5.39, 5.17, 5.13))
+        self.assertEqual(system.uptime_seconds, 2692649)
+        self.assertEqual(system.cpu_model, "AMD EPYC 9555 64-Core Processor")
+
+    def test_system_extras_are_optional(self) -> None:
+        output = SAMPLE_OUTPUT + (
+            "__SERVERMONITOR_SYSTEM__\n"
+            "cpu  1000 0 1000 7000 1000 0 0 0 0 0\n"
+            "cpu  1300 0 1200 7400 1100 0 0 0 0 0\n"
+            "uptime \n"
+        )
+
+        system = parse_collector_output("brezel", output, 1_700_000_000, 123).system
+
+        self.assertEqual(system.cpu_percent, 50.0)
+        self.assertIsNone(system.load_averages)
+        self.assertIsNone(system.uptime_seconds)
+        self.assertIsNone(system.swap_total_mb)
 
     def test_system_is_optional(self) -> None:
         self.assertIsNone(parse_collector_output("brezel", SAMPLE_OUTPUT, 1, 1).system)

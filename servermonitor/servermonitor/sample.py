@@ -163,6 +163,14 @@ class SimulatedHost:
                 cpu_count=self.cpu_count,
                 memory_used_mb=round(min(ram_used_mb, self.ram_mb), 1),
                 memory_total_mb=self.ram_mb,
+                memory_cache_mb=round((self.ram_mb - min(ram_used_mb, self.ram_mb)) * 0.6, 1),
+                swap_used_mb=round(8192 * min(1.0, ram_used_mb / self.ram_mb * 1.4), 1),
+                swap_total_mb=8192.0,
+                load_averages=tuple(
+                    round(self.cpu_count * cpu_percent / 100 * factor, 2) for factor in (1.0, 0.95, 0.9)
+                ),
+                uptime_seconds=31 * 86400 + 4 * 3600,
+                cpu_model="AMD EPYC 9555 64-Core Processor",
             ),
         )
 

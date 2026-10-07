@@ -1,5 +1,6 @@
-// Easter eggs. The availability bars draw from one pool per bar state, and an
-// idle GPU's details box from IDLE_GPU.
+// Easter eggs. The availability bars draw from one pool per bar state, an
+// idle GPU's details box from IDLE_GPU, and the CPU and RAM boxes from a pool
+// per pressure band.
 //
 // The servers are named after bakes, so most lines are baking puns; {host}
 // becomes the server's name. Keep bar lines short and free of time words ("all
@@ -157,6 +158,94 @@ const IDLE_GPU = [
   'Warm, empty and waiting',
 ];
 
+// CPU and RAM lines by how hard the part is working: each band starts at its
+// share (0-1) and runs up to the next one.
+const PRESSURE = {
+  cpu: [
+    {
+      from: 0,
+      lines: [
+        'Most cores are napping',
+        'The ovens are barely warm',
+        'Plenty of room to bake',
+        '{host} is taking it easy',
+        'Cores sipping tea',
+        'A quiet kitchen',
+      ],
+    },
+    {
+      from: 0.3,
+      lines: [
+        'Cores humming along',
+        'A steady bake',
+        'Busy but comfy',
+        'The kitchen is bustling',
+        'The dough is rising nicely',
+      ],
+    },
+    {
+      from: 0.7,
+      lines: [
+        'The ovens are roaring',
+        '{host} is breaking a sweat',
+        'Every baker has their hands full',
+        'Things are heating up',
+        'Cores working overtime',
+      ],
+    },
+    {
+      from: 0.9,
+      lines: [
+        'Every core is kneading!',
+        'Full steam ahead',
+        'Ovens at full blast',
+        '{host} is giving it everything',
+        'No free hands in the kitchen',
+      ],
+    },
+  ],
+  ram: [
+    {
+      from: 0,
+      lines: [
+        'Plenty of room in the pantry',
+        'Shelves to spare',
+        'Loads of room for loaves',
+        'The pantry is roomy',
+        'Room for another batch',
+      ],
+    },
+    {
+      from: 0.5,
+      lines: [
+        'A well-stocked pantry',
+        'The shelves are filling up',
+        'Comfortably full of dough',
+        'Stocked but not stuffed',
+      ],
+    },
+    {
+      from: 0.8,
+      lines: [
+        'The pantry is getting crowded',
+        'Shelves are nearly full',
+        'Squeezing in a few more loaves',
+        'Running low on shelf space',
+      ],
+    },
+    {
+      from: 0.9,
+      lines: [
+        'Not a crumb of room left',
+        'The pantry is bursting',
+        '{host} is out of shelf space',
+        'Time to clear some shelves',
+        'Packed like a bread bin',
+      ],
+    },
+  ],
+};
+
 // Fresh on every page load, so each visit deals out different lines, while a bar
 // keeps its line as long as the page stays open.
 const SEED = Math.floor(Math.random() * 2 ** 32);
@@ -173,6 +262,13 @@ function hash(text) {
 export function barPhrase(state, host, barStart) {
   const pool = PHRASES[state];
   return pool[hash(`${state}|${host}|${barStart}`) % pool.length].replace('{host}', host);
+}
+
+// part is 'cpu' or 'ram'; share is how much of it is in use, from 0 to 1.
+export function pressurePhrase(part, share, host) {
+  const bands = PRESSURE[part];
+  const band = bands.filter((candidate) => share >= candidate.from).pop() ?? bands[0];
+  return band.lines[hash(`${part}|${band.from}|${host}`) % band.lines.length].replace('{host}', host);
 }
 
 export function idleGpuPhrase(host, index) {

@@ -14,7 +14,7 @@ import {
   temperatureLevel,
   userColor,
 } from './format';
-import { idleGpuPhrase } from './easterEggs';
+import { idleGpuPhrase, pressurePhrase } from './easterEggs';
 
 // How far a reading is into its icon range: null below it, 0 at the start, 1 at
 // the top and above.
@@ -104,19 +104,22 @@ function UsageRing({ gpu, size = RING.size, children = null }) {
 
 const QUIET = { color: '#A3B1C6', track: '#A3B1C624' };
 
-function Metric({ label, value, share, series }) {
+// share null leaves out the bar.
+function Metric({ label, value, share = null, series = null }) {
   return (
     <div className="min-w-0">
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-mono text-[11px] text-data-grey">{label}</span>
         <span className="whitespace-nowrap font-mono text-xs tabular-nums text-inkwell">{value}</span>
       </div>
-      <div className="mt-1.5 h-1 overflow-hidden rounded-full" style={{ backgroundColor: series.track }}>
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${Math.min(100, Math.max(0, share * 100))}%`, backgroundColor: series.color }}
-        />
-      </div>
+      {share != null && (
+        <div className="mt-1.5 h-1 overflow-hidden rounded-full" style={{ backgroundColor: series.track }}>
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${Math.min(100, Math.max(0, share * 100))}%`, backgroundColor: series.color }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -133,7 +136,7 @@ function GpuDetails({ gpu, host }) {
   const power = gpu.power_limit_w && gpu.power_w != null ? gpu.power_w / gpu.power_limit_w : null;
   return (
     <div className="flex gap-6">
-      <div className="flex flex-col items-center pt-1">
+      <div className="flex flex-col items-center justify-center">
         <UsageRing gpu={gpu} size={104}>
           <span className="font-tight text-lg font-semibold leading-none tabular-nums text-inkwell">
             {Math.round(gpu.utilization)}%
@@ -269,7 +272,7 @@ function GpuRing({ gpu, host, interactive }) {
   );
   if (!interactive) return tile;
   return (
-    <DetailsPopover gpu={gpu} host={host}>
+    <DetailsPopover content={<GpuDetails gpu={gpu} host={host} />} width="w-[460px]">
       {tile}
     </DetailsPopover>
   );
@@ -283,7 +286,7 @@ const HOVER_CLOSE_MS = 200;
 // A click opens a box that stays until Escape or a click elsewhere. A long
 // hover opens one that closes again when the mouse leaves both the tile and
 // the box; clicking the tile while it is open keeps it open instead.
-function DetailsPopover({ gpu, host, children }) {
+function DetailsPopover({ content, width, children }) {
   const [open, setOpen] = useState(false);
   const pinned = useRef(false);
   const openTimer = useRef(undefined);
@@ -340,9 +343,9 @@ function DetailsPopover({ gpu, host, children }) {
         collisionPadding={16}
         onPointerEnter={hoverIn}
         onPointerLeave={hoverOut}
-        className="w-[460px] rounded-2xl border-border-light bg-white p-5 shadow-xl"
+        className={`${width} rounded-2xl border-border-light bg-white p-5 shadow-xl`}
       >
-        <GpuDetails gpu={gpu} host={host} />
+        {content}
       </PopoverContent>
     </Popover>
   );
@@ -353,12 +356,12 @@ const GLYPH = { outline: '#CBD5E1', unlit: '#E9EEF4', contacts: '#E2C26F' };
 
 // A tiny CPU chip: a 4 x 4 grid of cores that light up from the bottom row
 // with the load, the last one partly.
-function ChipGlyph({ share, color }) {
+function ChipGlyph({ share, color, size = 26 }) {
   const cells = 4;
   const lit = share * cells * cells;
   const pins = [7.5, 11, 14.5];
   return (
-    <svg width="26" height="26" viewBox="0 0 22 22" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 22 22" aria-hidden="true">
       {pins.map((at) => (
         <g key={at} stroke={GLYPH.outline} strokeWidth="1.3" strokeLinecap="round">
           <line x1={at} y1="0.9" x2={at} y2="3" />
@@ -389,13 +392,13 @@ function ChipGlyph({ share, color }) {
 
 // A tiny memory stick whose six chips fill from the left with the RAM in use,
 // above a row of gold contacts with the key notch.
-function StickGlyph({ share, color }) {
+function StickGlyph({ share, color, width = 44 }) {
   const chips = 6;
   const filled = share * chips;
   return (
     // The viewBox centres the stick's body; the contacts hang below it, so the
     // body lines up with the text beside it.
-    <svg width="44" height="23" viewBox="0 -2.2 36 18.9" aria-hidden="true">
+    <svg width={width} height={(width * 18.9) / 36} viewBox="0 -2.2 36 18.9" aria-hidden="true">
       <rect x="0.65" y="1.65" width="34.7" height="11.2" rx="2" fill="white" stroke={GLYPH.outline} strokeWidth="1.3" />
       {Array.from({ length: chips }, (_, index) => {
         const amount = Math.min(1, Math.max(0, filled - index));
@@ -425,30 +428,152 @@ function StickGlyph({ share, color }) {
   );
 }
 
+// A box's closing line: any facts on the left and an easter egg at the bottom
+// right, wrapping below them when there is no room beside; with no facts the
+// easter egg has the line to itself.
+function BoxFooter({ phrase, children = null }) {
+  return (
+    <div className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-border-light pt-3 font-mono text-[11px] text-data-grey">
+      {children && <span>{children}</span>}
+      <span className={`italic text-data-grey/80 ${children ? 'ml-auto' : ''}`}>{phrase}</span>
+    </div>
+  );
+}
+
+function loadText(value) {
+  return value >= 100 ? value.toFixed(0) : value.toFixed(1);
+}
+
+// The CPU's box: a large chip, its load now and its load averages.
+function CpuDetails({ host, system }) {
+  const percent = Math.round(system.cpu_percent ?? 0);
+  const load = system.load_averages;
+  return (
+    <div className="flex gap-6">
+      <div className="flex w-[104px] flex-shrink-0 flex-col items-center justify-center">
+        <ChipGlyph share={percent / 100} color={RING_SERIES.compute.color} size={92} />
+        <span className="mt-1 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell">{percent}%</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">
+          {host} <span className="text-data-grey/60">·</span> CPU
+        </h4>
+        <p className="mt-0.5 truncate font-mono text-[11px] text-data-grey">{system.cpu_model ?? 'Processor'}</p>
+        <div className="mt-4">
+          <Metric label="Load now" value={`${percent}%`} share={percent / 100} series={RING_SERIES.compute} />
+        </div>
+        {load && (
+          <div className="mt-3.5">
+            {/* Load averages count runnable threads, so the thread count gives them scale. */}
+            <span className="font-mono text-[11px] text-data-grey">
+              Load average{system.cpu_count ? <span className="text-data-grey/60"> · {system.cpu_count} threads</span> : null}
+            </span>
+            <div className="mt-1.5 grid grid-cols-3 gap-2">
+              {['1 min', '5 min', '15 min'].map((window, index) => (
+                <div key={window} className="rounded-lg bg-[#F6F7F9] px-2.5 py-1.5">
+                  <div className="font-mono text-[10px] text-data-grey">{window}</div>
+                  <div className="font-mono text-xs tabular-nums text-inkwell">{loadText(load[index])}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <BoxFooter phrase={pressurePhrase('cpu', percent / 100, host)} />
+      </div>
+    </div>
+  );
+}
+
+// The RAM's box: a large memory stick, memory in use, cache, what is still
+// available, and swap.
+function RamDetails({ host, system, level }) {
+  const total = system.memory_total_mb;
+  const used = system.memory_used_mb;
+  const percent = Math.round((used / total) * 100);
+  const inUse = LEVEL_SERIES[level] ?? RING_SERIES.memory;
+  const swapKnown = system.swap_total_mb != null && system.swap_used_mb != null;
+  return (
+    <div className="flex gap-6">
+      <div className="flex w-[112px] flex-shrink-0 flex-col items-center justify-center">
+        <StickGlyph share={used / total} color={inUse.color} width={112} />
+        <span
+          className="mt-3 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell"
+          style={level ? { color: READING_STYLES[level].color } : undefined}
+        >
+          {percent}%
+        </span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">
+          {host} <span className="text-data-grey/60">·</span> RAM
+        </h4>
+        <p className="mt-0.5 truncate font-mono text-[11px] text-data-grey">{formatMemory(total)} total</p>
+        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3.5">
+          <Metric label="In use" value={formatMemory(used)} share={used / total} series={inUse} />
+          <Metric label="Available" value={formatMemory(total - used)} share={(total - used) / total} series={QUIET} />
+          <Metric
+            label="Cache"
+            value={system.memory_cache_mb == null ? '—' : formatMemory(system.memory_cache_mb)}
+            share={system.memory_cache_mb == null ? null : system.memory_cache_mb / total}
+            series={QUIET}
+          />
+          <Metric
+            label="Swap"
+            value={swapKnown ? formatMemoryOf(system.swap_used_mb, system.swap_total_mb) : '—'}
+            share={swapKnown && system.swap_total_mb ? system.swap_used_mb / system.swap_total_mb : null}
+            series={QUIET}
+          />
+        </div>
+        <BoxFooter phrase={pressurePhrase('ram', used / total, host)} />
+      </div>
+    </div>
+  );
+}
+
 // A CPU or RAM reading for a server's header: a small picture of the part, lit
 // in the rings' soft colours, and its percentage. A warm or hot level takes
-// over the picture and the value, as in the full view.
-function HeaderMeter({ label, Glyph, share, title, series, level = null }) {
+// over the picture and the value, as in the full view. On wider screens it is
+// a button that opens the part's box, like a GPU tile.
+function HeaderMeter({ label, Glyph, share, title, series, level = null, details = null }) {
   const clamped = Math.min(1, Math.max(0, share));
   const percent = Math.round(clamped * 100);
-  return (
-    <span className="flex items-center gap-1.5 font-mono text-xs text-data-grey" title={title}>
-      <span className="sr-only">{title}</span>
+  const inner = (
+    <>
       <span aria-hidden="true">{label}</span>
       <Glyph share={clamped} color={(LEVEL_SERIES[level] ?? series).color} />
       <span
-        className={`w-8 tabular-nums ${level ? 'font-medium' : 'text-inkwell'}`}
+        className={`w-8 text-left tabular-nums ${level ? 'font-medium' : 'text-inkwell'}`}
         style={level ? { color: READING_STYLES[level].color } : undefined}
         aria-hidden="true"
       >
         {percent}%
       </span>
-    </span>
+    </>
+  );
+  if (!details) {
+    return (
+      <span className="flex items-center gap-1.5 font-mono text-xs text-data-grey" title={title}>
+        <span className="sr-only">{title}</span>
+        {inner}
+      </span>
+    );
+  }
+  return (
+    <DetailsPopover content={details} width="w-[440px]">
+      <button
+        type="button"
+        aria-label={`${title}. Show details.`}
+        className="-mx-1.5 -my-1 flex items-center gap-1.5 rounded-lg px-1.5 py-1 font-mono text-xs text-data-grey transition-colors hover:bg-[#F1F3F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20 data-[state=open]:bg-[#ECEFF3]"
+      >
+        {inner}
+      </button>
+    </DetailsPopover>
   );
 }
 
-function SystemMeters({ system }) {
+function SystemMeters({ system, host, interactive }) {
   const ramKnown = system.memory_used_mb != null && system.memory_total_mb;
+  const ram = ramKnown ? ramLevel(system.memory_used_mb, system.memory_total_mb) : null;
   // Nudged down a pixel to centre on the status pill beside it, which sits a
   // little below its own text.
   return (
@@ -458,8 +583,9 @@ function SystemMeters({ system }) {
           label="CPU"
           Glyph={ChipGlyph}
           share={system.cpu_percent / 100}
-          title={`CPU ${Math.round(system.cpu_percent)}%${system.cpu_count ? ` of ${system.cpu_count} cores` : ''}`}
+          title={`CPU ${Math.round(system.cpu_percent)}%${system.cpu_count ? ` of ${system.cpu_count} threads` : ''}`}
           series={RING_SERIES.compute}
+          details={interactive ? <CpuDetails host={host} system={system} /> : null}
         />
       )}
       {ramKnown && (
@@ -469,7 +595,8 @@ function SystemMeters({ system }) {
           share={system.memory_used_mb / system.memory_total_mb}
           title={`RAM ${formatMemoryOf(system.memory_used_mb, system.memory_total_mb)}`}
           series={RING_SERIES.memory}
-          level={ramLevel(system.memory_used_mb, system.memory_total_mb)}
+          level={ram}
+          details={interactive ? <RamDetails host={host} system={system} level={ram} /> : null}
         />
       )}
     </span>
@@ -497,7 +624,7 @@ function CompactHost({ host, now, interactive }) {
           {outdated && <span>last reported {formatAgo(now - host.data_sampled_at)}</span>}
           {host.system && (
             <span className={outdated ? 'opacity-50' : undefined}>
-              <SystemMeters system={host.system} />
+              <SystemMeters system={host.system} host={host.name} interactive={interactive} />
             </span>
           )}
         </span>

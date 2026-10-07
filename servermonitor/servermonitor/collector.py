@@ -25,7 +25,8 @@ timeout 10 df -P -B1 /scratch* 2>/dev/null || true
 
 # The system section prints the aggregate "cpu" line of /proc/stat from before
 # the GPU queries and again at least a second later, so CPU load is measured
-# over that span, plus MemTotal/MemAvailable and the CPU count.
+# over that span, plus memory and swap from /proc/meminfo, the CPU count, the
+# load averages, the uptime and the CPU model.
 COLLECT_SCRIPT = f"""\
 set -eu
 export LC_ALL=C
@@ -44,8 +45,11 @@ printf '%s\\n' '{SYSTEM_MARKER}'
 sleep 1
 printf '%s\\n' "$cpu_before"
 head -n 1 /proc/stat 2>/dev/null || true
-grep -E '^(MemTotal|MemAvailable):' /proc/meminfo 2>/dev/null || true
+grep -E '^(MemTotal|MemAvailable|Buffers|Cached|SwapTotal|SwapFree):' /proc/meminfo 2>/dev/null || true
 nproc 2>/dev/null || true
+cat /proc/loadavg 2>/dev/null || true
+printf 'uptime %s\\n' "$(cut -d ' ' -f 1 /proc/uptime 2>/dev/null)"
+grep -m 1 '^model name' /proc/cpuinfo 2>/dev/null || true
 """
 
 
@@ -78,6 +82,13 @@ class SystemStat:
     cpu_count: int | None
     memory_used_mb: float | None
     memory_total_mb: float | None
+    # Added later, so None in older snapshots and on hosts that lack them.
+    memory_cache_mb: float | None = None
+    swap_used_mb: float | None = None
+    swap_total_mb: float | None = None
+    load_averages: tuple[float, float, float] | None = None
+    uptime_seconds: float | None = None
+    cpu_model: str | None = None
 
 
 @dataclass(frozen=True)
@@ -135,9 +146,13 @@ def _sections(output: str) -> dict[str, list[str]]:
     return sections
 
 
+MEMINFO_KEYS = ("MemTotal", "MemAvailable", "Buffers", "Cached", "SwapTotal", "SwapFree")
+
+
 def _system(lines: list[str]) -> SystemStat | None:
     """CPU load between the two /proc/stat readings (busy share of all CPU time,
-    counting iowait as idle) and memory in use (MemTotal - MemAvailable)."""
+    counting iowait as idle), memory in use (MemTotal - MemAvailable), and the
+    extras: page cache, swap, load averages, uptime and CPU model."""
     try:
         cpu_readings = [
             [int(value) for value in line.split()[1:9]]  # user .. steal
@@ -146,12 +161,22 @@ def _system(lines: list[str]) -> SystemStat | None:
         ]
         memory: dict[str, float] = {}
         cpu_count = None
+        load_averages = None
+        uptime_seconds = None
+        cpu_model = None
         for line in lines:
             key, _, value = line.partition(":")
-            if key in ("MemTotal", "MemAvailable") and value.split():
+            fields = line.split()
+            if key in MEMINFO_KEYS and value.split():
                 memory[key] = int(value.split()[0]) / 1024
             elif line.strip().isdigit():
                 cpu_count = int(line)
+            elif len(fields) == 5 and "/" in fields[3]:
+                load_averages = (float(fields[0]), float(fields[1]), float(fields[2]))
+            elif fields[:1] == ["uptime"] and len(fields) == 2:
+                uptime_seconds = float(fields[1])
+            elif key.strip() == "model name" and value.strip():
+                cpu_model = " ".join(value.split())
     except ValueError:
         return None
 
@@ -167,11 +192,20 @@ def _system(lines: list[str]) -> SystemStat | None:
     used_mb = round(total_mb - available_mb, 1) if total_mb and available_mb is not None else None
     if cpu_percent is None and used_mb is None:
         return None
+    cache = [memory[key] for key in ("Buffers", "Cached") if key in memory]
+    swap_total = memory.get("SwapTotal")
+    swap_free = memory.get("SwapFree")
     return SystemStat(
         cpu_percent=cpu_percent,
         cpu_count=cpu_count,
         memory_used_mb=used_mb,
         memory_total_mb=round(total_mb, 1) if total_mb else None,
+        memory_cache_mb=round(sum(cache), 1) if cache else None,
+        swap_used_mb=round(swap_total - swap_free, 1) if swap_total and swap_free is not None else None,
+        swap_total_mb=round(swap_total, 1) if swap_total else None,
+        load_averages=load_averages,
+        uptime_seconds=round(uptime_seconds) if uptime_seconds is not None else None,
+        cpu_model=cpu_model,
     )
 
 

@@ -260,16 +260,26 @@ class DatabaseTest(unittest.TestCase):
 
     def test_overview_reports_host_cpu_and_memory(self) -> None:
         timestamp = 1_700_000_000
-        system = SystemStat(cpu_percent=42.5, cpu_count=64, memory_used_mb=1024, memory_total_mb=4096)
+        system = SystemStat(
+            cpu_percent=42.5,
+            cpu_count=64,
+            memory_used_mb=1024,
+            memory_total_mb=4096,
+            load_averages=(5.4, 5.2, 5.1),
+            cpu_model="Test CPU",
+        )
         self.database.save(replace(successful_result(timestamp), system=system))
         self.database.save(successful_result(timestamp, "toast"))
 
         hosts = self.database.overview(["brezel", "toast", "croissant"], 180, now=timestamp)["hosts"]
 
         self.assertEqual(
-            hosts[0]["system"],
+            {key: hosts[0]["system"][key] for key in ("cpu_percent", "cpu_count", "memory_used_mb", "memory_total_mb")},
             {"cpu_percent": 42.5, "cpu_count": 64, "memory_used_mb": 1024, "memory_total_mb": 4096},
         )
+        self.assertEqual(hosts[0]["system"]["load_averages"], [5.4, 5.2, 5.1])
+        self.assertEqual(hosts[0]["system"]["cpu_model"], "Test CPU")
+        self.assertIsNone(hosts[0]["system"]["swap_total_mb"])
         self.assertIsNone(hosts[1]["system"])
         self.assertIsNone(hosts[2]["system"])
 
