@@ -9,7 +9,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-from .collector import CollectionResult, GPUStat, ProcessStat
+from .collector import CollectionResult, DiskResult, GPUStat, ProcessStat
 
 
 BUSY_MEMORY_THRESHOLD_MB = 100
@@ -129,6 +129,17 @@ CREATE TABLE IF NOT EXISTS check_hour (
     checked_seconds REAL NOT NULL,
     down_seconds REAL NOT NULL,
     PRIMARY KEY (bucket, host)
+) WITHOUT ROWID;
+
+-- The latest successful disk check per host; each check replaces the last.
+CREATE TABLE IF NOT EXISTS disk_state (
+    host TEXT NOT NULL,
+    mount TEXT NOT NULL,
+    total_bytes INTEGER NOT NULL,
+    used_bytes INTEGER NOT NULL,
+    available_bytes INTEGER NOT NULL,
+    checked_at INTEGER NOT NULL,
+    PRIMARY KEY (host, mount)
 ) WITHOUT ROWID;
 
 CREATE TABLE IF NOT EXISTS app_metadata (
@@ -342,6 +353,57 @@ class Database:
                     for bucket, seconds in _segments(start, result.sampled_at, tier.seconds)
                 ],
             )
+
+    def save_disks(self, result: DiskResult) -> None:
+        """A failed check keeps the host's previous numbers."""
+        if not result.success:
+            return
+        with self.connect() as connection:
+            connection.execute("DELETE FROM disk_state WHERE host = ?", (result.host,))
+            connection.executemany(
+                """
+                INSERT INTO disk_state (
+                    host, mount, total_bytes, used_bytes, available_bytes, checked_at
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        result.host,
+                        disk.mount,
+                        disk.total_bytes,
+                        disk.used_bytes,
+                        disk.available_bytes,
+                        result.checked_at,
+                    )
+                    for disk in result.disks
+                ],
+            )
+
+    def disks(self, hosts: Iterable[str]) -> list[dict[str, Any]]:
+        """Each host's latest disks, by mount."""
+        rows: dict[str, list[sqlite3.Row]] = defaultdict(list)
+        with self.connect() as connection:
+            for row in connection.execute("SELECT * FROM disk_state"):
+                rows[row["host"]].append(row)
+        items = []
+        for host in hosts:
+            disks = sorted(rows[host], key=lambda row: row["mount"])
+            items.append(
+                {
+                    "name": host,
+                    "checked_at": max((row["checked_at"] for row in disks), default=None),
+                    "disks": [
+                        {
+                            "mount": row["mount"],
+                            "total_bytes": row["total_bytes"],
+                            "used_bytes": row["used_bytes"],
+                            "available_bytes": row["available_bytes"],
+                        }
+                        for row in disks
+                    ],
+                }
+            )
+        return items
 
     def availability(
         self, hosts: Iterable[str], start: int, bar_seconds: int, bars: int

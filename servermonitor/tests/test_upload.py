@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from servermonitor import upload
+from servermonitor.collector import DiskResult, DiskStat
 from servermonitor.config import Settings
 from servermonitor.database import Database
 from servermonitor.upload import UploadError, Uploader, batches, seconds_until_upload
@@ -79,6 +80,18 @@ class UploaderTest(unittest.TestCase):
         names = set(json.loads(request.data)["files"])
         self.assertEqual(names, {"overview", "history-all-1h", "history-brezel-1h", "uptime-1h"})
         self.assertEqual(count, 4)
+
+    def test_uploads_disks_only_after_a_new_check(self) -> None:
+        def uploaded_names() -> set[str]:
+            with patch.object(upload.urllib.request, "urlopen") as urlopen:
+                self.uploader.upload_once(live_only=True, now=1_700_000_060)
+            return set(json.loads(urlopen.call_args.args[0].data)["files"])
+
+        self.assertNotIn("disks", uploaded_names())
+        disk = DiskStat("/scratch1", 1000, 600, 400)
+        self.uploader.database.save_disks(DiskResult("brezel", 1_700_000_030, True, (disk,)))
+        self.assertIn("disks", uploaded_names())
+        self.assertNotIn("disks", uploaded_names())
 
     def test_missing_token_is_an_upload_error(self) -> None:
         self.token_path.unlink()

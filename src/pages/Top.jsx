@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import GhostNav from '../components/layout/GhostNav';
+import DiskCard from '../components/top/DiskCard';
 import HostCard from '../components/top/HostCard';
 import LoginCard from '../components/top/LoginCard';
 import UptimeCard from '../components/top/UptimeCard';
@@ -150,9 +151,10 @@ export default function Top() {
     range.value === '1h' ? LIVE_REFRESH_MS : HISTORY_REFRESH_MS,
     token,
   );
+  const disks = useStatusFile('disks', HISTORY_REFRESH_MS, token);
 
   // An expired session, or one from before a password change, is rejected.
-  const rejected = [overview, stats, history, uptime].some((query) => query.error?.status === 401);
+  const rejected = [overview, stats, history, uptime, disks].some((query) => query.error?.status === 401);
   useEffect(() => {
     if (rejected) signOut();
   }, [rejected, signOut]);
@@ -182,6 +184,8 @@ export default function Top() {
     })),
   ];
   const period = stats.data?.periods.find((item) => item.range === range.value);
+  const selectedNames = new Set(selectedHosts.map((item) => item.name));
+  const diskHosts = (disks.data?.hosts ?? []).filter((item) => selectedNames.has(item.name));
 
   return (
     <div className="bg-paper min-h-screen page-enter">
@@ -296,6 +300,29 @@ export default function Top() {
                     showHosts={host === 'all' && hosts.length > 1}
                   />
                 </div>
+              </section>
+
+              <section className="mt-16" aria-labelledby="top-storage">
+                <h2 id="top-storage" className="sr-only">Storage</h2>
+                <SectionLabel>Storage</SectionLabel>
+                {diskHosts.length ? (
+                  <>
+                    <div className={`grid gap-6 ${diskHosts.length > 1 ? 'lg:grid-cols-3' : ''}`}>
+                      {diskHosts.map((item) => (
+                        <DiskCard key={item.name} host={item} now={now} stacked={diskHosts.length > 1} />
+                      ))}
+                    </div>
+                    <p className="mt-4 font-mono text-xs text-data-grey/70">
+                      Every /scratch disk, checked every 30 minutes.
+                    </p>
+                  </>
+                ) : (
+                  <Notice title={disks.isLoading ? 'Loading disk usage…' : 'Disk usage not available yet'}>
+                    {disks.isLoading
+                      ? 'Fetching the latest disk check.'
+                      : 'Disks are checked every 30 minutes; usage appears after the next check.'}
+                  </Notice>
+                )}
               </section>
             </motion.div>
           )}

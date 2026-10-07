@@ -2,7 +2,12 @@ import unittest
 from subprocess import CompletedProcess
 from unittest.mock import patch
 
-from servermonitor.collector import LocalCollector, SSHCollector, parse_collector_output
+from servermonitor.collector import (
+    LocalCollector,
+    SSHCollector,
+    parse_collector_output,
+    parse_df_output,
+)
 
 
 SAMPLE_OUTPUT = """__SERVERMONITOR_GPUS__
@@ -15,6 +20,26 @@ __SERVERMONITOR_USERS__
    1234 alice
    5678 bob
 """
+
+
+DF_OUTPUT = """Filesystem           1-blocks           Used     Available Capacity Mounted on
+/dev/nvme2n1p1 15238728286208 10287580110848 4183083978752      72% /scratch1
+/dev/nvme1n1p1 15238728286208  9953547710464 4517116379136      69% /scratch2
+/dev/nvme2n1p1 15238728286208 10287580110848 4183083978752      72% /scratch1
+"""
+
+
+class DiskParserTest(unittest.TestCase):
+    def test_parses_each_mount_once(self) -> None:
+        disks = parse_df_output(DF_OUTPUT)
+
+        self.assertEqual([disk.mount for disk in disks], ["/scratch1", "/scratch2"])
+        self.assertEqual(disks[0].used_bytes, 10287580110848)
+        self.assertEqual(disks[0].available_bytes, 4183083978752)
+
+    def test_no_rows_is_an_error(self) -> None:
+        with self.assertRaisesRegex(ValueError, "no disks"):
+            parse_df_output("Filesystem 1-blocks Used Available Capacity Mounted on\n")
 
 
 class CollectorParserTest(unittest.TestCase):

@@ -12,6 +12,13 @@ APP_MARKER = "__SERVERMONITOR_APPS__"
 USER_MARKER = "__SERVERMONITOR_USERS__"
 SYSTEM_MARKER = "__SERVERMONITOR_SYSTEM__"
 
+# Every /scratch* mount, in bytes; a host without one reports no disks. timeout
+# stops a hung mount from stalling the check.
+DISK_SCRIPT = """\
+export LC_ALL=C
+timeout 10 df -P -B1 /scratch* 2>/dev/null || true
+"""
+
 # The system section prints the aggregate "cpu" line of /proc/stat from before
 # the GPU queries and again at least a second later, so CPU load is measured
 # over that span, plus MemTotal/MemAvailable and the CPU count.
@@ -67,6 +74,23 @@ class SystemStat:
     cpu_count: int | None
     memory_used_mb: float | None
     memory_total_mb: float | None
+
+
+@dataclass(frozen=True)
+class DiskStat:
+    mount: str
+    total_bytes: int
+    used_bytes: int
+    available_bytes: int
+
+
+@dataclass(frozen=True)
+class DiskResult:
+    host: str
+    checked_at: int
+    success: bool
+    disks: tuple[DiskStat, ...] = ()
+    error: str | None = None
 
 
 @dataclass(frozen=True)
@@ -206,9 +230,46 @@ def parse_collector_output(host: str, output: str, sampled_at: int, duration_ms:
     )
 
 
+def parse_df_output(output: str) -> tuple[DiskStat, ...]:
+    """Rows of `df -P -B1`; the header and any mount listed twice are skipped."""
+    disks: dict[str, DiskStat] = {}
+    for line in output.splitlines():
+        fields = line.split()
+        if len(fields) < 6 or not all(field.isdigit() for field in fields[1:4]):
+            continue
+        mount = " ".join(fields[5:])
+        disks.setdefault(mount, DiskStat(mount, int(fields[1]), int(fields[2]), int(fields[3])))
+    if not disks:
+        raise ValueError("df reported no disks")
+    return tuple(disks.values())
+
+
+def _check_disks(host: str, command: list[str], timeout_seconds: int) -> DiskResult:
+    checked_at = int(time.time())
+    try:
+        completed = subprocess.run(
+            command,
+            input=DISK_SCRIPT,
+            text=True,
+            capture_output=True,
+            timeout=timeout_seconds + 5,
+            check=False,
+        )
+        if completed.returncode != 0:
+            raise ValueError(
+                completed.stderr.strip() or f"disk check exited with code {completed.returncode}"
+            )
+        return DiskResult(host, checked_at, True, parse_df_output(completed.stdout))
+    except (OSError, subprocess.TimeoutExpired, ValueError) as exc:
+        return DiskResult(host, checked_at, False, error=str(exc)[-500:])
+
+
 class LocalCollector:
     def __init__(self, timeout_seconds: int = 12) -> None:
         self.timeout_seconds = timeout_seconds
+
+    def collect_disks(self, host: str) -> DiskResult:
+        return _check_disks(host, ["sh", "-s"], self.timeout_seconds)
 
     def collect(self, host: str) -> CollectionResult:
         started = time.monotonic()
@@ -255,22 +316,28 @@ class SSHCollector:
     def __init__(self, timeout_seconds: int = 12) -> None:
         self.timeout_seconds = timeout_seconds
 
+    def _command(self, host: str) -> list[str]:
+        return [
+            "ssh",
+            "-T",
+            "-o",
+            "BatchMode=yes",
+            "-o",
+            f"ConnectTimeout={self.timeout_seconds}",
+            host,
+            "sh",
+            "-s",
+        ]
+
+    def collect_disks(self, host: str) -> DiskResult:
+        return _check_disks(host, self._command(host), self.timeout_seconds)
+
     def collect(self, host: str) -> CollectionResult:
         started = time.monotonic()
         sampled_at = int(time.time())
         try:
             completed = subprocess.run(
-                [
-                    "ssh",
-                    "-T",
-                    "-o",
-                    "BatchMode=yes",
-                    "-o",
-                    f"ConnectTimeout={self.timeout_seconds}",
-                    host,
-                    "sh",
-                    "-s",
-                ],
+                self._command(host),
                 input=COLLECT_SCRIPT,
                 text=True,
                 capture_output=True,

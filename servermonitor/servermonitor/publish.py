@@ -9,6 +9,8 @@ where host is a monitored host or "all":
 - history-<host>-<range>: trend points for the chart, for every period, with
   only the fields the chart draws
 - uptime-<range>: every host's checked and down seconds per bar, for every period
+- disks: every host's latest disk usage, built apart by public_disks since it
+  changes only once per disk check
 """
 
 from __future__ import annotations
@@ -93,6 +95,16 @@ def public_uptime(
         "start": start,
         "end": start + bar_seconds * bars,
         "hosts": database.availability(settings.hosts, start, bar_seconds, bars),
+    }
+
+
+def public_disks(settings: Settings, database: Database, now: int | None = None) -> dict[str, Any]:
+    hosts = database.disks(settings.hosts)
+    checked = [host["checked_at"] for host in hosts if host["checked_at"] is not None]
+    return {
+        "generated_at": int(time.time()) if now is None else now,
+        "checked_at": max(checked, default=None),
+        "hosts": hosts,
     }
 
 

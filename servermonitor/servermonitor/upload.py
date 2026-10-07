@@ -18,7 +18,7 @@ from typing import Any, Iterator
 
 from .config import Settings
 from .database import Database
-from .publish import build_files
+from .publish import build_files, public_disks
 
 
 LOGGER = logging.getLogger(__name__)
@@ -73,6 +73,8 @@ class Uploader:
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self._error: str | None = None
+        # The newest disk check already uploaded; disks go up only after a new one.
+        self._disks_checked_at: int | None = None
 
     def _token(self) -> str:
         # Read on every upload so a rotated token takes effect without a restart.
@@ -108,8 +110,12 @@ class Uploader:
         """Uploads the files and returns how many were stored."""
         token = self._token()
         files = build_files(self.settings, self.database, now=now, live_only=live_only)
+        disks = public_disks(self.settings, self.database, now=now)
+        if disks["checked_at"] is not None and disks["checked_at"] != self._disks_checked_at:
+            files["disks"] = disks
         for body in batches(files):
             self._post(body, token)
+        self._disks_checked_at = disks["checked_at"]
         return len(files)
 
     def _log_failure(self, error: str | None) -> None:

@@ -5,7 +5,14 @@ from pathlib import Path
 
 from dataclasses import replace
 
-from servermonitor.collector import CollectionResult, GPUStat, ProcessStat, SystemStat
+from servermonitor.collector import (
+    CollectionResult,
+    DiskResult,
+    DiskStat,
+    GPUStat,
+    ProcessStat,
+    SystemStat,
+)
 from servermonitor.database import Database
 
 
@@ -135,6 +142,21 @@ class DatabaseTest(unittest.TestCase):
 
         limits = [gpu["power_limit_w"] for gpu in overview["hosts"][0]["gpus"]]
         self.assertEqual(limits, [600.0, None])
+
+    def test_disks_keep_only_the_latest_successful_check(self) -> None:
+        def check(checked_at: int, used: int, success: bool = True) -> DiskResult:
+            disks = (DiskStat("/scratch2", 1000, used, 1000 - used), DiskStat("/scratch1", 100, 10, 90))
+            return DiskResult("brezel", checked_at, success, disks if success else (), None if success else "timed out")
+
+        self.database.save_disks(check(1_700_000_000, 500))
+        self.database.save_disks(check(1_700_001_800, 700))
+        self.database.save_disks(check(1_700_003_600, 0, success=False))
+
+        brezel, toast = self.database.disks(("brezel", "toast"))
+        self.assertEqual(brezel["checked_at"], 1_700_001_800)
+        self.assertEqual([disk["mount"] for disk in brezel["disks"]], ["/scratch1", "/scratch2"])
+        self.assertEqual(brezel["disks"][1]["used_bytes"], 700)
+        self.assertEqual(toast, {"name": "toast", "checked_at": None, "disks": []})
 
     def test_observed_time_survives_collection_interval_change(self) -> None:
         start = 1_700_000_000

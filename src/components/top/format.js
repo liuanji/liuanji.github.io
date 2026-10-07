@@ -1,5 +1,6 @@
 import {
   DELAYED_AFTER_SECONDS,
+  DISK_LEVELS,
   POWER_LEVELS,
   RAM_LEVELS,
   TEMPERATURE_LEVELS_C,
@@ -44,6 +45,22 @@ export function powerLevel(watts, limitWatts) {
 
 export function ramLevel(usedMb, totalMb) {
   return level(usedMb != null && totalMb ? usedMb / totalMb : null, RAM_LEVELS);
+}
+
+// The share of a disk in use, as df reports it.
+export function diskShare(disk) {
+  const usable = disk.used_bytes + disk.available_bytes;
+  return usable ? disk.used_bytes / usable : 0;
+}
+
+export function diskLevel(disk) {
+  return level(diskShare(disk), DISK_LEVELS);
+}
+
+// Binary units, as df -h counts them: "9.4 TB", "604 GB".
+export function formatBytes(bytes) {
+  const gb = (Number(bytes) || 0) / 1024 ** 3;
+  return gb >= 1024 ? `${decimal.format(gb / 1024)} TB` : `${Math.round(gb)} GB`;
 }
 
 export function formatMemory(mb) {

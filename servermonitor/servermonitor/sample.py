@@ -18,10 +18,10 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from .collector import CollectionResult, GPUStat, ProcessStat, SystemStat
+from .collector import CollectionResult, DiskResult, DiskStat, GPUStat, ProcessStat, SystemStat
 from .config import Settings
 from .database import Database
-from .publish import build_files, write_files
+from .publish import build_files, public_disks, write_files
 
 
 LIVE_INTERVAL_SECONDS = 30
@@ -40,6 +40,13 @@ HOSTS = (
 # Each host is unreachable now and then: about every 10 days, for 40 minutes on average.
 OUTAGE_EVERY_SECONDS = 10 * 86400
 OUTAGE_MEAN_SECONDS = 40 * 60
+# Share of /scratch1 and /scratch2 in use per host.
+DISK_USE = {
+    "brezel": (0.72, 0.69),
+    "toast": (0.21, 0.88),
+    "croissant": (0.08, 0.96),
+}
+SCRATCH_DISK_BYTES = 15_238_728_286_208
 USERS = ("alice", "bob", "carol", "dave", "erin", "frank", "grace")
 USER_WEIGHTS = (6, 4, 3, 2, 2, 1, 1)
 
@@ -90,6 +97,14 @@ class SimulatedHost:
             self.next_pid += 10
             for gpu_index in free[:size]:
                 self.jobs[gpu_index] = job
+
+    def disks(self, now: int) -> DiskResult:
+        size = SCRATCH_DISK_BYTES
+        disks = tuple(
+            DiskStat(mount, size, round(size * share), size - round(size * share))
+            for mount, share in zip(("/scratch1", "/scratch2"), DISK_USE[self.name])
+        )
+        return DiskResult(self.name, now, True, disks)
 
     def sample(self, now: int, seconds: int) -> CollectionResult:
         if now >= self.down_until and self.random.random() < 1 - math.exp(-seconds / OUTAGE_EVERY_SECONDS):
@@ -177,7 +192,9 @@ def main() -> None:
         )
 
     def publish(database: Database) -> None:
-        write_files(build_files(settings, database), args.work_dir / "files")
+        files = build_files(settings, database)
+        files["disks"] = public_disks(settings, database)
+        write_files(files, args.work_dir / "files")
 
     print(f"servermonitor.sample: simulating {args.days} days of usage…", flush=True)
     now = int(time.time())
@@ -190,6 +207,8 @@ def main() -> None:
     database = Database(database_path, interval_seconds=LIVE_INTERVAL_SECONDS)
     advance(database, recent_start, now + 1, LIVE_INTERVAL_SECONDS)
     database.cleanup(settings.rollup_retention_days)
+    for host in hosts:
+        database.save_disks(host.disks(now))
     publish(database)
     print(f"servermonitor.sample: published to {args.work_dir / 'files'}", flush=True)
 

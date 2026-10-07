@@ -19,6 +19,8 @@ export const SERIES = {
   compute: { label: 'Compute load', color: '#2563EB', track: '#2563EB1F' },
   memory: { label: 'Memory', color: '#1BAF7A', track: '#1BAF7A29' },
   busy: { label: 'GPUs in use', color: '#EB6834', track: '#EB683424' },
+  // Muted so that disks nearing full, in the warm and hot hues, stand out.
+  disk: { label: 'Disk', color: '#6C7BB8', track: '#6C7BB824' },
 };
 
 // Status colours always appear next to their label, never alone.
@@ -36,6 +38,8 @@ export const TEMPERATURE_LEVELS_C = { warm: 75, hot: 85 };
 export const POWER_LEVELS = { warm: 0.7, hot: 0.9 };
 // A server's RAM as a share of its total; jobs get killed when it runs out.
 export const RAM_LEVELS = { warm: 0.8, hot: 0.9 };
+// A disk's used share, as df counts it: used / (used + available).
+export const DISK_LEVELS = { warm: 0.85, hot: 0.95 };
 export const READING_STYLES = {
   warm: { color: '#A15C07' },
   hot: { color: '#B33A3A', backgroundColor: '#B33A3A1A' },
