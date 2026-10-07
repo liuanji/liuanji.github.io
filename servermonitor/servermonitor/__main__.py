@@ -29,8 +29,8 @@ def _configure_logging(settings: Settings, command: str, verbose: bool) -> None:
         handlers.append(
             RotatingFileHandler(
                 log_path,
-                maxBytes=5 * 1024 * 1024,
-                backupCount=3,
+                maxBytes=1024 * 1024,
+                backupCount=1,
                 encoding="utf-8",
             )
         )

@@ -60,7 +60,7 @@ class DatabaseTest(unittest.TestCase):
         self.temporary_directory.cleanup()
 
     def test_overview_and_user_rollup(self) -> None:
-        start = 1_700_000_000
+        start = 1_699_999_980  # minute-aligned, so 60 s of use fills one bucket
         self.database.save(successful_result(start))
         self.database.save(successful_result(start + 60))
 
@@ -198,34 +198,164 @@ class DatabaseTest(unittest.TestCase):
         self.assertEqual(len(overview["hosts"][0]["gpus"]), 2)
         self.assertEqual(overview["hosts"][0]["error"], "timeout")
 
-    def test_migrates_existing_hourly_table(self) -> None:
-        path = Path(self.temporary_directory.name) / "old.sqlite3"
-        with sqlite3.connect(path) as connection:
-            connection.execute(
-                """
-                CREATE TABLE gpu_hourly (
-                    hour INTEGER NOT NULL, host TEXT NOT NULL,
-                    gpu_index INTEGER NOT NULL, uuid TEXT NOT NULL,
-                    name TEXT NOT NULL, sample_count INTEGER NOT NULL,
-                    utilization_sum REAL NOT NULL, memory_used_sum REAL NOT NULL,
-                    memory_percent_sum REAL NOT NULL, temperature_sum REAL NOT NULL,
-                    temperature_count INTEGER NOT NULL, power_sum REAL NOT NULL,
-                    power_count INTEGER NOT NULL,
-                    PRIMARY KEY (hour, host, gpu_index)
+    def test_stores_sums_not_samples(self) -> None:
+        start = 1_699_999_980
+        for offset in range(0, 600, 30):
+            self.database.save(successful_result(start + offset))
+
+        with self.database.connect() as connection:
+            counts = {
+                table: connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                for table in ("gpu_minute", "gpu_hour", "user_minute", "user_hour", "host_state")
+            }
+        # 20 samples of 2 GPUs: one row per GPU per minute, and per hour.
+        self.assertEqual(counts["gpu_minute"], 2 * 10)
+        self.assertEqual(counts["gpu_hour"], 2)
+        self.assertEqual(counts["host_state"], 1)
+        self.assertEqual(counts["user_minute"], 2 * 10)
+
+    def test_cleanup_keeps_hour_sums_after_minutes_expire(self) -> None:
+        start = 1_699_999_980
+        self.database.save(successful_result(start))
+        self.database.save(successful_result(start + 60))
+
+        self.database.cleanup(365, now=start + 3 * 86400)
+
+        self.assertEqual(self.database.history(start, start + 120), [])
+        periods = self.database.period_summaries(
+            [("7d", 7 * 86400)], now=start + 3 * 86400, host="brezel"
+        )
+        self.assertEqual(periods[0]["gpu_usage_percent"], 50)
+        users = self.database.user_summary(start - 86400, start + 6 * 86400, "brezel")
+        self.assertAlmostEqual(users[0]["gpu_hours"], 1 / 60, places=3)
+
+        self.database.cleanup(1, now=start + 3 * 86400)
+        self.assertFalse(
+            self.database.period_summaries(
+                [("7d", 7 * 86400)], now=start + 3 * 86400, host="brezel"
+            )[0]["has_data"]
+        )
+
+
+LEGACY_SCHEMA = """
+CREATE TABLE collection_runs (
+    id INTEGER PRIMARY KEY, host TEXT NOT NULL, sampled_at INTEGER NOT NULL,
+    success INTEGER NOT NULL, error TEXT, duration_ms INTEGER NOT NULL
+);
+CREATE TABLE gpu_samples (
+    run_id INTEGER NOT NULL, host TEXT NOT NULL, sampled_at INTEGER NOT NULL,
+    gpu_index INTEGER NOT NULL, uuid TEXT NOT NULL, name TEXT NOT NULL,
+    utilization REAL NOT NULL, memory_used_mb REAL NOT NULL,
+    memory_total_mb REAL NOT NULL, temperature_c REAL, power_w REAL,
+    PRIMARY KEY (run_id, gpu_index)
+);
+CREATE TABLE process_samples (
+    run_id INTEGER NOT NULL, host TEXT NOT NULL, sampled_at INTEGER NOT NULL,
+    gpu_uuid TEXT NOT NULL, pid INTEGER NOT NULL, username TEXT NOT NULL,
+    process_name TEXT NOT NULL, used_memory_mb REAL NOT NULL,
+    PRIMARY KEY (run_id, gpu_uuid, pid)
+);
+CREATE TABLE gpu_hourly (
+    hour INTEGER NOT NULL, host TEXT NOT NULL, gpu_index INTEGER NOT NULL,
+    uuid TEXT NOT NULL, name TEXT NOT NULL, sample_count INTEGER NOT NULL,
+    utilization_sum REAL NOT NULL, memory_used_sum REAL NOT NULL,
+    memory_percent_sum REAL NOT NULL, temperature_sum REAL NOT NULL,
+    temperature_count INTEGER NOT NULL, power_sum REAL NOT NULL,
+    power_count INTEGER NOT NULL,
+    busy_sample_count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (hour, host, gpu_index)
+);
+CREATE TABLE user_hourly (
+    hour INTEGER NOT NULL, username TEXT NOT NULL, host TEXT NOT NULL,
+    active_gpu_seconds REAL NOT NULL, memory_mb_seconds REAL NOT NULL,
+    weighted_gpu_seconds REAL NOT NULL, observation_count INTEGER NOT NULL,
+    PRIMARY KEY (hour, username, host)
+);
+CREATE TABLE app_metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+INSERT INTO app_metadata VALUES ('busy_definition', 'process-or-100mb-v3');
+"""
+
+
+class LegacyMigrationTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.path = Path(self.temporary_directory.name) / "legacy.sqlite3"
+        self.start = 1_699_999_980
+        hour = self.start - (self.start % 3600)
+        with sqlite3.connect(self.path) as connection:
+            connection.executescript(LEGACY_SCHEMA)
+            for run_id, offset in ((1, 0), (2, 60)):
+                sampled_at = self.start + offset
+                connection.execute(
+                    "INSERT INTO collection_runs VALUES (?, 'brezel', ?, 1, NULL, 100)",
+                    (run_id, sampled_at),
                 )
-                """
+                connection.executemany(
+                    "INSERT INTO gpu_samples VALUES (?, 'brezel', ?, ?, ?, 'Test GPU', ?, ?, 10000, 60, ?)",
+                    [
+                        (run_id, sampled_at, 0, "GPU-a", 50, 2000, 200),
+                        (run_id, sampled_at, 1, "GPU-b", 0, 0, 40),
+                    ],
+                )
+                connection.executemany(
+                    "INSERT INTO process_samples VALUES (?, 'brezel', ?, 'GPU-a', ?, ?, '/home/x/python', 1000)",
+                    [(run_id, sampled_at, 10, "alice"), (run_id, sampled_at, 11, "bob")],
+                )
+            connection.execute(
+                "INSERT INTO collection_runs VALUES (3, 'brezel', ?, 0, 'timeout', 1000)",
+                (self.start + 120,),
+            )
+            connection.executemany(
+                "INSERT INTO gpu_hourly VALUES (?, 'brezel', ?, 'uuid', 'Test GPU', 2, ?, 0, ?, 120, 2, ?, 2, ?)",
+                [
+                    (hour - 3600, 0, 100, 40, 400, 2),
+                    (hour - 3600, 1, 0, 0, 80, 0),
+                ],
+            )
+            connection.execute(
+                "INSERT INTO user_hourly VALUES (?, 'alice', 'brezel', 3600, 0, 900, 60)",
+                (hour - 3600,),
             )
 
-        database = Database(path)
+    def tearDown(self) -> None:
+        self.temporary_directory.cleanup()
+
+    def test_converts_samples_to_sums_and_keeps_rollups(self) -> None:
+        database = Database(self.path, interval_seconds=60)
         database.initialize()
 
         with database.connect() as connection:
-            columns = {
+            tables = {
                 row["name"]
-                for row in connection.execute("PRAGMA table_info(gpu_hourly)")
+                for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
             }
-        self.assertIn("busy_sample_count", columns)
+            version = connection.execute(
+                "SELECT value FROM app_metadata WHERE key = 'schema_version'"
+            ).fetchone()["value"]
+        self.assertFalse(tables & {"collection_runs", "gpu_samples", "process_samples", "gpu_hourly", "user_hourly"})
+        self.assertEqual(version, "2")
 
+        overview = database.overview(["brezel"], 180, now=self.start + 120)
+        host = overview["hosts"][0]
+        self.assertEqual(host["status"], "error")
+        self.assertEqual(host["error"], "timeout")
+        self.assertEqual(host["data_sampled_at"], self.start + 60)
+        self.assertEqual([user["username"] for user in host["gpus"][0]["users"]], ["alice", "bob"])
+
+        points = database.history(self.start, self.start + 120)
+        self.assertEqual([point["utilization"] for point in points], [25, 25])
+        self.assertEqual(points[0]["gpus_in_use"], 1)
+
+        recent = database.user_summary(self.start, self.start + 3600, "brezel")
+        self.assertAlmostEqual(recent[0]["gpu_hours"], 1 / 60, places=3)
+
+        hourly = database.user_summary(self.start - 4 * 86400, self.start, "brezel")
+        self.assertEqual(hourly[0]["gpu_hours"], 1)
+        period = database.period_summaries(
+            [("7d", 7 * 86400)], now=self.start + 120, host="brezel"
+        )[0]
+        self.assertEqual(period["gpu_usage_percent"], 50)
+        self.assertEqual(period["compute_load"], 25)
 
 if __name__ == "__main__":
     unittest.main()

@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from servermonitor.collector import CollectionResult
 from servermonitor.config import Settings
 from servermonitor.database import Database
 from servermonitor.service import MonitorService
@@ -65,6 +66,34 @@ class MonitorServiceTest(unittest.TestCase):
         local.assert_called_once_with("brezel")
         ssh.assert_called_once_with("toast")
         self.assertEqual([result.host for result in results], ["brezel", "toast"])
+
+    def test_logs_only_changes_in_host_health(self) -> None:
+        service = self._service(
+            Settings(host=None, remote_hosts=("toast",), database_path=self.database_path)
+        )
+        failure = CollectionResult(
+            host="toast", sampled_at=1_700_000_000, duration_ms=5, success=False, error="timeout"
+        )
+        outcomes = [
+            successful_result(1_700_000_000, "toast"),
+            failure,
+            failure,
+            successful_result(1_700_000_060, "toast"),
+            successful_result(1_700_000_090, "toast"),
+        ]
+        with patch.object(service.ssh_collector, "collect", side_effect=outcomes), self.assertLogs(
+            "servermonitor.service", level="INFO"
+        ) as logs:
+            for _ in outcomes:
+                service.collect_once()
+
+        self.assertEqual(
+            logs.output,
+            [
+                "WARNING:servermonitor.service:collection failed for toast: timeout",
+                "INFO:servermonitor.service:collection recovered for toast",
+            ],
+        )
 
 
 if __name__ == "__main__":

@@ -22,6 +22,26 @@ class MonitorService:
         self._thread: threading.Thread | None = None
         self._collection_lock = threading.Lock()
         self._cycles = 0
+        self._failures: dict[str, str | None] = {}
+
+    def _log_result(self, result: CollectionResult) -> None:
+        """Successful samples are logged at DEBUG only; at INFO and above the log
+        records when a host starts failing, changes error, or recovers."""
+        failing = result.host in self._failures
+        if result.success:
+            LOGGER.debug(
+                "collected %s: %d GPUs, %d processes in %d ms",
+                result.host,
+                len(result.gpus),
+                len(result.processes),
+                result.duration_ms,
+            )
+            if failing:
+                del self._failures[result.host]
+                LOGGER.info("collection recovered for %s", result.host)
+        elif not failing or self._failures[result.host] != result.error:
+            self._failures[result.host] = result.error
+            LOGGER.warning("collection failed for %s: %s", result.host, result.error)
 
     def collect_once(self) -> list[CollectionResult]:
         if not self._collection_lock.acquire(blocking=False):
@@ -44,24 +64,10 @@ class MonitorService:
                     result = future.result()
                     self.database.save(result)
                     results.append(result)
-                    if result.success:
-                        LOGGER.info(
-                            "collected %s: %d GPUs, %d processes in %d ms",
-                            result.host,
-                            len(result.gpus),
-                            len(result.processes),
-                            result.duration_ms,
-                        )
-                    else:
-                        LOGGER.warning(
-                            "collection failed for %s: %s", result.host, result.error
-                        )
+                    self._log_result(result)
             self._cycles += 1
             if self._cycles % 60 == 0:
-                self.database.cleanup(
-                    self.settings.raw_retention_days,
-                    self.settings.rollup_retention_days,
-                )
+                self.database.cleanup(self.settings.rollup_retention_days)
             host_order = {host: index for index, host in enumerate(self.settings.hosts)}
             return sorted(results, key=lambda result: host_order[result.host])
         finally:

@@ -1,0 +1,84 @@
+import { HOST_STATUS } from './config';
+
+export function SectionLabel({ children }) {
+  return (
+    <div className="font-mono text-xs text-data-grey/70 uppercase tracking-widest mb-5">{children}</div>
+  );
+}
+
+export function StatTile({ label, value, total = null, caption = null }) {
+  return (
+    <div className="bg-white rounded-2xl border border-border-light p-5">
+      <div className="font-mono text-xs text-data-grey">{label}</div>
+      <div className="mt-2 flex items-baseline gap-1.5">
+        <span className="font-tight font-semibold text-3xl text-inkwell leading-none">{value}</span>
+        {total != null && <span className="font-tight text-base text-data-grey">/ {total}</span>}
+      </div>
+      {caption && <div className="text-xs text-data-grey mt-2 leading-snug">{caption}</div>}
+    </div>
+  );
+}
+
+export function SegmentedControl({ label, options, value, onChange }) {
+  return (
+    <div
+      role="tablist"
+      aria-label={label}
+      className="inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-border-light bg-white p-1"
+    >
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(option.value)}
+            className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors ${
+              active ? 'bg-inkwell text-white' : 'text-data-grey hover:bg-paper hover:text-inkwell'
+            }`}
+          >
+            {option.dot && (
+              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: option.dot }} aria-hidden="true" />
+            )}
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function StatusPill({ status }) {
+  const { label, color } = HOST_STATUS[status] ?? HOST_STATUS.unseen;
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border-light bg-white px-2.5 py-0.5 font-mono text-xs text-inkwell">
+      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
+      {label}
+    </span>
+  );
+}
+
+export function LiveDot({ color, pulse = false }) {
+  return (
+    <span className="relative flex h-2 w-2" aria-hidden="true">
+      {pulse && (
+        <span
+          className="absolute inline-flex h-full w-full rounded-full opacity-60 motion-safe:animate-ping"
+          style={{ backgroundColor: color }}
+        />
+      )}
+      <span className="relative inline-flex h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+    </span>
+  );
+}
+
+export function Notice({ title, children }) {
+  return (
+    <div className="bg-white rounded-2xl border border-border-light px-7 py-10 text-center">
+      <h3 className="font-tight font-semibold text-lg text-inkwell">{title}</h3>
+      <p className="text-sm text-data-grey mt-2 max-w-md mx-auto leading-relaxed">{children}</p>
+    </div>
+  );
+}

@@ -39,7 +39,6 @@ class Settings:
     collection_timeout_seconds: int = 12
     bind: str = "127.0.0.1"
     port: int = 8765
-    raw_retention_days: int = 7
     rollup_retention_days: int = 365
 
     @property
@@ -90,7 +89,6 @@ class Settings:
             collection_timeout_seconds=_positive_int("GPU_MONITOR_TIMEOUT", 12),
             bind=os.environ.get("GPU_MONITOR_BIND", "127.0.0.1"),
             port=_positive_int("GPU_MONITOR_PORT", 8765),
-            raw_retention_days=_positive_int("GPU_MONITOR_RAW_RETENTION_DAYS", 7),
             rollup_retention_days=_positive_int(
                 "GPU_MONITOR_ROLLUP_RETENTION_DAYS", 365
             ),
