@@ -1,8 +1,10 @@
-// Easter eggs for the availability bars, one pool per bar state. The servers
-// are named after bakes, so most lines are baking puns; {host} becomes the
-// server's name. Keep them short and free of time words ("all day"), since a
-// bar can be a minute or a week long. "none" means the monitor itself was not
-// running, so its lines must not suggest the server was down.
+// Easter eggs. The availability bars draw from one pool per bar state, and an
+// idle GPU's details box from IDLE_GPU.
+//
+// The servers are named after bakes, so most lines are baking puns; {host}
+// becomes the server's name. Keep bar lines short and free of time words ("all
+// day"), since a bar can be a minute or a week long. "none" means the monitor
+// itself was not running, so its lines must not suggest the server was down.
 const PHRASES = {
   up: [
     '{host} worked really hard',
@@ -131,6 +133,30 @@ const PHRASES = {
   ],
 };
 
+// Lines for a GPU nobody is using, in place of "Nobody is using this GPU".
+const IDLE_GPU = [
+  'Free to bake: grab it!',
+  'This oven is free',
+  'Nobody’s kneading this one',
+  'Fresh and ready for your job',
+  'Preheated, just add jobs',
+  'Up for grabs',
+  'Napping until someone needs it',
+  'An empty tray, waiting for dough',
+  'Idle and dreaming of tensors',
+  'Quiet as a bakery at dawn',
+  'Waiting patiently for a job',
+  'All yours, if you want it',
+  'Resting between batches',
+  'No dough in this oven',
+  'On a little coffee break',
+  'Twiddling its transistors',
+  'Ready, set, bake!',
+  'Cooling on the rack, ready to go',
+  'Looking for a baker',
+  'Warm, empty and waiting',
+];
+
 // Fresh on every page load, so each visit deals out different lines, while a bar
 // keeps its line as long as the page stays open.
 const SEED = Math.floor(Math.random() * 2 ** 32);
@@ -147,4 +173,8 @@ function hash(text) {
 export function barPhrase(state, host, barStart) {
   const pool = PHRASES[state];
   return pool[hash(`${state}|${host}|${barStart}`) % pool.length].replace('{host}', host);
+}
+
+export function idleGpuPhrase(host, index) {
+  return IDLE_GPU[hash(`idle|${host}|${index}`) % IDLE_GPU.length];
 }

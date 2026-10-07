@@ -9,7 +9,7 @@ import {
   sharesServerDays,
   uptimeState,
 } from './format';
-import { barPhrase } from './uptimePhrases';
+import { barPhrase } from './easterEggs';
 
 const LEGEND = ['up', 'partial', 'down', 'none'];
 

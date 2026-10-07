@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { Thermometer, Zap } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -12,6 +13,7 @@ import {
   temperatureLevel,
   userColor,
 } from './format';
+import { idleGpuPhrase } from './easterEggs';
 
 // How far a reading is into its icon range: null below it, 0 at the start, 1 at
 // the top and above.
@@ -132,10 +134,9 @@ function GpuDetails({ gpu, host }) {
     <div className="flex gap-6">
       <div className="flex flex-col items-center pt-1">
         <UsageRing gpu={gpu} size={104}>
-          <span className="font-tight text-2xl font-semibold leading-none tabular-nums text-inkwell">
+          <span className="font-tight text-lg font-semibold leading-none tabular-nums text-inkwell">
             {Math.round(gpu.utilization)}%
           </span>
-          <span className="mt-1 font-mono text-[10px] text-data-grey">compute</span>
         </UsageRing>
         <span className="mt-3 flex items-center gap-1.5 font-mono text-[11px] text-data-grey">
           <span
@@ -200,7 +201,7 @@ function GpuDetails({ gpu, host }) {
             ))
           ) : (
             <span className="font-mono text-xs text-data-grey">
-              {gpu.busy ? 'In use; its owner was not reported' : 'Nobody is using this GPU'}
+              {gpu.busy ? 'In use; its owner was not reported' : idleGpuPhrase(host, gpu.index)}
             </span>
           )}
         </div>
@@ -267,12 +268,77 @@ function GpuRing({ gpu, host, interactive }) {
   );
   if (!interactive) return tile;
   return (
-    <Popover>
-      <PopoverTrigger asChild>{tile}</PopoverTrigger>
+    <DetailsPopover gpu={gpu} host={host}>
+      {tile}
+    </DetailsPopover>
+  );
+}
+
+// Resting the mouse on a GPU this long opens its details too.
+const HOVER_OPEN_MS = 3000;
+// How long a hover-opened box waits for the mouse to reach it before closing.
+const HOVER_CLOSE_MS = 200;
+
+// A click opens a box that stays until Escape or a click elsewhere. A long
+// hover opens one that closes again when the mouse leaves both the tile and
+// the box; clicking the tile while it is open keeps it open instead.
+function DetailsPopover({ gpu, host, children }) {
+  const [open, setOpen] = useState(false);
+  const pinned = useRef(false);
+  const openTimer = useRef(undefined);
+  const closeTimer = useRef(undefined);
+
+  const clearTimers = () => {
+    clearTimeout(openTimer.current);
+    clearTimeout(closeTimer.current);
+  };
+  useEffect(() => clearTimers, []);
+
+  const hoverIn = (event) => {
+    if (event.pointerType !== 'mouse') return;
+    clearTimeout(closeTimer.current);
+    if (!open) {
+      openTimer.current = setTimeout(() => {
+        pinned.current = false;
+        setOpen(true);
+      }, HOVER_OPEN_MS);
+    }
+  };
+  const hoverOut = (event) => {
+    if (event.pointerType !== 'mouse') return;
+    clearTimeout(openTimer.current);
+    if (open && !pinned.current) closeTimer.current = setTimeout(() => setOpen(false), HOVER_CLOSE_MS);
+  };
+  const click = (event) => {
+    // Handled here instead of by the trigger's own toggle.
+    event.preventDefault();
+    clearTimers();
+    if (open && !pinned.current) {
+      pinned.current = true;
+      return;
+    }
+    pinned.current = !open;
+    setOpen(!open);
+  };
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        clearTimers();
+        if (!next) pinned.current = false;
+        setOpen(next);
+      }}
+    >
+      <PopoverTrigger asChild onPointerEnter={hoverIn} onPointerLeave={hoverOut} onClick={click}>
+        {children}
+      </PopoverTrigger>
       <PopoverContent
         side="bottom"
         sideOffset={8}
         collisionPadding={16}
+        onPointerEnter={hoverIn}
+        onPointerLeave={hoverOut}
         className="w-[460px] rounded-2xl border-border-light bg-white p-5 shadow-xl"
       >
         <GpuDetails gpu={gpu} host={host} />
