@@ -1,0 +1,150 @@
+// Easter eggs for the availability bars, one pool per bar state. The servers
+// are named after bakes, so most lines are baking puns; {host} becomes the
+// server's name. Keep them short and free of time words ("all day"), since a
+// bar can be a minute or a week long. "none" means the monitor itself was not
+// running, so its lines must not suggest the server was down.
+const PHRASES = {
+  up: [
+    '{host} worked really hard',
+    '{host} didn’t take a single nap',
+    '{host} was fresh out of the oven',
+    '{host} stayed warm and crispy',
+    '{host} rose to the occasion',
+    '{host} was on a roll',
+    '{host} never missed a beat',
+    '{host} answered every knock',
+    '{host} showed up for every check',
+    '{host} was the toast of the lab',
+    '{host} kneaded no rest',
+    '{host} kept baking non-stop',
+    'Not a single crumb of downtime',
+    '{host} stayed golden brown',
+    '{host} was steady as a rolling pin',
+    '{host} gave it 100%',
+    '{host} was there for you',
+    'Smooth as butter on {host}',
+    '{host} was up and proofing',
+    '{host} hummed along happily',
+    'All green, all good',
+    '{host} served fresh batches',
+    '{host} earned a gold star',
+    '{host} was reliably delicious',
+    '{host} kept the GPUs warm',
+    'Uptime: chef’s kiss',
+    '{host} was in the zone',
+    'Zero hiccups from {host}',
+    '{host} rolled with it',
+    '{host} was butter-smooth',
+    '{host} kept the lights on',
+    '{host} was a good loaf',
+    '{host} stayed perfectly baked',
+    'Freshly baked uptime',
+    '{host} was flour power',
+    '{host} kept the dough rising',
+    '{host} was a smart cookie',
+    'Best thing since sliced bread',
+    '{host} was well-bread',
+    '{host} kept its crust together',
+    '{host} was proof of reliability',
+    '{host} was a piece of cake',
+    '{host} took the cake',
+    '{host} was batter than ever',
+    '{host} rose and shone',
+    '{host} stayed toasty',
+    'Sweet, sweet uptime',
+    '{host} was the yeast of our worries',
+    '{host} was oven-ready',
+    '{host} did the heavy lifting',
+  ],
+  partial: [
+    '{host} took a quick nap',
+    '{host} blinked for a moment',
+    '{host} stepped out for a coffee',
+    '{host} had a little hiccup',
+    '{host} got a bit crumbly',
+    '{host} needed a breather',
+    'A small dent in the dough',
+    '{host} slipped on some flour',
+    '{host} had a tiny wobble',
+    '{host} paused to proof',
+    '{host} was mostly golden',
+    '{host} had a sticky moment',
+    '{host} dozed off briefly',
+    'Just a crumb of downtime',
+    '{host} sneezed in the flour',
+    '{host} lost a few crumbs',
+    '{host} briefly ran out of flour',
+    '{host} had a half-baked moment',
+    '{host} needed a quick stretch',
+    '{host} took a tea break',
+    '{host} had a soggy bottom',
+    '{host} was a little underbaked',
+    'A tiny crack in the crust',
+    '{host} paused to catch its breath',
+    '{host} went out for fresh air',
+  ],
+  down: [
+    '{host} was out of the oven',
+    '{host} went stale',
+    '{host} fell flat',
+    '{host} took a long nap',
+    '{host} didn’t rise this time',
+    '{host} was off the menu',
+    'The oven went cold on {host}',
+    '{host} was sold out',
+    '{host} crumbled',
+    '{host} took some time off',
+    '{host} was cooling on the rack',
+    '{host} needed a reboot hug',
+    '{host} got stuck in the dough',
+    'Someone unplugged the oven',
+    '{host} was left in the oven too long',
+    '{host} was half-baked',
+    '{host} got burnt',
+    '{host} needed a long rest',
+    '{host} was out of yeast',
+    '{host} went back in the oven',
+    '{host} took an extended break',
+    'The bakery was closed',
+    '{host} called in sick',
+    '{host} lost its crunch',
+  ],
+  none: [
+    'Nobody was watching {host}',
+    'The monitor was out for lunch',
+    '{host} was off the record',
+    'The bakery cam was off',
+    'No one checked on {host}',
+    'The monitor was snoozing',
+    '{host}’s diary is blank here',
+    'Lost in a cloud of flour',
+    'The monitor was off duty',
+    'Unwatched dough',
+    'The monitor took a coffee break',
+    'The baker was away',
+    'Nobody was minding the oven',
+    'The monitor was baking elsewhere',
+    '{host} went unobserved',
+    'No notes from the monitor',
+    'The kitchen log is empty here',
+    'Records got lost in the flour',
+  ],
+};
+
+// Fresh on every page load, so each visit deals out different lines, while a bar
+// keeps its line as long as the page stays open.
+const SEED = Math.floor(Math.random() * 2 ** 32);
+
+function hash(text) {
+  let value = SEED ^ 0x811c9dc5;
+  for (const character of text) {
+    value = Math.imul(value ^ character.codePointAt(0), 0x01000193);
+  }
+  return value >>> 0;
+}
+
+// state is one of uptimeState's: 'up', 'partial', 'down' or 'none'.
+export function barPhrase(state, host, barStart) {
+  const pool = PHRASES[state];
+  return pool[hash(`${state}|${host}|${barStart}`) % pool.length].replace('{host}', host);
+}

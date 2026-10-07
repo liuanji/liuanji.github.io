@@ -9,6 +9,7 @@ import {
   sharesServerDays,
   uptimeState,
 } from './format';
+import { barPhrase } from './uptimePhrases';
 
 const LEGEND = ['up', 'partial', 'down', 'none'];
 
@@ -16,11 +17,14 @@ function sum(values) {
   return values.reduce((total, value) => total + value, 0);
 }
 
-function describeBar(start, barSeconds, utcOffset, checked, down) {
+// The time, any downtime (so a narrow screen only cuts off the joke), and a line
+// from the bar's state's pool.
+function describeBar(host, start, barSeconds, utcOffset, checked, down) {
   const when = formatBar(start, barSeconds, utcOffset);
-  if (!checked) return `${when} · no data`;
-  if (!down) return `${when} · up the whole time`;
-  return `${when} · ${formatUptime(checked, down)} up · down ${formatDuration(down)}`;
+  const state = uptimeState(checked, down);
+  const phrase = barPhrase(state, host, start);
+  if (state === 'up' || state === 'none') return `${when} · ${phrase}`;
+  return `${when} · down ${formatDuration(down)} · ${phrase}`;
 }
 
 // One server: hover, tap or arrow keys pick a bar, whose details replace the axis
@@ -105,6 +109,7 @@ function UptimeRow({ series, status, uptime, rangeAgo }) {
         ) : (
           <span className="w-full truncate text-center text-data-grey">
             {describeBar(
+              series.name,
               uptime.start + active * uptime.bar_seconds,
               uptime.bar_seconds,
               uptime.utc_offset,
