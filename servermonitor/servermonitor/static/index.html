@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>GPU Monitor</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css?v=9">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+  <header class="topbar">
+    <a class="brand" href="#overview" aria-label="GPU Monitor home">
+      <span class="brand-mark">G</span>
+      <span>
+        <strong>GPU Monitor</strong>
+        <small id="brand-subtitle">Lightweight local collector</small>
+      </span>
+    </a>
+    <nav aria-label="Page navigation">
+      <a href="#overview">Overview</a>
+      <a href="#history">Trends</a>
+      <a href="#users">Users</a>
+    </nav>
+    <div class="live-state" id="live-state">
+      <i></i><span>Connecting</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="overview">
+      <div>
+        <p class="eyebrow">CLUSTER PULSE</p>
+        <h1>GPU activity</h1>
+        <p class="lede" id="hero-description">Live GPU usage on this host.</p>
+      </div>
+      <div class="updated">Last updated <time id="updated-at">—</time></div>
+    </section>
+
+    <section class="host-switcher" aria-label="Monitored host">
+      <span>MONITORED HOST</span>
+      <div class="host-tabs" id="host-tabs" role="tablist">
+        <button type="button" disabled>Loading hosts…</button>
+      </div>
+    </section>
+
+    <div class="notice hidden" id="notice" role="status"></div>
+
+    <section class="summary-grid" aria-label="System summary">
+      <article class="metric-card accent-lime">
+        <span class="metric-label">Hosts online</span>
+        <strong id="hosts-online">—</strong>
+        <small id="hosts-caption">Current host</small>
+      </article>
+      <article class="metric-card accent-cyan">
+        <span class="metric-label">GPU usage</span>
+        <strong id="gpu-usage">—</strong>
+        <small id="gpus-caption">8 GPUs total</small>
+      </article>
+      <article class="metric-card accent-violet">
+        <span class="metric-label">Compute load</span>
+        <strong id="compute-load">—</strong>
+        <small id="compute-caption">Current average across all GPUs</small>
+      </article>
+      <article class="metric-card accent-orange">
+        <span class="metric-label">Memory usage</span>
+        <strong id="memory-percent">—</strong>
+        <small>Across all GPU memory</small>
+      </article>
+      <article class="metric-card accent-pink">
+        <span class="metric-label">Total power</span>
+        <strong id="power-total">—</strong>
+        <small>Current draw across selected GPUs</small>
+      </article>
+    </section>
+
+    <section class="period-section" aria-labelledby="period-title">
+      <div class="section-heading compact-heading">
+        <div>
+          <p class="eyebrow">ROLLING WINDOWS</p>
+          <h2 id="period-title">Usage statistics</h2>
+        </div>
+        <p class="section-note">Continuously aggregated from observed samples</p>
+      </div>
+      <div class="period-tabs" role="tablist" aria-label="Statistics range">
+        <button class="active" type="button" role="tab" aria-selected="true" data-period="1h">Last hour</button>
+        <button type="button" role="tab" aria-selected="false" data-period="24h">Last day</button>
+        <button type="button" role="tab" aria-selected="false" data-period="7d">Last week</button>
+        <button type="button" role="tab" aria-selected="false" data-period="30d">Last month</button>
+        <button type="button" role="tab" aria-selected="false" data-period="90d">Last 3 months</button>
+        <button type="button" role="tab" aria-selected="false" data-period="365d">Last year</button>
+      </div>
+      <div class="period-content" id="period-content" role="tabpanel" aria-live="polite">
+        <div class="loading-card">Calculating historical statistics…</div>
+      </div>
+    </section>
+
+    <section class="section-block" id="users">
+      <div class="section-heading history-heading">
+        <div>
+          <p class="eyebrow">USER LEADERBOARD</p>
+          <h2>User usage ranking</h2>
+        </div>
+        <p class="user-period">Current range: <strong id="user-period-label">Last hour</strong><small>Controlled by the tabs above</small></p>
+      </div>
+      <article class="table-card">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Active GPU hours</th>
+                <th><span title="Estimated from GPU compute load and each user's share of GPU memory">Weighted GPU hours ⓘ</span></th>
+                <th>Host breakdown</th>
+              </tr>
+            </thead>
+            <tbody id="users-body">
+              <tr><td colspan="4" class="empty-cell">Waiting for usage data…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="method-note">Active GPU hours accumulate per user × GPU over sampled time; weighted hours are an estimate when GPUs are shared.</p>
+      </article>
+    </section>
+
+    <section class="section-block">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">LIVE INVENTORY</p>
+          <h2>Live GPU status</h2>
+        </div>
+        <div class="legend"><span><i class="idle-dot"></i>Idle</span><span><i class="busy-dot"></i>In use</span></div>
+      </div>
+      <div id="hosts" class="hosts-grid" aria-live="polite">
+        <div class="loading-card">Loading GPU status…</div>
+      </div>
+    </section>
+
+    <section class="section-block" id="history">
+      <div class="section-heading history-heading">
+        <div>
+          <p class="eyebrow">UTILIZATION HISTORY</p>
+          <h2>Usage trends</h2>
+        </div>
+        <div class="filters" aria-label="Trend filters">
+          <label>GPU<select id="history-gpu"><option value="all">All GPUs</option></select></label>
+          <label>Range<select id="history-range">
+            <option value="1h">1 hour</option>
+            <option value="24h" selected>24 hours</option>
+            <option value="7d">7 days</option>
+            <option value="30d">30 days</option>
+          </select></label>
+        </div>
+      </div>
+      <article class="chart-card">
+        <div class="chart-legend">
+          <span><i class="line-util"></i>Compute load</span>
+          <span><i class="line-memory"></i>Memory usage</span>
+          <span><i class="line-busy"></i>GPUs in use</span>
+        </div>
+        <div class="chart-wrap" id="history-chart">
+          <div class="empty-state">The trend will appear after two samples have been collected.</div>
+        </div>
+      </article>
+    </section>
+
+  </main>
+
+  <footer>
+    <span>servermonitor</span>
+    <span id="poll-caption">Centralized read-only collection</span>
+  </footer>
+  <script src="/app.js?v=9" defer></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gpu-status",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "vars": {
+    // Comma-separated origins whose pages may read /files/* from a browser.
+    "ALLOWED_ORIGINS": "https://liuanji.github.io,http://localhost:5173"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "gpu-status",
+      // Paste the database_id printed by `npx wrangler d1 create gpu-status`.
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ]
+}
