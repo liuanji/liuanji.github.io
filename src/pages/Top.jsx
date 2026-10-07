@@ -30,6 +30,7 @@ import { useSession } from '../components/top/useSession';
 import { useNow, useStatusFile } from '../components/top/useStatusFile';
 import { gpuStatusUrl } from '../data/servers';
 import { myCopyrightBody, myUpdateInfo } from '../data/profile';
+import { useDocumentTitle } from '../hooks/use-document-title';
 
 const EASE = [0.16, 1, 0.3, 1];
 const FILE_KEY = /^[a-z0-9][a-z0-9._-]*$/;
@@ -124,6 +125,7 @@ function PeriodTiles({ period, range }) {
 }
 
 export default function Top() {
+  useDocumentTitle('Servers · NUS Tractable Bakery Lab');
   const [params, setParams] = useSearchParams();
   const now = useNow();
   const { token, signIn, signOut } = useSession();

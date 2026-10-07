@@ -3,6 +3,7 @@ import GhostNav from '../components/layout/GhostNav';
 import { Home } from 'lucide-react';
 import { FaXTwitter, FaLinkedin } from 'react-icons/fa6';
 import { myCopyrightBody, myUpdateInfo } from '../data/profile';
+import { useDocumentTitle } from '../hooks/use-document-title';
 import { ParseMarkdown } from '../lib/utils';
 
 const PI = {
@@ -191,6 +192,7 @@ function MemberCard({ member, index }) {
 }
 
 export default function Group() {
+  useDocumentTitle('NUS Tractable Bakery Lab');
   return (
     <div className="bg-paper min-h-screen page-enter">
       <GhostNav />
