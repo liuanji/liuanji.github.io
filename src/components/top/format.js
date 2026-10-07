@@ -5,6 +5,7 @@ import {
   RAM_LEVELS,
   TEMPERATURE_LEVELS_C,
   UPTIME_PARTIAL_AT,
+  USER_COLORS,
 } from './config';
 
 const decimal = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
@@ -18,6 +19,15 @@ const dayAndClock = new Intl.DateTimeFormat('en-GB', {
   minute: '2-digit',
   hourCycle: 'h23',
 });
+
+// The same colour for a username on every page load (a 32-bit FNV-1a hash).
+export function userColor(username) {
+  let hash = 0x811c9dc5;
+  for (const character of username) {
+    hash = Math.imul(hash ^ character.codePointAt(0), 0x01000193);
+  }
+  return USER_COLORS[(hash >>> 0) % USER_COLORS.length];
+}
 
 export function formatPercent(value) {
   return `${Math.round(Number(value) || 0)}%`;

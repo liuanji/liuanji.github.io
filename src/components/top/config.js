@@ -23,6 +23,22 @@ export const SERIES = {
   disk: { label: 'Disk', color: '#6C7BB8', track: '#6C7BB824' },
 };
 
+// Soft, distinct hues that tell users apart in the compact view; a name always
+// maps to the same one. They sit beside the name, never alone, and avoid the
+// compute blue and memory green.
+export const USER_COLORS = [
+  '#E07A5F',
+  '#3D9A8B',
+  '#8E7CC3',
+  '#D9A23B',
+  '#5E8FD0',
+  '#C9668F',
+  '#7BA05B',
+  '#A47551',
+  '#4FA3B8',
+  '#B07AA1',
+];
+
 // Status colours always appear next to their label, never alone.
 export const HOST_STATUS = {
   online: { label: 'Online', color: '#0CA30C' },
