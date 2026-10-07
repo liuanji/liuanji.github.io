@@ -132,7 +132,7 @@ export default function Top() {
   const [params, setParams] = useSearchParams();
   const now = useNow();
   const { token, signIn, signOut } = useSession();
-  const [compact, setCompact] = useStoredFlag('gpu-status-compact', false);
+  const [compact, setCompact] = useStoredFlag('gpu-status-compact', true);
   const overview = useStatusFile('overview', LIVE_REFRESH_MS, token);
   const hosts = (overview.data?.hosts ?? []).map((item) => ({ ...item, status: currentStatus(item, now) }));
 
