@@ -41,6 +41,14 @@ class PublishTest(unittest.TestCase):
         }
         self.assertEqual(set(files), expected)
 
+    def test_live_only_publishes_overview_and_hour_histories(self) -> None:
+        files = build_files(self.settings, self.database, now=self.start + 60, live_only=True)
+
+        self.assertEqual(
+            set(files),
+            {"overview", "history-all-1h", "history-brezel-1h", "history-toast-1h"},
+        )
+
     def test_overview_drops_process_details_but_keeps_users_and_system(self) -> None:
         overview = build_files(self.settings, self.database, now=self.start + 60)["overview"]
 

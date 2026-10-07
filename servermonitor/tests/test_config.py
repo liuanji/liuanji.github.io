@@ -54,6 +54,25 @@ class SettingsTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "GPU_MONITOR_COLLECT_LOCAL"):
                 Settings.from_env()
 
+    def test_upload_url_is_optional_and_trimmed(self) -> None:
+        with patch.dict(os.environ, {"GPU_MONITOR_HOST": "brezel"}, clear=True):
+            self.assertIsNone(Settings.from_env().upload_url)
+        with patch.dict(
+            os.environ,
+            {"GPU_MONITOR_HOST": "brezel", "GPU_MONITOR_UPLOAD_URL": "https://relay.example/"},
+            clear=True,
+        ):
+            self.assertEqual(Settings.from_env().upload_url, "https://relay.example")
+
+    def test_rejects_upload_url_without_scheme(self) -> None:
+        with patch.dict(
+            os.environ,
+            {"GPU_MONITOR_HOST": "brezel", "GPU_MONITOR_UPLOAD_URL": "relay.example"},
+            clear=True,
+        ):
+            with self.assertRaisesRegex(ValueError, "GPU_MONITOR_UPLOAD_URL"):
+                Settings.from_env()
+
 
 if __name__ == "__main__":
     unittest.main()

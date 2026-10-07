@@ -55,9 +55,17 @@ def public_overview(overview: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+LIVE_PERIODS = PERIODS[:1]
+
+
 def build_files(
-    settings: Settings, database: Database, now: int | None = None
+    settings: Settings,
+    database: Database,
+    now: int | None = None,
+    live_only: bool = False,
 ) -> dict[str, Any]:
+    """live_only builds just the files the page refreshes every minute: the
+    overview and the 1h histories."""
     now = int(time.time()) if now is None else now
     files: dict[str, Any] = {
         "overview": public_overview(
@@ -66,16 +74,17 @@ def build_files(
     }
     for host in (None, *settings.hosts):
         key = host or "all"
-        files[f"stats-{key}"] = {
-            "generated_at": now,
-            "host": host,
-            "periods": database.period_summaries(PERIODS, now=now, host=host),
-            "users": {
-                name: database.user_summary(now - seconds, now, host)
-                for name, seconds in PERIODS
-            },
-        }
-        for name, seconds in PERIODS:
+        if not live_only:
+            files[f"stats-{key}"] = {
+                "generated_at": now,
+                "host": host,
+                "periods": database.period_summaries(PERIODS, now=now, host=host),
+                "users": {
+                    name: database.user_summary(now - seconds, now, host)
+                    for name, seconds in PERIODS
+                },
+            }
+        for name, seconds in LIVE_PERIODS if live_only else PERIODS:
             start = now - seconds
             files[f"history-{key}-{name}"] = {
                 "generated_at": now,

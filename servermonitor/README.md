@@ -62,6 +62,8 @@ ssh -N -L 8876:127.0.0.1:8765 brezel
 | `GPU_MONITOR_BIND` | `127.0.0.1` | 网站监听地址 |
 | `GPU_MONITOR_PORT` | `8765` | 网站端口 |
 | `GPU_MONITOR_ROLLUP_RETENTION_DAYS` | `365` | 小时汇总保留天数 |
+| `GPU_MONITOR_UPLOAD_URL` | 空 | 中转 Worker 地址（见 `worker/README.md`）；设置后 `serve` 每分钟上传 /top 页面的数据 |
+| `GPU_MONITOR_UPLOAD_TOKEN_FILE` | `~/.config/servermonitor/upload_token` | 上传令牌文件，每次上传时重新读取，轮换令牌无需重启 |
 
 服务没有登录功能，不建议直接监听公网地址，因为页面会显示用户名和进程名。brezel 保持监听 `127.0.0.1:8765`，通过 SSH 本地转发访问。
 
@@ -79,11 +81,19 @@ brezel 使用 `cron + flock`：cron 每分钟检查一次，服务已经运行�
 GPU_MONITOR_COLLECT_LOCAL=0 GPU_MONITOR_REMOTE_HOSTS=brezel,toast,croissant python3 -m servermonitor collect
 ```
 
+再手动上传一次，确认能写入 Worker：
+
+```bash
+GPU_MONITOR_COLLECT_LOCAL=0 GPU_MONITOR_REMOTE_HOSTS=brezel,toast,croissant GPU_MONITOR_UPLOAD_URL=https://gpu-status.<subdomain>.workers.dev python3 -m servermonitor upload
+```
+
 cron 配置如下。`/usr/bin/python3` 低于 3.11 时，用 `GPU_MONITOR_PYTHON` 指定解释器：
 
 ```
-* * * * * GPU_MONITOR_COLLECT_LOCAL=0 GPU_MONITOR_REMOTE_HOSTS=brezel,toast,croissant GPU_MONITOR_PYTHON=/usr/bin/python3.11 /path/to/servermonitor/deploy/run-servermonitor.sh
+* * * * * GPU_MONITOR_COLLECT_LOCAL=0 GPU_MONITOR_REMOTE_HOSTS=brezel,toast,croissant GPU_MONITOR_UPLOAD_URL=https://gpu-status.<subdomain>.workers.dev GPU_MONITOR_PYTHON=/usr/bin/python3.11 /path/to/servermonitor/deploy/run-servermonitor.sh
 ```
+
+上传节奏与页面刷新一致：概览和 1h 趋势每分钟，其余文件每 5 分钟。上传失败只在开始失败、错误变化和恢复时写入日志。
 
 改由跳板机采集后，删除 brezel 上原来的 cron 任务，避免重复采集。主机名保持不变时，可以把 brezel 上的 `data/servermonitor.sqlite3` 复制过来继续使用历史数据（先停止 brezel 上的进程）。
 

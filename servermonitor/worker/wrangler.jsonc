@@ -13,7 +13,7 @@
       "binding": "DB",
       "database_name": "gpu-status",
       // Paste the database_id printed by `npx wrangler d1 create gpu-status`.
-      "database_id": "00000000-0000-0000-0000-000000000000"
+      "database_id": "af61d2c2-512c-464d-90d3-db5908225585"
     }
   ]
 }

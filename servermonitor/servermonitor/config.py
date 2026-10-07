@@ -40,6 +40,9 @@ class Settings:
     bind: str = "127.0.0.1"
     port: int = 8765
     rollup_retention_days: int = 365
+    # Base URL of the relay Worker; None disables uploading.
+    upload_url: str | None = None
+    upload_token_path: Path = Path("~/.config/servermonitor/upload_token").expanduser()
 
     @property
     def stale_after_seconds(self) -> int:
@@ -81,6 +84,9 @@ class Settings:
         database_path = Path(
             os.environ.get("GPU_MONITOR_DATABASE", "./data/servermonitor.sqlite3")
         ).expanduser()
+        upload_url = os.environ.get("GPU_MONITOR_UPLOAD_URL", "").strip().rstrip("/") or None
+        if upload_url is not None and not upload_url.startswith(("https://", "http://")):
+            raise ValueError(f"GPU_MONITOR_UPLOAD_URL must be an http(s) URL, got {upload_url!r}")
         return cls(
             host=host,
             remote_hosts=remote_hosts,
@@ -92,4 +98,10 @@ class Settings:
             rollup_retention_days=_positive_int(
                 "GPU_MONITOR_ROLLUP_RETENTION_DAYS", 365
             ),
+            upload_url=upload_url,
+            upload_token_path=Path(
+                os.environ.get(
+                    "GPU_MONITOR_UPLOAD_TOKEN_FILE", "~/.config/servermonitor/upload_token"
+                )
+            ).expanduser(),
         )

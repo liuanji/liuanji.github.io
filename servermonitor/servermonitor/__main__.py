@@ -9,13 +9,14 @@ from logging.handlers import RotatingFileHandler
 from .config import Settings
 from .database import Database
 from .service import MonitorService
+from .upload import Uploader
 from .web import DashboardServer
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Local NVIDIA GPU monitor")
     parser.add_argument(
-        "command", nargs="?", choices=("serve", "collect", "init-db"), default="serve"
+        "command", nargs="?", choices=("serve", "collect", "upload", "init-db"), default="serve"
     )
     parser.add_argument("--verbose", action="store_true")
     return parser
@@ -58,8 +59,18 @@ def main() -> None:
         print(json.dumps([asdict(result) for result in results], ensure_ascii=False, indent=2))
         return
 
+    if args.command == "upload":
+        count = Uploader(settings, database).upload_once()
+        print(f"uploaded {count} files to {settings.upload_url}")
+        return
+
+    uploader = Uploader(settings, database) if settings.upload_url else None
+
     server = DashboardServer((settings.bind, settings.port), settings, database)
     service.start()
+    if uploader is not None:
+        uploader.start()
+        logging.info("uploading to %s", settings.upload_url)
     logging.info("dashboard listening on http://%s:%d", settings.bind, settings.port)
     try:
         server.serve_forever(poll_interval=0.5)
@@ -69,6 +80,8 @@ def main() -> None:
         server.shutdown()
         server.server_close()
         service.stop()
+        if uploader is not None:
+            uploader.stop()
 
 
 if __name__ == "__main__":
