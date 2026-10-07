@@ -45,8 +45,7 @@ function describe(gpu, host) {
   return parts.join(' · ');
 }
 
-// Two concentric arcs from twelve o'clock: compute outside, memory inside. The
-// geometry is for a 64 px ring and scales with the size asked for.
+// Two concentric arcs from twelve o'clock: compute outside, memory inside.
 const RING = { size: 64, outer: 28, inner: 21, outerWidth: 4, innerWidth: 3 };
 // Softer shades of the compute blue and memory green: two dozen rings at full
 // strength would sit too heavily on the white cards.
@@ -79,10 +78,10 @@ function Arc({ radius, width, share, series }) {
   );
 }
 
-function UsageRing({ gpu, size = RING.size, children = null }) {
+function UsageRing({ gpu }) {
   return (
-    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${RING.size} ${RING.size}`} aria-hidden="true">
+    <div className="relative flex-shrink-0" style={{ width: RING.size, height: RING.size }}>
+      <svg width={RING.size} height={RING.size} viewBox={`0 0 ${RING.size} ${RING.size}`} aria-hidden="true">
         <Arc radius={RING.outer} width={RING.outerWidth} share={gpu.utilization / 100} series={RING_SERIES.compute} />
         <Arc
           radius={RING.inner}
@@ -91,12 +90,8 @@ function UsageRing({ gpu, size = RING.size, children = null }) {
           series={RING_SERIES.memory}
         />
       </svg>
-      <span className="absolute inset-0 flex flex-col items-center justify-center">
-        {children ?? (
-          <span className="font-tight text-[13px] font-semibold tabular-nums text-inkwell">
-            {Math.round(gpu.utilization)}%
-          </span>
-        )}
+      <span className="absolute inset-0 flex items-center justify-center font-tight text-[13px] font-semibold tabular-nums text-inkwell">
+        {Math.round(gpu.utilization)}%
       </span>
     </div>
   );
@@ -137,12 +132,23 @@ function GpuDetails({ gpu, host }) {
   return (
     <div className="flex gap-6">
       <div className="flex flex-col items-center justify-center">
-        <UsageRing gpu={gpu} size={104}>
-          <span className="font-tight text-lg font-semibold leading-none tabular-nums text-inkwell">
-            {Math.round(gpu.utilization)}%
-          </span>
-        </UsageRing>
-        <span className="mt-3 flex items-center gap-1.5 font-mono text-[11px] text-data-grey">
+        <GpuGlyph
+          compute={gpu.utilization / 100}
+          memory={gpu.memory_total_mb ? gpu.memory_used_mb / gpu.memory_total_mb : 0}
+        />
+        {/* The fan is compute and the chips are memory, so both get a figure in their colour. */}
+        <span className="mt-2.5 flex items-center gap-3 font-tight text-base font-semibold leading-none tabular-nums text-inkwell">
+          {[
+            ['compute', RING_SERIES.compute.color, gpu.utilization / 100],
+            ['memory', RING_SERIES.memory.color, gpu.memory_total_mb ? gpu.memory_used_mb / gpu.memory_total_mb : 0],
+          ].map(([name, color, share]) => (
+            <span key={name} className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
+              {Math.round(share * 100)}%<span className="sr-only"> {name}</span>
+            </span>
+          ))}
+        </span>
+        <span className="mt-2.5 flex items-center gap-1.5 font-mono text-[11px] text-data-grey">
           <span
             className={`h-1.5 w-1.5 rounded-full ${gpu.busy ? 'bg-synapse' : 'ring-1 ring-inset ring-data-grey/50'}`}
             aria-hidden="true"
@@ -386,6 +392,86 @@ function ChipGlyph({ share, color, size = 26 }) {
           </g>
         );
       })}
+    </svg>
+  );
+}
+
+// A small graphics card, drawn like the CPU and RAM glyphs: its fan's rim fills
+// with compute load and its blades spin faster the busier it is (still when
+// idle or when the viewer prefers reduced motion), its eight memory chips fill
+// with memory in use, and gold contacts run along the bottom.
+function GpuGlyph({ compute, memory, width = 116 }) {
+  const fan = { x: 15.5, y: 13, radius: 8.4 };
+  const circumference = 2 * Math.PI * fan.radius;
+  const load = Math.min(1, Math.max(0, compute));
+  const arc = load * circumference;
+  // Seconds per turn: 3.2 at the lightest load down to 0.6 at full load.
+  const spin = load >= 0.02 ? 3.2 - 2.6 * load : null;
+  const chips = 8;
+  const filled = Math.min(1, Math.max(0, memory)) * chips;
+  return (
+    <svg width={width} height={(width * 30.5) / 60} viewBox="0 0 60 30.5" aria-hidden="true">
+      <rect x="0.65" y="0.65" width="58.7" height="24.7" rx="3" fill="white" stroke={GLYPH.outline} strokeWidth="1.3" />
+      <circle cx={fan.x} cy={fan.y} r={fan.radius} fill="none" stroke={RING_SERIES.compute.track} strokeWidth="2.2" />
+      {arc > 0.3 && (
+        <circle
+          cx={fan.x}
+          cy={fan.y}
+          r={fan.radius}
+          fill="none"
+          stroke={RING_SERIES.compute.color}
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeDasharray={`${arc} ${circumference}`}
+          transform={`rotate(-90 ${fan.x} ${fan.y})`}
+        />
+      )}
+      <g
+        className={spin ? 'motion-safe:animate-spin' : undefined}
+        style={spin ? { animationDuration: `${spin}s`, transformOrigin: `${fan.x}px ${fan.y}px` } : undefined}
+      >
+        {[0, 72, 144, 216, 288].map((angle) => (
+          <path
+            key={angle}
+            d={`M ${fan.x} ${fan.y} q 2.4 -0.9 3.4 -5`}
+            fill="none"
+            stroke={GLYPH.outline}
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            transform={`rotate(${angle} ${fan.x} ${fan.y})`}
+          />
+        ))}
+      </g>
+      <circle cx={fan.x} cy={fan.y} r="1.9" fill="white" stroke={GLYPH.outline} strokeWidth="1.2" />
+      {Array.from({ length: chips }, (_, index) => {
+        const amount = Math.min(1, Math.max(0, filled - index));
+        // The chips keep the same margin from the card's right edge as the fan
+        // does from its left.
+        const x = 28.6 + (index % 4) * 6.8;
+        const y = 5 + Math.floor(index / 4) * 8.6;
+        return (
+          <g key={index}>
+            <rect x={x} y={y} width="5.2" height="6.4" rx="0.8" fill={GLYPH.unlit} />
+            {amount > 0 && (
+              <rect x={x} y={y} width={5.2 * amount} height="6.4" rx="0.8" fill={RING_SERIES.memory.color} />
+            )}
+          </g>
+        );
+      })}
+      {Array.from({ length: 15 }, (_, index) => index)
+        .filter((index) => index !== 4)
+        .map((index) => (
+          <line
+            key={index}
+            x1={8 + index * 2.6}
+            y1="27.2"
+            x2={8 + index * 2.6}
+            y2="29.4"
+            stroke={GLYPH.contacts}
+            strokeWidth="1.3"
+            strokeLinecap="round"
+          />
+        ))}
     </svg>
   );
 }
