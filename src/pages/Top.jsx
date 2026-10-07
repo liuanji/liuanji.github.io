@@ -179,8 +179,7 @@ export default function Top() {
             <div className="font-mono text-sm text-data-grey mb-3">Lab Compute</div>
             <h1 className="font-tight font-bold text-5xl lg:text-6xl text-inkwell">GPU Servers</h1>
             <p className="text-data-grey mt-4 max-w-2xl text-base leading-relaxed">
-              Live usage of the Tractable Bakery Lab&apos;s GPU servers: who is running what, and how busy the
-              machines have been.
+              Live usage of the Tractable Bakery Lab&apos;s servers.
             </p>
             {gpuStatusUrl && <Freshness overview={overview} now={now} />}
           </motion.div>
