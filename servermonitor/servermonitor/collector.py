@@ -20,7 +20,7 @@ set -eu
 export LC_ALL=C
 cpu_before="$(head -n 1 /proc/stat 2>/dev/null || true)"
 printf '%s\\n' '{GPU_MARKER}'
-nvidia-smi --query-gpu=index,uuid,name,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw --format=csv,noheader,nounits
+nvidia-smi --query-gpu=index,uuid,name,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw,enforced.power.limit --format=csv,noheader,nounits
 printf '%s\\n' '{APP_MARKER}'
 apps="$(nvidia-smi --query-compute-apps=gpu_uuid,pid,process_name,used_memory --format=csv,noheader,nounits 2>/dev/null || true)"
 printf '%s\\n' "$apps"
@@ -48,6 +48,8 @@ class GPUStat:
     memory_total_mb: float
     temperature_c: float | None
     power_w: float | None
+    # The cap the driver enforces; None in snapshots from before it was collected.
+    power_limit_w: float | None = None
 
 
 @dataclass(frozen=True)
@@ -158,7 +160,7 @@ def parse_collector_output(host: str, output: str, sampled_at: int, duration_ms:
 
     gpus: list[GPUStat] = []
     for row in csv.reader(sections[GPU_MARKER]):
-        if len(row) != 8:
+        if len(row) != 9:
             raise ValueError(f"unexpected GPU row with {len(row)} fields")
         gpus.append(
             GPUStat(
@@ -170,6 +172,7 @@ def parse_collector_output(host: str, output: str, sampled_at: int, duration_ms:
                 memory_total_mb=float(_number(row[5]) or 0),
                 temperature_c=_number(row[6], optional=True),
                 power_w=_number(row[7], optional=True),
+                power_limit_w=_number(row[8], optional=True),
             )
         )
 

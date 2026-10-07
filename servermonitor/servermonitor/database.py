@@ -515,6 +515,7 @@ class Database:
                         "memory_total_mb": round(gpu["memory_total_mb"], 1),
                         "temperature_c": gpu["temperature_c"],
                         "power_w": gpu["power_w"],
+                        "power_limit_w": gpu.get("power_limit_w"),
                         "busy": bool(processes)
                         or gpu["memory_used_mb"] >= BUSY_MEMORY_THRESHOLD_MB,
                         "users": [

@@ -1,6 +1,6 @@
-import { SERIES } from './config';
+import { READING_STYLES, SERIES } from './config';
 import { StatusPill } from './controls';
-import { formatAgo, formatMemory, formatMemoryOf, gpuModels } from './format';
+import { formatAgo, formatMemory, formatMemoryOf, gpuModels, powerLevel, temperatureLevel } from './format';
 
 const ROW_GRID =
   'grid grid-cols-2 gap-x-4 gap-y-2 md:grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,1fr)_7.5rem_minmax(0,1.3fr)] md:items-center md:gap-x-6';
@@ -56,9 +56,26 @@ function SystemStrip({ system }) {
   );
 }
 
+// Every reading gets the same padding so tinted and plain values line up.
+function Reading({ text, level, title }) {
+  return (
+    <span
+      title={title}
+      className={`rounded px-1 py-0.5 ${level ? 'font-medium' : ''}`}
+      style={READING_STYLES[level]}
+    >
+      {text}
+    </span>
+  );
+}
+
 function GpuRow({ gpu }) {
   const thermal = gpu.temperature_c == null ? '—' : `${Math.round(gpu.temperature_c)}°C`;
   const power = gpu.power_w == null ? '—' : `${Math.round(gpu.power_w)} W`;
+  const powerTitle =
+    gpu.power_w != null && gpu.power_limit_w
+      ? `${Math.round(gpu.power_w)} W of ${Math.round(gpu.power_limit_w)} W limit (${Math.round((gpu.power_w / gpu.power_limit_w) * 100)}%)`
+      : undefined;
   return (
     <div className={`${ROW_GRID} px-6 py-3.5`}>
       <div className="order-1 flex items-center gap-2 md:order-none">
@@ -86,8 +103,11 @@ function GpuRow({ gpu }) {
           series={SERIES.memory}
         />
       </div>
-      <div className="order-2 text-right font-mono text-xs tabular-nums text-data-grey md:order-none md:text-left">
-        {thermal} · {power}
+      {/* The negative margins cancel the readings' padding, so plain values line up as before. */}
+      <div className="order-2 -mr-1 text-right font-mono text-xs tabular-nums text-data-grey md:order-none md:-ml-1 md:mr-0 md:text-left">
+        <Reading text={thermal} level={temperatureLevel(gpu.temperature_c)} />
+        {' · '}
+        <Reading text={power} level={powerLevel(gpu.power_w, gpu.power_limit_w)} title={powerTitle} />
       </div>
       <div className="order-5 col-span-2 flex flex-wrap gap-1.5 md:order-none md:col-span-1">
         {gpu.users.length ? (

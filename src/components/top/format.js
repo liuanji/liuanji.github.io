@@ -1,4 +1,4 @@
-import { DELAYED_AFTER_SECONDS } from './config';
+import { DELAYED_AFTER_SECONDS, POWER_LEVELS, TEMPERATURE_LEVELS_C } from './config';
 
 const decimal = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
 const clock = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
@@ -18,6 +18,21 @@ export function formatPercent(value) {
 export function formatPower(watts) {
   const value = Number(watts) || 0;
   return value >= 1000 ? `${(value / 1000).toFixed(1)} kW` : `${Math.round(value)} W`;
+}
+
+// 'hot', 'warm' or null; power without a known limit is never flagged.
+function level(value, levels) {
+  if (value == null) return null;
+  if (value >= levels.hot) return 'hot';
+  return value >= levels.warm ? 'warm' : null;
+}
+
+export function temperatureLevel(celsius) {
+  return level(celsius, TEMPERATURE_LEVELS_C);
+}
+
+export function powerLevel(watts, limitWatts) {
+  return level(watts != null && limitWatts ? watts / limitWatts : null, POWER_LEVELS);
 }
 
 export function formatMemory(mb) {

@@ -29,6 +29,16 @@ export const HOST_STATUS = {
   unseen: { label: 'Waiting for data', color: '#94A3B8' },
 };
 
+// GPU readings worth a glance: warm, then hot. Temperature in °C, power as a
+// share of the GPU's enforced power limit. Same hues as the Delayed and
+// Unreachable statuses, darkened so the text keeps 4.5:1 on white and on the tint.
+export const TEMPERATURE_LEVELS_C = { warm: 75, hot: 85 };
+export const POWER_LEVELS = { warm: 0.7, hot: 0.9 };
+export const READING_STYLES = {
+  warm: { color: '#A15C07' },
+  hot: { color: '#B33A3A', backgroundColor: '#B33A3A1A' },
+};
+
 // Age of the newest published overview before the page calls it delayed / offline.
 export const DELAYED_AFTER_SECONDS = 3 * 60;
 export const OFFLINE_AFTER_SECONDS = 15 * 60;

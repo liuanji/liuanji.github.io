@@ -29,6 +29,7 @@ HISTORY_INTERVAL_SECONDS = 600
 RECENT_SECONDS = 48 * 3600
 GPU_NAME = "NVIDIA RTX PRO 6000 Blackwell Server Edition"
 GPU_MEMORY_MB = 97887.0
+GPU_POWER_LIMIT_W = 600.0
 GPUS_PER_HOST = 8
 # Host name, how often jobs start there relative to the others, CPU count and RAM.
 HOSTS = (
@@ -113,8 +114,9 @@ class SimulatedHost:
                     utilization=round(utilization),
                     memory_used_mb=round(memory),
                     memory_total_mb=GPU_MEMORY_MB,
-                    temperature_c=round(28 + utilization * 0.38 + self.random.uniform(-1.5, 1.5)),
+                    temperature_c=round(30 + utilization * 0.56 + self.random.uniform(-1.5, 1.5)),
                     power_w=round(38 + utilization * 5.2 + self.random.uniform(-4, 4), 2),
+                    power_limit_w=GPU_POWER_LIMIT_W,
                 )
             )
         jobs = {id(job): job for job in self.jobs if job is not None}.values()

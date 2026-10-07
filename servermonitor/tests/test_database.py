@@ -126,6 +126,16 @@ class DatabaseTest(unittest.TestCase):
             ["brezel", "toast"],
         )
 
+    def test_overview_reports_power_limit_when_known(self) -> None:
+        result = successful_result(1_700_000_000)
+        gpus = (replace(result.gpus[0], power_limit_w=600.0), result.gpus[1])
+        self.database.save(replace(result, gpus=gpus))
+
+        overview = self.database.overview(("brezel",), stale_after_seconds=180, now=1_700_000_030)
+
+        limits = [gpu["power_limit_w"] for gpu in overview["hosts"][0]["gpus"]]
+        self.assertEqual(limits, [600.0, None])
+
     def test_observed_time_survives_collection_interval_change(self) -> None:
         start = 1_700_000_000
         for offset in (0, 60, 120, 180):

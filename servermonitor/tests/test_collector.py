@@ -6,8 +6,8 @@ from servermonitor.collector import LocalCollector, SSHCollector, parse_collecto
 
 
 SAMPLE_OUTPUT = """__SERVERMONITOR_GPUS__
-0, GPU-aaa, NVIDIA RTX PRO 6000, 97, 30701, 97887, 63, 514.29
-1, GPU-bbb, NVIDIA RTX PRO 6000, 0, 4, 97887, 29, [N/A]
+0, GPU-aaa, NVIDIA RTX PRO 6000, 97, 30701, 97887, 63, 514.29, 600.00
+1, GPU-bbb, NVIDIA RTX PRO 6000, 0, 4, 97887, 29, [N/A], [N/A]
 __SERVERMONITOR_APPS__
 GPU-aaa, 1234, /usr/bin/python, 30000
 GPU-aaa, 5678, python, 700
@@ -26,6 +26,8 @@ class CollectorParserTest(unittest.TestCase):
         self.assertEqual(result.gpus[0].index, 0)
         self.assertEqual(result.gpus[0].utilization, 97)
         self.assertIsNone(result.gpus[1].power_w)
+        self.assertEqual(result.gpus[0].power_limit_w, 600)
+        self.assertIsNone(result.gpus[1].power_limit_w)
         self.assertEqual([process.username for process in result.processes], ["alice", "bob"])
         self.assertEqual(result.processes[0].used_memory_mb, 30000)
 
