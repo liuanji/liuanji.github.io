@@ -25,7 +25,8 @@ async function waitForFirstPublish(filesDir) {
 // Dev-only stand-in for the gpu-status Worker, enabled by GPU_STATUS_PREVIEW=1
 // (`npm run dev:top`). It runs servermonitor's simulator, which publishes
 // made-up but realistic files every 30 s, and serves them at
-// /__gpu-status/files/<name>, the same paths the Worker uses.
+// /__gpu-status/files/<name>, the same paths the Worker uses, behind a stand-in
+// /__gpu-status/login.
 export default function gpuStatusPreview() {
   return {
     name: 'gpu-status-preview',
@@ -48,6 +49,12 @@ export default function gpuStatusPreview() {
       const stop = () => sampler.kill();
       server.httpServer?.once('close', stop);
       process.once('exit', stop);
+
+      // Any password signs in; the files below do not check the session.
+      server.middlewares.use('/__gpu-status/login', (request, response) => {
+        response.setHeader('Content-Type', 'application/json; charset=utf-8');
+        response.end(JSON.stringify({ token: 'preview', expires_at: Math.floor(Date.now() / 1000) + 86400 }));
+      });
 
       server.middlewares.use('/__gpu-status/files', async (request, response) => {
         const name = (request.url ?? '').split('?')[0].replace(/^\//, '');

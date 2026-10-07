@@ -8,7 +8,12 @@ instead of being billed.
 | Endpoint | Who | What |
 | --- | --- | --- |
 | `POST /upload` | jump machine, `Authorization: Bearer <UPLOAD_TOKEN>` | body `{"files": {"<name>": "<JSON text>", ...}}`, 1–40 files, ≤ 1 MB |
-| `GET /files/<name>` | anyone; CORS only for `ALLOWED_ORIGINS` | the stored JSON text |
+| `POST /login` | anyone, 10 attempts per IP per minute | body `{"password": "<LOGIN_PASSWORD>"}`; returns `{"token", "expires_at"}`, a session valid 30 days |
+| `GET /files/<name>` | `Authorization: Bearer <session>`; CORS only for `ALLOWED_ORIGINS` | the stored JSON text |
+
+A session is its expiry plus an HMAC of the expiry and `LOGIN_PASSWORD`, keyed
+with `SESSION_SECRET`; nothing is stored. Changing either secret signs everyone
+out.
 
 File contents are sent as JSON *strings* so the Worker stores them without
 parsing (the free plan allows 10 ms CPU per request).
@@ -69,6 +74,18 @@ ssh <jump-machine> cat .config/servermonitor/upload_token | npx wrangler secret 
 
 Repeat both commands to rotate the token.
 
+**7. Login.** Choose the shared password /top asks for (prefer a long
+passphrase: the rate limit slows guessing but cannot stop it), and a random
+signing secret:
+
+```bash
+npx wrangler secret put LOGIN_PASSWORD
+openssl rand -hex 32 | npx wrangler secret put SESSION_SECRET
+```
+
+Until both are set, `/login` answers 503 and `/files/*` answers 401. To change
+the password, run the first command again; existing sessions stop working.
+
 ## Test
 
 On the jump machine (this also confirms the campus network allows it):
@@ -79,14 +96,19 @@ curl -sS -X POST https://gpu-status.<subdomain>.workers.dev/upload \
   --data '{"files":{"test":"{\"hello\":\"world\"}"}}'
 ```
 
-Expect `{"stored":1}`. Then on your laptop:
+Expect `{"stored":1}`. Then on your laptop, sign in and read it back:
 
 ```bash
-curl -i -H "Origin: https://liuanji.github.io" https://gpu-status.<subdomain>.workers.dev/files/test
+read -rs -p "Password: " password; echo
+token=$(curl -sS -X POST https://gpu-status.<subdomain>.workers.dev/login \
+  --data "$(jq -n --arg p "$password" '{password: $p}')" | jq -r .token)
+curl -i -H "Origin: https://liuanji.github.io" -H "Authorization: Bearer $token" \
+  https://gpu-status.<subdomain>.workers.dev/files/test
 ```
 
 Expect `200`, `access-control-allow-origin: https://liuanji.github.io` and
-`{"hello":"world"}`. Remove the test row with:
+`{"hello":"world"}`; without the `Authorization` header, `401`. Remove the test
+row with:
 
 ```bash
 npx wrangler d1 execute gpu-status --remote --command "DELETE FROM files WHERE name = 'test'"
@@ -102,7 +124,7 @@ npx wrangler d1 execute gpu-status --remote --command "DELETE FROM files WHERE n
 ## Local development
 
 ```bash
-printf 'UPLOAD_TOKEN=dev-token\n' > .dev.vars
+printf 'UPLOAD_TOKEN=dev-token\nLOGIN_PASSWORD=dev-password\nSESSION_SECRET=dev-secret\n' > .dev.vars
 npm run db:init:local
 npm run dev
 ```

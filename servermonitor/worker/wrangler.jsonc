@@ -8,6 +8,14 @@
     // Comma-separated origins whose pages may read /files/* from a browser.
     "ALLOWED_ORIGINS": "https://liuanji.github.io,http://localhost:5173"
   },
+  // Login attempts allowed per client IP per minute.
+  "ratelimits": [
+    {
+      "name": "LOGIN_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 10, "period": 60 }
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",

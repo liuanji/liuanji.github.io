@@ -1,8 +1,16 @@
-// Public JSON relay for the GPU dashboard, deployed on the Workers Free plan.
+// Password-protected JSON relay for the GPU dashboard, deployed on the Workers
+// Free plan.
 //
 //   POST /upload        Authorization: Bearer <UPLOAD_TOKEN>
 //                       body: {"files": {"<name>": "<JSON text>", ...}}
-//   GET  /files/<name>  the stored JSON text, readable from ALLOWED_ORIGINS
+//   POST /login         body: {"password": "<LOGIN_PASSWORD>"}
+//                       returns {"token": "<session>", "expires_at": <unix seconds>}
+//   GET  /files/<name>  Authorization: Bearer <session>
+//                       the stored JSON text, readable from ALLOWED_ORIGINS
+//
+// A session is "<expiry>.<HMAC of the expiry and LOGIN_PASSWORD>" keyed with
+// SESSION_SECRET, so changing the password signs everyone out without any
+// session storage.
 //
 // File contents arrive as JSON strings and are stored verbatim, so the Worker
 // never parses or re-serializes them: the free plan allows 10 ms CPU per request.
@@ -11,6 +19,7 @@ const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 const MAX_UPLOAD_CHARS = 1_000_000;
 // D1 allows 50 queries per invocation on the free plan; each file is one query.
 const MAX_FILES_PER_UPLOAD = 40;
+const SESSION_SECONDS = 30 * 24 * 60 * 60;
 const UPSERT = `
   INSERT INTO files (name, body, updated_at) VALUES (?1, ?2, ?3)
   ON CONFLICT (name) DO UPDATE SET body = excluded.body, updated_at = excluded.updated_at
@@ -27,7 +36,13 @@ export default {
       if (request.method === "POST" && url.pathname === "/upload") {
         return await upload(request, env);
       }
+      if (request.method === "POST" && url.pathname === "/login") {
+        return await login(request, env, cors);
+      }
       if (request.method === "GET" && url.pathname.startsWith("/files/")) {
+        if (!(await validSession(bearer(request), env))) {
+          return json({ error: "login required" }, 401, cors);
+        }
         return await read(url.pathname.slice("/files/".length), env, cors);
       }
       return json({ error: "not found" }, 404, cors);
@@ -85,20 +100,81 @@ async function read(name, env, cors) {
     headers: {
       ...cors,
       "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "public, max-age=15",
+      "Cache-Control": "private, max-age=15",
     },
   });
 }
 
-async function authorized(request, env) {
-  const header = request.headers.get("Authorization") ?? "";
-  const token = header.startsWith("Bearer ") ? header.slice("Bearer ".length) : "";
-  if (!env.UPLOAD_TOKEN || !token) {
+async function login(request, env, cors) {
+  if (!env.LOGIN_PASSWORD || !env.SESSION_SECRET) {
+    return json({ error: "login is not configured" }, 503, cors);
+  }
+  // Slows password guessing; the free plan allows the rate limiting binding.
+  const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  if (env.LOGIN_LIMITER && !(await env.LOGIN_LIMITER.limit({ key: ip })).success) {
+    return json({ error: "too many attempts" }, 429, cors);
+  }
+  let password;
+  try {
+    ({ password } = await request.json());
+  } catch {
+    return json({ error: "body must be a JSON object" }, 400, cors);
+  }
+  if (typeof password !== "string" || !(await secretEquals(password, env.LOGIN_PASSWORD))) {
+    return json({ error: "wrong password" }, 401, cors);
+  }
+  const expiresAt = Math.floor(Date.now() / 1000) + SESSION_SECONDS;
+  const token = `${expiresAt}.${base64url(await sessionSignature(expiresAt, env))}`;
+  return json({ token, expires_at: expiresAt }, 200, cors);
+}
+
+async function validSession(token, env) {
+  if (!env.LOGIN_PASSWORD || !env.SESSION_SECRET) {
     return false;
   }
+  const match = /^(\d{1,12})\.([A-Za-z0-9_-]{43})$/.exec(token);
+  if (!match || Number(match[1]) <= Date.now() / 1000) {
+    return false;
+  }
+  const expected = await sessionSignature(Number(match[1]), env);
+  return crypto.subtle.timingSafeEqual(fromBase64url(match[2]), expected);
+}
+
+async function sessionSignature(expiresAt, env) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(env.SESSION_SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const message = new TextEncoder().encode(`${expiresAt}\n${env.LOGIN_PASSWORD}`);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", key, message));
+}
+
+function base64url(bytes) {
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function fromBase64url(text) {
+  const binary = atob(text.replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+}
+
+function bearer(request) {
+  const header = request.headers.get("Authorization") ?? "";
+  return header.startsWith("Bearer ") ? header.slice("Bearer ".length) : "";
+}
+
+async function authorized(request, env) {
+  const token = bearer(request);
+  return Boolean(env.UPLOAD_TOKEN && token) && (await secretEquals(token, env.UPLOAD_TOKEN));
+}
+
+async function secretEquals(given, expected) {
   // Hash first so timingSafeEqual always compares equal-length buffers.
-  const [given, expected] = await Promise.all([sha256(token), sha256(env.UPLOAD_TOKEN)]);
-  return crypto.subtle.timingSafeEqual(given, expected);
+  const [a, b] = await Promise.all([sha256(given), sha256(expected)]);
+  return crypto.subtle.timingSafeEqual(a, b);
 }
 
 function sha256(value) {
@@ -114,7 +190,8 @@ function corsHeaders(request, env) {
   return {
     Vary: "Origin",
     "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type",
     "Access-Control-Max-Age": "86400",
   };
 }

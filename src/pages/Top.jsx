@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import GhostNav from '../components/layout/GhostNav';
 import HostCard from '../components/top/HostCard';
+import LoginCard from '../components/top/LoginCard';
 import UsageChart from '../components/top/UsageChart';
 import UserRanking from '../components/top/UserRanking';
 import {
@@ -23,6 +25,7 @@ import {
   formatPower,
   summarize,
 } from '../components/top/format';
+import { useSession } from '../components/top/useSession';
 import { useNow, useStatusFile } from '../components/top/useStatusFile';
 import { gpuStatusUrl } from '../data/servers';
 import { myCopyrightBody, myUpdateInfo } from '../data/profile';
@@ -34,7 +37,7 @@ function Freshness({ overview, now }) {
   if (!overview.data) {
     const failed = overview.isError;
     return (
-      <div className="mt-6 flex items-center gap-2 font-mono text-xs text-data-grey">
+      <div className="flex items-center gap-2 font-mono text-xs text-data-grey">
         <LiveDot color={failed ? HOST_STATUS.error.color : HOST_STATUS.unseen.color} />
         {failed ? 'Live data unavailable' : 'Connecting…'}
       </div>
@@ -48,7 +51,7 @@ function Freshness({ overview, now }) {
         ? { label: 'Delayed', color: HOST_STATUS.stale.color }
         : { label: 'Offline', color: HOST_STATUS.error.color };
   return (
-    <div className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-data-grey">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-data-grey">
       <LiveDot color={state.color} pulse={state.label === 'Live'} />
       <span className="text-inkwell">{state.label}</span>
       <span>· updated {formatAgo(age)}</span>
@@ -123,7 +126,8 @@ function PeriodTiles({ period, range }) {
 export default function Top() {
   const [params, setParams] = useSearchParams();
   const now = useNow();
-  const overview = useStatusFile('overview', LIVE_REFRESH_MS);
+  const { token, signIn, signOut } = useSession();
+  const overview = useStatusFile('overview', LIVE_REFRESH_MS, token);
   const hosts = (overview.data?.hosts ?? []).map((item) => ({ ...item, status: currentStatus(item, now) }));
 
   // Trust ?host= before the overview arrives so its files load in parallel.
@@ -133,11 +137,18 @@ export default function Top() {
     : FILE_KEY.test(requestedHost) ? requestedHost : 'all';
   const range = RANGES.find((item) => item.value === params.get('range')) ?? DEFAULT_RANGE;
 
-  const stats = useStatusFile(`stats-${host}`, HISTORY_REFRESH_MS);
+  const stats = useStatusFile(`stats-${host}`, HISTORY_REFRESH_MS, token);
   const history = useStatusFile(
     `history-${host}-${range.value}`,
     range.value === '1h' ? LIVE_REFRESH_MS : HISTORY_REFRESH_MS,
+    token,
   );
+
+  // An expired session, or one from before a password change, is rejected.
+  const rejected = [overview, stats, history].some((query) => query.error?.status === 401);
+  useEffect(() => {
+    if (rejected) signOut();
+  }, [rejected, signOut]);
 
   const setParam = (key, value, fallback) =>
     setParams(
@@ -181,13 +192,26 @@ export default function Top() {
             <p className="text-data-grey mt-4 max-w-2xl text-base leading-relaxed">
               Live usage of the Tractable Bakery Lab&apos;s servers.
             </p>
-            {gpuStatusUrl && <Freshness overview={overview} now={now} />}
+            {gpuStatusUrl && token && (
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                <Freshness overview={overview} now={now} />
+                <button
+                  type="button"
+                  onClick={signOut}
+                  className="font-mono text-xs text-data-grey transition-colors hover:text-inkwell"
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
           </motion.div>
 
           {!gpuStatusUrl ? (
             <Notice title="Server status is not available yet">
               This page will show the lab&apos;s GPU servers once their status feed is connected.
             </Notice>
+          ) : !token ? (
+            <LoginCard onSignIn={signIn} />
           ) : !overview.data ? (
             overview.isError ? (
               <Notice title="Server status is temporarily unavailable">
