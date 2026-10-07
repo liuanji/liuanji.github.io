@@ -77,75 +77,48 @@ export default function UsageChart({ history, range }) {
       {points.length < 2 ? (
         <p className="py-16 text-center text-sm text-data-grey">Not enough data for this period yet.</p>
       ) : (
-        <>
-          <div className="h-[300px]" role="img" aria-label="Line chart of GPUs in use, compute load and memory over time">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={points} margin={{ top: 8, right: 28, bottom: 0, left: 0 }}>
-                <CartesianGrid vertical={false} stroke="#E2E8F0" />
-                <XAxis
-                  dataKey="timestamp"
-                  type="number"
-                  domain={[history.start, history.end]}
-                  ticks={ticks}
-                  tickFormatter={(value) => formatAxisTime(value, range)}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={TICK}
-                  tickMargin={10}
+        <div className="h-[300px]" role="img" aria-label="Line chart of GPUs in use, compute load and memory over time">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={points} margin={{ top: 8, right: 28, bottom: 0, left: 0 }}>
+              <CartesianGrid vertical={false} stroke="#E2E8F0" />
+              <XAxis
+                dataKey="timestamp"
+                type="number"
+                domain={[history.start, history.end]}
+                ticks={ticks}
+                tickFormatter={(value) => formatAxisTime(value, range)}
+                axisLine={false}
+                tickLine={false}
+                tick={TICK}
+                tickMargin={10}
+              />
+              <YAxis
+                domain={[0, 100]}
+                ticks={Y_TICKS}
+                tickFormatter={(value) => `${value}%`}
+                axisLine={false}
+                tickLine={false}
+                tick={TICK}
+                width={44}
+              />
+              <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#94A3B8', strokeWidth: 1 }} isAnimationActive={false} />
+              {SERIES_KEYS.map((key) => (
+                <Line
+                  key={key}
+                  dataKey={key}
+                  name={SERIES[key].label}
+                  stroke={SERIES[key].color}
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 2, stroke: '#FFFFFF' }}
+                  isAnimationActive={false}
                 />
-                <YAxis
-                  domain={[0, 100]}
-                  ticks={Y_TICKS}
-                  tickFormatter={(value) => `${value}%`}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={TICK}
-                  width={44}
-                />
-                <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#94A3B8', strokeWidth: 1 }} isAnimationActive={false} />
-                {SERIES_KEYS.map((key) => (
-                  <Line
-                    key={key}
-                    dataKey={key}
-                    name={SERIES[key].label}
-                    stroke={SERIES[key].color}
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    dot={false}
-                    activeDot={{ r: 4, strokeWidth: 2, stroke: '#FFFFFF' }}
-                    isAnimationActive={false}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <details className="mt-4 border-t border-border-light pt-3">
-            <summary className="cursor-pointer font-mono text-xs text-data-grey hover:text-inkwell">Data table</summary>
-            <div className="mt-3 max-h-64 overflow-y-auto">
-              <table className="w-full text-left font-mono text-xs tabular-nums">
-                <thead className="sticky top-0 bg-white text-data-grey">
-                  <tr>
-                    <th scope="col" className="py-1 font-normal">Time</th>
-                    {LEGEND_KEYS.map((key) => (
-                      <th key={key} scope="col" className="py-1 text-right font-normal">{SERIES[key].label}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="text-inkwell">
-                  {points.filter((point) => point.compute != null).reverse().map((point) => (
-                    <tr key={point.timestamp} className="border-t border-border-light/60">
-                      <td className="py-1">{formatFullTime(point.timestamp)}</td>
-                      {LEGEND_KEYS.map((key) => (
-                        <td key={key} className="py-1 text-right">{Math.round(point[key])}%</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </details>
-        </>
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       )}
     </div>
   );
