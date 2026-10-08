@@ -211,7 +211,7 @@ function SystemMeters({ system, host, interactive }) {
   );
 }
 
-function CompactHost({ host, now, interactive }) {
+function CompactHost({ host, now, interactive, onOpen }) {
   const busy = host.gpus.filter((gpu) => gpu.busy).length;
   const compute = host.gpus.length
     ? host.gpus.reduce((total, gpu) => total + gpu.utilization, 0) / host.gpus.length
@@ -222,7 +222,18 @@ function CompactHost({ host, now, interactive }) {
       {/* One line on wider screens; on phones the status moves up beside the
           name, and the summary and CPU/RAM take a line each. */}
       <header className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-2 px-1">
-        <h3 className="order-1 font-tight font-semibold text-lg text-inkwell leading-tight">{host.name}</h3>
+        {/* The name opens the server's own panel; on hover a soft underline draws
+            itself in from the left (a growing background line). */}
+        <h3 className="order-1 font-tight font-semibold text-lg text-inkwell leading-tight">
+          <button
+            type="button"
+            onClick={() => onOpen(host.name)}
+            aria-label={`Open ${host.name}'s panel`}
+            className="rounded-sm bg-[linear-gradient(#CBD5E1,#CBD5E1)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat pb-0.5 transition-[background-size] duration-300 ease-out hover:bg-[length:100%_2px] focus-visible:bg-[length:100%_2px] focus-visible:outline-none"
+          >
+            {host.name}
+          </button>
+        </h3>
         {host.gpus.length > 0 && (
           <span className="order-3 w-full font-mono text-xs text-data-grey sm:order-2 sm:w-auto">
             {busy}/{host.gpus.length} in use · {Math.round(compute)}% compute
@@ -281,14 +292,15 @@ function LegendItem({ children }) {
   return <span className="inline-flex items-center gap-1.5">{children}</span>;
 }
 
-export default function CompactHosts({ hosts, now }) {
+// onOpen(name) switches the page to that server's own panel.
+export default function CompactHosts({ hosts, now, onOpen }) {
   // The details box needs room beside the tiles, so phones keep plain tiles.
   const interactive = !useIsMobile();
   return (
     <div>
       <div className="space-y-4">
         {hosts.map((host) => (
-          <CompactHost key={host.name} host={host} now={now} interactive={interactive} />
+          <CompactHost key={host.name} host={host} now={now} interactive={interactive} onOpen={onOpen} />
         ))}
       </div>
       <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 font-mono text-[11px] text-data-grey">

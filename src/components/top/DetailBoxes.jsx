@@ -153,8 +153,8 @@ export function GpuDetails({ gpu, host }) {
   );
 }
 
-// Resting the mouse on a GPU this long opens its details too.
-const HOVER_OPEN_MS = 3000;
+// Resting the mouse on a tile, GPU or reading this long opens its details too.
+const HOVER_OPEN_MS = 2000;
 // How long a hover-opened box waits for the mouse to reach it before closing.
 const HOVER_CLOSE_MS = 200;
 

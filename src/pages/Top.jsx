@@ -251,7 +251,7 @@ export default function Top() {
               transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
             >
               {hosts.length > 1 && (
-                <div className="mb-12">
+                <div id="top-servers" className="mb-12 scroll-mt-28">
                   <SegmentedControl
                     label="Server"
                     options={hostOptions}
@@ -274,7 +274,17 @@ export default function Top() {
                 </SectionLabel>
                 <LiveTiles hosts={selectedHosts} allHosts={host === 'all'} now={now} />
                 {host === 'all' && compact ? (
-                  <CompactHosts hosts={selectedHosts} now={now} />
+                  <CompactHosts
+                    hosts={selectedHosts}
+                    now={now}
+                    onOpen={(name) => {
+                      setParam('host', name, 'all');
+                      // Bring the server selector, and the panel below it, into view.
+                      requestAnimationFrame(() =>
+                        document.getElementById('top-servers')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+                      );
+                    }}
+                  />
                 ) : (
                   <div className="space-y-6">
                     {selectedHosts.map((item) => (
