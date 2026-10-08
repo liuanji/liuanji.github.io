@@ -891,3 +891,36 @@ export function bakerLine(key, user, { host = '', peak = '' } = {}) {
   const lines = BAKER_TITLES[key].lines;
   return lines[hash(`baker|${key}|${user}`) % lines.length].replaceAll('{host}', host).replaceAll('{peak}', peak);
 }
+
+// Short status lines for a GPU someone is using, in place of "In use": one set
+// while it computes hard, one while it holds memory but barely computes.
+const BUSY_GPU = {
+  hard: [
+    'In the oven',
+    'Baking away',
+    'Kneading tensors',
+    'Whisking gradients',
+    'Oven at full heat',
+    'Rising nicely',
+    'Crunching crumbs',
+    'Busy as a bakery',
+    'Folding in layers',
+    'Proofing a model',
+  ],
+  gentle: [
+    'Gently proofing',
+    'Dough resting',
+    'Slow-rising',
+    'On a low simmer',
+    'Warming the oven',
+    'Letting it rise',
+    'Cooling on the rack',
+    'Waiting on the dough',
+  ],
+};
+
+// utilization is the GPU's compute load in percent.
+export function busyGpuPhrase(host, index, utilization) {
+  const pool = BUSY_GPU[utilization >= 30 ? 'hard' : 'gentle'];
+  return pool[hash(`busy|${host}|${index}`) % pool.length];
+}

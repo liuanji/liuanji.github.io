@@ -4,7 +4,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { StatTile } from './controls';
 import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, SERIES, TEMPERATURE_ICON_RANGE } from './config';
 import { formatCpuCount, formatCpuModel, formatMemory, formatMemoryOf, gpuModels, userColor } from './format';
-import { idleGpuPhrase, pressurePhrase, reservedIdlePhrase } from './easterEggs';
+import { busyGpuPhrase, idleGpuPhrase, pressurePhrase, reservedIdlePhrase } from './easterEggs';
 import { HeldIdleNote, formatDuration } from './Insights';
 import { ReservationMark, clashingUsers, formatLeft } from './Reservations';
 
@@ -107,7 +107,7 @@ export function GpuDetails({ gpu, host, reservation = null, me = null, now = 0 }
             className={`h-1.5 w-1.5 rounded-full ${gpu.busy ? 'bg-synapse' : 'ring-1 ring-inset ring-data-grey/50'}`}
             aria-hidden="true"
           />
-          {gpu.busy ? 'In use' : 'Idle'}
+          {gpu.busy ? busyGpuPhrase(host, gpu.index, gpu.utilization) : 'Idle'}
         </span>
         {reservation && (
           <span
