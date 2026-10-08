@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
@@ -143,8 +143,12 @@ export default function Top() {
   const range = RANGES.find((item) => item.value === (params.get('range') ?? savedRange)) ?? DEFAULT_RANGE;
 
   const stats = useStatusFile(`stats-${host}`, HISTORY_REFRESH_MS, token);
+  // With all servers selected, the trend can still show just one of them.
+  const [trendHost, setTrendHost] = useState('all');
+  const trendServer =
+    host === 'all' && (trendHost === 'all' || hosts.some((item) => item.name === trendHost)) ? trendHost : host;
   const history = useStatusFile(
-    `history-${host}-${range.value}`,
+    `history-${trendServer}-${range.value}`,
     range.value === '1h' ? LIVE_REFRESH_MS : HISTORY_REFRESH_MS,
     token,
   );
@@ -355,7 +359,17 @@ export default function Top() {
                   className={`mb-6 transition-opacity duration-300 ${history.isPlaceholderData ? 'opacity-50' : ''}`}
                 >
                   {history.data ? (
-                    <UsageChart history={history.data} range={range.value} />
+                    <UsageChart
+                      history={history.data}
+                      range={range.value}
+                      servers={
+                        host === 'all' && hosts.length > 1
+                          ? [{ value: 'all', label: 'All servers' }, ...hosts.map((item) => ({ value: item.name, label: item.name }))]
+                          : null
+                      }
+                      server={trendServer}
+                      onServer={setTrendHost}
+                    />
                   ) : (
                     <Notice title={history.isError ? 'Trend unavailable' : 'Loading trend…'}>
                       {history.isError ? 'This period has not been published yet.' : 'Fetching usage history.'}

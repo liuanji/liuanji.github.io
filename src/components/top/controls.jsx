@@ -126,6 +126,36 @@ export function ServerLink({ name, onOpen, className = '' }) {
   );
 }
 
+// A quiet switch inside a card, such as which server a chart shows: plain
+// words, the chosen one in ink on a soft underline; the others grey, drawing
+// their underline in on hover like a server's name does.
+export function TextTabs({ label, options, value, onChange }) {
+  return (
+    <div role="radiogroup" aria-label={label} className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(option.value)}
+            className={`whitespace-nowrap rounded-sm bg-no-repeat pb-0.5 text-sm transition-[color,background-size] duration-300 ease-out [background-position:0_100%] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20 ${
+              active
+                ? 'font-medium text-inkwell [background-size:100%_2px]'
+                : 'text-data-grey [background-size:0%_2px] hover:text-inkwell hover:[background-size:100%_2px]'
+            }`}
+            style={{ backgroundImage: `linear-gradient(${active ? '#334155' : '#CBD5E1'}, ${active ? '#334155' : '#CBD5E1'})` }}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // A notice at the top of the page: a quiet white card with a border and an
 // icon in a soft circle, both in color (a hex hue), and the message beside them.
 // tinted washes the card faintly in the colour too, for the most urgent notices.
