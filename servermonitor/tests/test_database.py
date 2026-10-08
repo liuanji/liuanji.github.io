@@ -192,6 +192,35 @@ class DatabaseTest(unittest.TestCase):
         self.database.save_disks(DiskResult("brezel", 1_700_003_600, False, error="no disks", accounts=("carol",)))
         self.assertEqual(self.database.accounts(("brezel",)), {"brezel": ["carol"]})
 
+    def test_held_idle_counts_the_unbroken_run_of_idle_busy_minutes(self) -> None:
+        def held(timestamp: int, utilization: float) -> CollectionResult:
+            return CollectionResult(
+                host="brezel",
+                sampled_at=timestamp,
+                duration_ms=100,
+                success=True,
+                gpus=(GPUStat(0, "GPU-a", "Test GPU", utilization, 40000, 97000, 30, 60),),
+                processes=(ProcessStat("GPU-a", 10, "alice", "python", 40000, elapsed_seconds=7200),),
+            )
+
+        start = 1_700_000_040
+        # Working for 3 minutes, then holding memory idle for 5.
+        for minute in range(8):
+            self.database.save(held(start + minute * 60, 90 if minute < 3 else 0))
+        overview = self.database.overview(("brezel",), stale_after_seconds=180, now=start + 8 * 60)
+        gpu = overview["hosts"][0]["gpus"][0]
+        self.assertEqual(gpu["held_idle_seconds"], 300)
+        self.assertEqual(gpu["users"], [{"username": "alice", "used_memory_mb": 40000, "jobs": 1, "running_seconds": 7200}])
+
+    def test_gpu_problems_name_only_real_trouble(self) -> None:
+        from servermonitor.database import gpu_problems
+
+        self.assertEqual(gpu_problems({"clock_events": 0x4 | 0x1, "ecc_uncorrected": 0}), [])
+        self.assertEqual(
+            gpu_problems({"clock_events": 0x40, "ecc_uncorrected": 3, "rows_remap_pending": True}),
+            ["hardware thermal slowdown", "3 uncorrected memory errors", "memory row remapping pending (needs a reset)"],
+        )
+
     def test_observed_time_survives_collection_interval_change(self) -> None:
         start = 1_700_000_000
         for offset in (0, 60, 120, 180):

@@ -30,6 +30,7 @@ import {
   formatPercent,
   formatPower,
 } from '../components/top/format';
+import { IdleBanner, myHeldIdle } from '../components/top/Insights';
 import { ClashBanner, myClashes } from '../components/top/Reservations';
 import { useReservations } from '../components/top/useReservations';
 import { useSession } from '../components/top/useSession';
@@ -238,6 +239,7 @@ export default function Top() {
   const clashes = reservations ? myClashes(hosts, reservations, user, now) : [];
   // Like clashes, checked on every server's disks.
   const cleanups = cleanupReminders(disks.data?.hosts ?? [], user);
+  const heldIdle = myHeldIdle(hosts, user);
 
   return (
     <div className="bg-paper min-h-screen page-enter">
@@ -289,9 +291,10 @@ export default function Top() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
             >
-              {(clashes.length > 0 || cleanups.length > 0) && (
+              {(clashes.length > 0 || cleanups.length > 0 || heldIdle.length > 0) && (
                 <div className="mb-10 space-y-3">
                   <ClashBanner clashes={clashes} onOpen={hosts.length > 1 ? showHost : undefined} />
+                  <IdleBanner items={heldIdle} onOpen={hosts.length > 1 ? showHost : undefined} />
                   <CleanupBanner reminders={cleanups} onOpen={showStorage} />
                 </div>
               )}
@@ -323,7 +326,7 @@ export default function Top() {
                 ) : (
                   <div className="space-y-6">
                     {selectedHosts.map((item) => (
-                      <HostCard key={item.name} host={item} now={now} reserving={reserving} />
+                      <HostCard key={item.name} host={item} now={now} reserving={reserving} token={token} />
                     ))}
                   </div>
                 )}

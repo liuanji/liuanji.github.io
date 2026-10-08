@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import { HardDrive } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LEVEL_SERIES, READING_STYLES, SERIES, SMALL_USER_BYTES } from './config';
-import { Banner, BannerLink } from './controls';
+import { Banner, BannerLink, ScrollList } from './controls';
 import { BoxFooter, DetailsPopover, GLYPH, Metric, QUIET } from './DetailBoxes';
 import { pressurePhrase } from './easterEggs';
 import { cleanupAllowance, diskLevel, diskShare, formatAgo, formatBytes } from './format';
@@ -99,7 +99,6 @@ function DriveGlyph({ segments, share, color, width = 112 }) {
 // others. Once the disk is full enough for cleanup reminders, it states the
 // allowance and marks who is over it.
 function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAgo }) {
-  const [scrolledToEnd, setScrolledToEnd] = useState(false);
   const usable = disk.used_bytes + disk.available_bytes;
   const share = diskShare(disk);
   const users = disk.users ?? [];
@@ -137,17 +136,7 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
               <span>By user</span>
               {countedAgo && <span className="text-data-grey/70">counted {countedAgo}</span>}
             </div>
-            {/* About five rows show; the rest scroll, keeping the box short, and the
-                last visible row fades to say there is more until the end is reached. */}
-            <ul
-              onScroll={(event) => {
-                const list = event.currentTarget;
-                setScrolledToEnd(list.scrollTop + list.clientHeight >= list.scrollHeight - 2);
-              }}
-              className={`-mr-2 max-h-[6.6rem] space-y-1 overflow-y-auto overscroll-contain pr-2 pb-1 [scrollbar-width:thin] ${
-                listed.length + (small.length ? 1 : 0) > 5 && !scrolledToEnd ? '[mask-image:linear-gradient(to_bottom,black_75%,transparent)]' : ''
-              }`}
-            >
+            <ScrollList count={listed.length + (small.length ? 1 : 0)} rowRem={1.25} className="space-y-1">
               {listed.map((user) => {
                 const over = allowance != null && user.bytes > allowance;
                 return (
@@ -181,7 +170,7 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
                   </span>
                 </li>
               )}
-            </ul>
+            </ScrollList>
             {allowance != null && (
               <p className="mt-2 font-mono text-[11px] text-data-grey">
                 Allowance at {Math.round(share * 100)}% full:{' '}

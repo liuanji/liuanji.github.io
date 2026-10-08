@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { HOST_STATUS } from './config';
 
 // aside sits at the right end of the label's row, e.g. a view switch.
@@ -146,13 +147,38 @@ export function TextTabs({ label, options, value, onChange }) {
                 ? 'font-medium text-inkwell [background-size:100%_2px]'
                 : 'text-data-grey [background-size:0%_2px] hover:text-inkwell hover:[background-size:100%_2px]'
             }`}
-            style={{ backgroundImage: `linear-gradient(${active ? '#334155' : '#CBD5E1'}, ${active ? '#334155' : '#CBD5E1'})` }}
+            style={{
+              backgroundImage: `linear-gradient(${active ? '#334155' : '#CBD5E1'}, ${active ? '#334155' : '#CBD5E1'})`,
+            }}
           >
             {option.label}
           </button>
         );
       })}
     </div>
+  );
+}
+
+// A list of people (or anything) that shows about `visible` rows and scrolls
+// the rest, so a busy server never makes a card or box tall. rowRem is one row
+// with its spacing; a little of the next row peeks out, and the last visible
+// row fades until the end is reached. Scrolling it never scrolls the page.
+export function ScrollList({ count, visible = 5, rowRem, className = '', children }) {
+  const [atEnd, setAtEnd] = useState(false);
+  const scrolls = count > visible;
+  return (
+    <ul
+      onScroll={(event) => {
+        const list = event.currentTarget;
+        setAtEnd(list.scrollTop + list.clientHeight >= list.scrollHeight - 2);
+      }}
+      className={`-mr-2 overflow-y-auto overscroll-contain pb-1 pr-2 [scrollbar-width:thin] ${
+        scrolls && !atEnd ? '[mask-image:linear-gradient(to_bottom,black_75%,transparent)]' : ''
+      } ${className}`}
+      style={scrolls ? { maxHeight: `${(visible + 0.3) * rowRem}rem` } : undefined}
+    >
+      {children}
+    </ul>
   );
 }
 
@@ -164,7 +190,10 @@ export function Banner({ icon: Icon, color, iconColor = color, role = 'status', 
     <div
       role={role}
       className="flex items-start gap-3.5 rounded-2xl border bg-white px-4 py-3.5"
-      style={{ borderColor: `${color}73`, backgroundImage: tinted ? `linear-gradient(${color}0D, ${color}0D)` : undefined }}
+      style={{
+        borderColor: `${color}73`,
+        backgroundImage: tinted ? `linear-gradient(${color}0D, ${color}0D)` : undefined,
+      }}
     >
       <span
         className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"

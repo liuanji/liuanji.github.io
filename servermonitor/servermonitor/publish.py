@@ -47,12 +47,29 @@ def public_history(points: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ]
 
 
-def public_overview(overview: dict[str, Any]) -> dict[str, Any]:
+def public_overview(
+    overview: dict[str, Any], accounts: dict[str, list[str]] | None = None
+) -> dict[str, Any]:
+    """The overview without process details; each host's per-user CPU and memory
+    keeps only its login accounts (none while they are unknown)."""
+    accounts = accounts or {}
+
+    def system(host: dict[str, Any]) -> dict[str, Any] | None:
+        if not host.get("system"):
+            return host.get("system")
+        known = set(accounts.get(host["name"], []))
+        people = host["system"].get("users")
+        return {
+            **host["system"],
+            "users": None if people is None else [user for user in people if user["user"] in known],
+        }
+
     return {
         **overview,
         "hosts": [
             {
                 **host,
+                "system": system(host),
                 "gpus": [
                     {key: value for key, value in gpu.items() if key not in PRIVATE_GPU_FIELDS}
                     for gpu in host["gpus"]
@@ -60,6 +77,28 @@ def public_overview(overview: dict[str, Any]) -> dict[str, Any]:
             }
             for host in overview["hosts"]
         ],
+    }
+
+
+# Each GPU's last day in quarter hours, and the typical week over four weeks.
+TIMELINE_BUCKET_SECONDS = 900
+WEEK_PATTERN_DAYS = 28
+
+
+def public_gpus(database: Database, host: str, now: int, utc_offset: int) -> dict[str, Any]:
+    end = now - now % TIMELINE_BUCKET_SECONDS + TIMELINE_BUCKET_SECONDS
+    start = end - 86400
+    return {
+        "generated_at": now,
+        "host": host,
+        "start": start,
+        "end": end,
+        "bucket_seconds": TIMELINE_BUCKET_SECONDS,
+        "gpus": database.gpu_timeline(host, start, end, TIMELINE_BUCKET_SECONDS),
+        "system": database.system_timeline(host, start, end, TIMELINE_BUCKET_SECONDS),
+        "utc_offset": utc_offset,
+        "week_days": WEEK_PATTERN_DAYS,
+        "week": database.week_pattern(host, now, WEEK_PATTERN_DAYS, utc_offset),
     }
 
 
@@ -168,11 +207,15 @@ def build_files(
         utc_offset = time.localtime(now).tm_gmtoff
     files: dict[str, Any] = {
         "overview": public_overview(
-            database.overview(settings.hosts, settings.stale_after_seconds, now=now)
+            database.overview(settings.hosts, settings.stale_after_seconds, now=now),
+            database.accounts(settings.hosts),
         )
     }
     for name, _ in LIVE_PERIODS if live_only else PERIODS:
         files[f"uptime-{name}"] = public_uptime(settings, database, name, now, utc_offset)
+    if not live_only:
+        for host in settings.hosts:
+            files[f"gpus-{host}"] = public_gpus(database, host, now, utc_offset)
     for host in (None, *settings.hosts):
         key = host or "all"
         if not live_only:

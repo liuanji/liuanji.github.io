@@ -13,6 +13,17 @@ from .collector import UNKNOWN_USER, CollectionResult, DiskResult, GPUStat, Proc
 
 
 BUSY_MEMORY_THRESHOLD_MB = 100
+# A GPU is "held but idle" while it stays busy (a process or memory held) with
+# average compute under this percent, minute after minute.
+IDLE_UTILIZATION_PERCENT = 5
+# nvidia-smi clock-event bits worth flagging; the others (idle, application
+# clocks, the software power cap under load, sync boost) are routine.
+CLOCK_EVENT_PROBLEMS = (
+    (0x8, "hardware slowdown"),
+    (0x20, "thermal slowdown"),
+    (0x40, "hardware thermal slowdown"),
+    (0x80, "power brake slowdown"),
+)
 SCHEMA_VERSION = "2"
 
 # Usage is stored only as sums per minute and per hour; raw samples and process
@@ -29,10 +40,11 @@ class Tier:
     gpu_table: str
     user_table: str
     check_table: str
+    system_table: str
 
 
-MINUTE = Tier(60, "gpu_minute", "user_minute", "check_minute")
-HOUR = Tier(3600, "gpu_hour", "user_hour", "check_hour")
+MINUTE = Tier(60, "gpu_minute", "user_minute", "check_minute", "system_minute")
+HOUR = Tier(3600, "gpu_hour", "user_hour", "check_hour", "system_hour")
 TIERS = (MINUTE, HOUR)
 
 # Version 1 kept every sample; initialize() converts it to version 2.
@@ -131,6 +143,27 @@ CREATE TABLE IF NOT EXISTS check_hour (
     PRIMARY KEY (bucket, host)
 ) WITHOUT ROWID;
 
+-- Each host's CPU load and RAM in use (percent) summed over the bucket.
+CREATE TABLE IF NOT EXISTS system_minute (
+    bucket INTEGER NOT NULL,
+    host TEXT NOT NULL,
+    cpu_sum REAL NOT NULL,
+    cpu_count INTEGER NOT NULL,
+    memory_percent_sum REAL NOT NULL,
+    memory_count INTEGER NOT NULL,
+    PRIMARY KEY (bucket, host)
+) WITHOUT ROWID;
+
+CREATE TABLE IF NOT EXISTS system_hour (
+    bucket INTEGER NOT NULL,
+    host TEXT NOT NULL,
+    cpu_sum REAL NOT NULL,
+    cpu_count INTEGER NOT NULL,
+    memory_percent_sum REAL NOT NULL,
+    memory_count INTEGER NOT NULL,
+    PRIMARY KEY (bucket, host)
+) WITHOUT ROWID;
+
 -- The latest successful disk check per host; each check replaces the last.
 CREATE TABLE IF NOT EXISTS disk_state (
     host TEXT NOT NULL,
@@ -176,6 +209,16 @@ ON CONFLICT (bucket, host, gpu_index) DO UPDATE SET
     temperature_count = temperature_count + excluded.temperature_count,
     power_sum = power_sum + excluded.power_sum,
     power_count = power_count + excluded.power_count
+"""
+
+SYSTEM_UPSERT = """
+INSERT INTO {table} (bucket, host, cpu_sum, cpu_count, memory_percent_sum, memory_count)
+VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT (bucket, host) DO UPDATE SET
+    cpu_sum = cpu_sum + excluded.cpu_sum,
+    cpu_count = cpu_count + excluded.cpu_count,
+    memory_percent_sum = memory_percent_sum + excluded.memory_percent_sum,
+    memory_count = memory_count + excluded.memory_count
 """
 
 CHECK_UPSERT = """
@@ -228,6 +271,18 @@ def _segments(start: int, end: int, size: int) -> Iterable[tuple[int, float]]:
         segment_end = min(end, bucket + size)
         yield bucket, float(segment_end - cursor)
         cursor = segment_end
+
+
+def gpu_problems(gpu: dict[str, Any]) -> list[str]:
+    """Health problems worth showing for a GPU from its snapshot, if any."""
+    problems = [label for bit, label in CLOCK_EVENT_PROBLEMS if (gpu.get("clock_events") or 0) & bit]
+    if gpu.get("ecc_uncorrected"):
+        problems.append(f"{gpu['ecc_uncorrected']} uncorrected memory errors")
+    if gpu.get("rows_remap_failed"):
+        problems.append("memory row remapping failed")
+    elif gpu.get("rows_remap_pending"):
+        problems.append("memory row remapping pending (needs a reset)")
+    return problems
 
 
 def _is_busy(gpu: GPUStat, process_uuids: set[str]) -> bool:
@@ -288,12 +343,40 @@ class Database:
         if not result.success:
             return
         self._add_gpu_sums(connection, result)
+        self._add_system_sums(connection, result)
         if previous is not None:
             duration = min(
                 max(result.sampled_at - int(previous), 0),
                 self.interval_seconds * 2,
             )
             self._add_user_sums(connection, result, duration)
+
+    @staticmethod
+    def _add_system_sums(connection: sqlite3.Connection, result: CollectionResult) -> None:
+        """The host's CPU load and share of RAM in use, into every tier's bucket."""
+        system = result.system
+        if system is None:
+            return
+        cpu = system.cpu_percent
+        memory = (
+            system.memory_used_mb / system.memory_total_mb * 100
+            if system.memory_used_mb is not None and system.memory_total_mb
+            else None
+        )
+        if cpu is None and memory is None:
+            return
+        for tier in TIERS:
+            connection.execute(
+                SYSTEM_UPSERT.format(table=tier.system_table),
+                (
+                    result.sampled_at - result.sampled_at % tier.seconds,
+                    result.host,
+                    cpu or 0.0,
+                    int(cpu is not None),
+                    memory or 0.0,
+                    int(memory is not None),
+                ),
+            )
 
     @staticmethod
     def _store_state(connection: sqlite3.Connection, result: CollectionResult) -> None:
@@ -643,6 +726,128 @@ class Database:
                 )
         return summaries
 
+    def gpu_timeline(self, host: str, start: int, end: int, bucket_seconds: int) -> list[dict[str, Any]]:
+        """Each GPU of the host from start to end in bucket_seconds steps, from
+        the minute sums: average compute and memory (percent), the share of
+        samples it was busy, and average temperature (°C) and power (W); None
+        for steps without samples."""
+        steps = (end - start) // bucket_seconds
+        with self.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT gpu_index, (bucket - ?) / ? AS step, SUM(sample_count) AS samples,
+                       SUM(busy_sample_count) AS busy, SUM(utilization_sum) AS utilization,
+                       SUM(memory_percent_sum) AS memory,
+                       SUM(temperature_sum) AS temperature, SUM(temperature_count) AS temperature_count,
+                       SUM(power_sum) AS power, SUM(power_count) AS power_count
+                FROM gpu_minute WHERE host = ? AND bucket >= ? AND bucket < ?
+                GROUP BY gpu_index, step
+                """,
+                (start, bucket_seconds, host, start, end),
+            ).fetchall()
+        gpus: dict[int, dict[str, list[float | None]]] = {}
+        for row in rows:
+            gpu = gpus.setdefault(
+                row["gpu_index"],
+                {
+                    key: [None] * steps
+                    for key in ("utilization", "memory_percent", "busy_share", "temperature_c", "power_w")
+                },
+            )
+            if 0 <= row["step"] < steps and row["samples"]:
+                step = row["step"]
+                gpu["utilization"][step] = round(row["utilization"] / row["samples"], 1)
+                gpu["memory_percent"][step] = round(row["memory"] / row["samples"], 1)
+                gpu["busy_share"][step] = round(row["busy"] / row["samples"], 2)
+                if row["temperature_count"]:
+                    gpu["temperature_c"][step] = round(row["temperature"] / row["temperature_count"], 1)
+                if row["power_count"]:
+                    gpu["power_w"][step] = round(row["power"] / row["power_count"], 1)
+        return [{"index": index, **series} for index, series in sorted(gpus.items())]
+
+    def system_timeline(self, host: str, start: int, end: int, bucket_seconds: int) -> dict[str, list[float | None]]:
+        """The host's average CPU load and RAM in use (percent) from start to
+        end in bucket_seconds steps, from the minute sums; None without samples."""
+        steps = (end - start) // bucket_seconds
+        series: dict[str, list[float | None]] = {"cpu_percent": [None] * steps, "memory_percent": [None] * steps}
+        with self.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT (bucket - ?) / ? AS step, SUM(cpu_sum) AS cpu, SUM(cpu_count) AS cpu_count,
+                       SUM(memory_percent_sum) AS memory, SUM(memory_count) AS memory_count
+                FROM system_minute WHERE host = ? AND bucket >= ? AND bucket < ?
+                GROUP BY step
+                """,
+                (start, bucket_seconds, host, start, end),
+            ).fetchall()
+        for row in rows:
+            if 0 <= row["step"] < steps:
+                if row["cpu_count"]:
+                    series["cpu_percent"][row["step"]] = round(row["cpu"] / row["cpu_count"], 1)
+                if row["memory_count"]:
+                    series["memory_percent"][row["step"]] = round(row["memory"] / row["memory_count"], 1)
+        return series
+
+    def week_pattern(self, host: str, now: int, days: int, utc_offset: int) -> list[list[float | None]]:
+        """The host's share of GPUs in use by weekday (Monday first) and hour,
+        averaged over the last days, in the servers' local time; None for an
+        hour of the week never observed."""
+        with self.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT bucket, SUM(sample_count) AS samples, SUM(busy_sample_count) AS busy
+                FROM gpu_hour WHERE host = ? AND bucket >= ? GROUP BY bucket
+                """,
+                (host, now - days * 86400),
+            ).fetchall()
+        samples = [[0] * 24 for _ in range(7)]
+        busy = [[0] * 24 for _ in range(7)]
+        for row in rows:
+            local = int(row["bucket"]) + utc_offset
+            # 1 January 1970 was a Thursday.
+            weekday, hour = (local // 86400 + 3) % 7, (local % 86400) // 3600
+            samples[weekday][hour] += row["samples"]
+            busy[weekday][hour] += row["busy"]
+        return [
+            [round(busy[day][hour] / samples[day][hour], 3) if samples[day][hour] else None for hour in range(24)]
+            for day in range(7)
+        ]
+
+    @staticmethod
+    def _held_idle_seconds(connection: sqlite3.Connection, host: str, now: int) -> dict[int, int]:
+        """How long each GPU of the host has been held but idle: the unbroken run
+        of recent minutes, up to now, in which it was busy for at least half the
+        samples with average compute under IDLE_UTILIZATION_PERCENT."""
+        rows = connection.execute(
+            """
+            SELECT gpu_index, bucket, sample_count, busy_sample_count, utilization_sum
+            FROM gpu_minute WHERE host = ? AND bucket >= ?
+            ORDER BY gpu_index, bucket DESC
+            """,
+            (host, now - 86400),
+        ).fetchall()
+        idle: dict[int, int] = {}
+        streak: dict[int, tuple[int, int]] = {}  # gpu -> (latest bucket, earliest bucket)
+        ended: set[int] = set()
+        for row in rows:
+            gpu, bucket = row["gpu_index"], int(row["bucket"])
+            if gpu in ended:
+                continue
+            held = (
+                row["sample_count"]
+                and row["busy_sample_count"] * 2 >= row["sample_count"]
+                and row["utilization_sum"] / row["sample_count"] < IDLE_UTILIZATION_PERCENT
+            )
+            latest, earliest = streak.get(gpu, (bucket, bucket + 60))
+            # The run must reach the present and have no missing minutes.
+            if not held or earliest - bucket > 60 or (gpu not in streak and now - bucket > 180):
+                ended.add(gpu)
+                continue
+            streak[gpu] = (latest, bucket)
+        for gpu, (latest, earliest) in streak.items():
+            idle[gpu] = latest + 60 - earliest
+        return idle
+
     def _observation_bounds(
         self,
         connection: sqlite3.Connection,
@@ -699,15 +904,24 @@ class Database:
                         "username": process["username"],
                         "process_name": process["process_name"],
                         "used_memory_mb": round(process["used_memory_mb"], 1),
+                        "elapsed_seconds": process.get("elapsed_seconds"),
                     }
                 )
+            idle = self._held_idle_seconds(connection, host, now)
             gpu_items: list[dict[str, Any]] = []
             for gpu in sorted(snapshot.get("gpus", []), key=lambda item: item["index"]):
                 processes = processes_by_gpu[gpu["uuid"]]
-                users: dict[str, float] = defaultdict(float)
+                users: dict[str, dict[str, Any]] = {}
                 for process in processes:
-                    if process["username"] != UNKNOWN_USER:
-                        users[process["username"]] += process["used_memory_mb"]
+                    if process["username"] == UNKNOWN_USER:
+                        continue
+                    user = users.setdefault(
+                        process["username"], {"memory": 0.0, "jobs": 0, "running": None}
+                    )
+                    user["memory"] += process["used_memory_mb"]
+                    user["jobs"] += 1
+                    if process["elapsed_seconds"] is not None:
+                        user["running"] = max(user["running"] or 0, process["elapsed_seconds"])
                 gpu_items.append(
                     {
                         "index": gpu["index"],
@@ -722,9 +936,17 @@ class Database:
                         "busy": bool(processes)
                         or gpu["memory_used_mb"] >= BUSY_MEMORY_THRESHOLD_MB,
                         "users": [
-                            {"username": name, "used_memory_mb": round(memory, 1)}
-                            for name, memory in sorted(users.items())
+                            {
+                                "username": name,
+                                "used_memory_mb": round(user["memory"], 1),
+                                "jobs": user["jobs"],
+                                # The longest-running of the user's jobs here.
+                                "running_seconds": user["running"],
+                            }
+                            for name, user in sorted(users.items())
                         ],
+                        "problems": gpu_problems(gpu),
+                        "held_idle_seconds": idle.get(gpu["index"], 0),
                         "processes": processes,
                     }
                 )
@@ -878,7 +1100,7 @@ class Database:
                 (MINUTE, now - MINUTE_RETENTION_SECONDS),
                 (HOUR, now - rollup_retention_days * 86400),
             ):
-                for table in (tier.gpu_table, tier.user_table, tier.check_table):
+                for table in (tier.gpu_table, tier.user_table, tier.check_table, tier.system_table):
                     connection.execute(f"DELETE FROM {table} WHERE bucket < ?", (before,))
 
     def _migrate_legacy(self, connection: sqlite3.Connection, legacy: set[str]) -> None:

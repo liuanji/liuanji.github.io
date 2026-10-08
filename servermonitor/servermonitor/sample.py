@@ -70,6 +70,13 @@ class Job:
     ends_at: int
     cpu_percent: float
     ram_mb: float
+    started_at: int = 0
+    # A notebook left holding its GPU: memory taken, next to no compute.
+    idle: bool = False
+
+
+# GPUs that report a thermal slowdown when they run hot, to show health problems.
+THROTTLED_GPUS = {("brezel", 5)}
 
 
 class SimulatedHost:
@@ -103,6 +110,8 @@ class SimulatedHost:
                 # Data loading and host-side work, for every GPU the job holds.
                 cpu_percent=self.random.uniform(1.5, 6) * size,
                 ram_mb=self.random.uniform(16, 64) * 1024 * size,
+                started_at=now,
+                idle=self.random.random() < 0.12,
             )
             self.next_pid += 10
             for gpu_index in free[:size]:
@@ -159,13 +168,22 @@ class SimulatedHost:
             if job is not None:
                 # Mostly near the job's typical load, with occasional input stalls.
                 utilization = (
-                    self.random.uniform(0, 25)
+                    self.random.uniform(0, 2)
+                    if job.idle
+                    else self.random.uniform(0, 25)
                     if self.random.random() < 0.06
                     else min(100, max(0, self.random.gauss(job.load, 6)))
                 )
                 memory = job.memory_mb * self.random.uniform(0.97, 1.0)
                 processes.append(
-                    ProcessStat(uuid, job.pid + index, job.username, "python", round(memory))
+                    ProcessStat(
+                        uuid,
+                        job.pid + index,
+                        job.username,
+                        "python",
+                        round(memory),
+                        elapsed_seconds=now - job.started_at if job.started_at else None,
+                    )
                 )
             gpus.append(
                 GPUStat(
@@ -178,11 +196,21 @@ class SimulatedHost:
                     temperature_c=round(30 + utilization * 0.56 + self.random.uniform(-1.5, 1.5)),
                     power_w=round(38 + utilization * 5.2 + self.random.uniform(-4, 4), 2),
                     power_limit_w=GPU_POWER_LIMIT_W,
+                    clock_events=0x20 if (self.name, index) in THROTTLED_GPUS and utilization > 70 else 0,
+                    ecc_uncorrected=0,
+                    rows_remap_pending=False,
+                    rows_remap_failed=False,
                 )
             )
         jobs = {id(job): job for job in self.jobs if job is not None}.values()
         cpu_percent = 2 + sum(job.cpu_percent for job in jobs) + self.random.gauss(0, 1.5)
         ram_used_mb = 12 * 1024 + sum(job.ram_mb for job in jobs) * self.random.uniform(0.98, 1.0)
+        # Per user, CPU as a percent of one core, as top counts it.
+        people: dict[str, dict] = {"root": {"user": "root", "cpu_percent": 30.0, "memory_mb": 6144.0}}
+        for job in jobs:
+            person = people.setdefault(job.username, {"user": job.username, "cpu_percent": 0.0, "memory_mb": 0.0})
+            person["cpu_percent"] = round(person["cpu_percent"] + job.cpu_percent * self.cpu_count, 1)
+            person["memory_mb"] = round(person["memory_mb"] + job.ram_mb, 1)
         return CollectionResult(
             host=self.name,
             sampled_at=now,
@@ -205,6 +233,7 @@ class SimulatedHost:
                 cpu_model="AMD EPYC 9555 64-Core Processor",
                 cpu_sockets=2,
                 cpu_cores=self.cpu_count,
+                users=tuple(sorted(people.values(), key=lambda person: person["memory_mb"], reverse=True)),
             ),
         )
 

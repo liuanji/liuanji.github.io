@@ -6,7 +6,7 @@ import json
 import re
 import subprocess
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 
 # The owner of a GPU process that ps could not name, usually because it exited
@@ -17,6 +17,8 @@ GPU_MARKER = "__SERVERMONITOR_GPUS__"
 APP_MARKER = "__SERVERMONITOR_APPS__"
 USER_MARKER = "__SERVERMONITOR_USERS__"
 SYSTEM_MARKER = "__SERVERMONITOR_SYSTEM__"
+HEALTH_MARKER = "__SERVERMONITOR_HEALTH__"
+PEOPLE_MARKER = "__SERVERMONITOR_PEOPLE__"
 ACCOUNT_MARKER = "__SERVERMONITOR_ACCOUNTS__"
 USAGE_MARKER = "__SERVERMONITOR_USAGE__"
 # Written every 2 hours by root's scratch-usage service (deploy/scratch-usage):
@@ -39,6 +41,23 @@ cat {USAGE_PATH} 2>/dev/null || true
 # What a username may look like; anything else in getent's output is skipped.
 ACCOUNT_PATTERN = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,31}$")
 
+# Per-user CPU and memory: ps names every process's owner in full and its
+# resident memory in KiB; top's second pass (its first has no CPU figures yet)
+# gives each process's CPU, as a percent of one core, joined by PID. Prints
+# "<user> <cpu percent> <resident KiB>" per user.
+PEOPLE_AWK = (
+    '$0 == "__TOP__" {top = 1; next} '
+    "!top {owner[$1] = $2; memory[$2] += $3; next} "
+    "/^ *PID +USER/ {block++; next} "
+    "block == 2 && ($1 in owner) {cpu[owner[$1]] += $9} "
+    'END {for (user in memory) printf "%s %.1f %.0f\\n", user, cpu[user] + 0, memory[user]}'
+)
+
+# The health section lists each GPU's clock-slowdown reasons (a bit mask),
+# uncorrected ECC errors since boot, and whether memory rows await or failed
+# remapping; on its own nvidia-smi call, so an unsupported field cannot break
+# the readings above. The people section runs top for about a second, which
+# also spaces the two CPU readings below.
 # The system section prints the aggregate "cpu" line of /proc/stat from before
 # the GPU queries and again at least a second later, so CPU load is measured
 # over that span, plus memory and swap from /proc/meminfo, the CPU count, the
@@ -56,10 +75,17 @@ printf '%s\\n' "$apps"
 printf '%s\\n' '{USER_MARKER}'
 pids="$(printf '%s\\n' "$apps" | awk -F, '{{gsub(/ /,"",$2); if ($2 ~ /^[0-9]+$/) print $2}}' | sort -u | paste -sd, -)"
 if [ -n "$pids" ]; then
-    ps -o pid= -o user= -p "$pids"
+    ps -o pid= -o user= -o etimes= -p "$pids"
+fi
+printf '%s\\n' '{HEALTH_MARKER}'
+nvidia-smi --query-gpu=index,clocks_event_reasons.active,ecc.errors.uncorrected.volatile.total,remapped_rows.pending,remapped_rows.failure --format=csv,noheader,nounits 2>/dev/null || true
+printf '%s\\n' '{PEOPLE_MARKER}'
+if command -v top >/dev/null 2>&1; then
+    {{ ps -eo pid=,user:32=,rss=; echo __TOP__; top -b -n 2 -d 1 -w 512; }} 2>/dev/null | awk '{PEOPLE_AWK}' || true
+else
+    sleep 1
 fi
 printf '%s\\n' '{SYSTEM_MARKER}'
-sleep 1
 printf '%s\\n' "$cpu_before"
 head -n 1 /proc/stat 2>/dev/null || true
 grep -E '^(MemTotal|MemAvailable|Buffers|Cached|SwapTotal|SwapFree):' /proc/meminfo 2>/dev/null || true
@@ -84,6 +110,12 @@ class GPUStat:
     power_w: float | None
     # The cap the driver enforces; None in snapshots from before it was collected.
     power_limit_w: float | None = None
+    # Health, from its own query; None when it could not be read. clock_events
+    # is nvidia-smi's bit mask of why clocks are being held down.
+    clock_events: int | None = None
+    ecc_uncorrected: int | None = None
+    rows_remap_pending: bool | None = None
+    rows_remap_failed: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -93,6 +125,8 @@ class ProcessStat:
     username: str
     process_name: str
     used_memory_mb: float
+    # How long the process has been running; None when ps could not say.
+    elapsed_seconds: int | None = None
 
 
 @dataclass(frozen=True)
@@ -110,6 +144,9 @@ class SystemStat:
     cpu_model: str | None = None
     cpu_sockets: int | None = None
     cpu_cores: int | None = None
+    # Each user's CPU (percent of one core) and resident memory, as
+    # {"user", "cpu_percent", "memory_mb"}; None when it could not be measured.
+    users: tuple[dict, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -160,6 +197,8 @@ def _sections(output: str) -> dict[str, list[str]]:
         GPU_MARKER: [],
         APP_MARKER: [],
         USER_MARKER: [],
+        HEALTH_MARKER: [],
+        PEOPLE_MARKER: [],
         SYSTEM_MARKER: [],
     }
     current: str | None = None
@@ -242,16 +281,61 @@ def _system(lines: list[str]) -> SystemStat | None:
     )
 
 
+def _health(lines: list[str]) -> dict[int, dict]:
+    """Each GPU's health fields by index; a malformed row is skipped."""
+    health: dict[int, dict] = {}
+    for row in csv.reader(lines):
+        if len(row) != 5 or not row[0].strip().isdigit():
+            continue
+        events, ecc, pending, failed = (field.strip() for field in row[1:])
+        try:
+            clock_events = int(events, 16) if events.lower().startswith("0x") else None
+        except ValueError:
+            clock_events = None
+        health[int(row[0])] = {
+            "clock_events": clock_events,
+            "ecc_uncorrected": int(ecc) if ecc.isdigit() else None,
+            "rows_remap_pending": {"yes": True, "no": False}.get(pending.lower()),
+            "rows_remap_failed": {"yes": True, "no": False}.get(failed.lower()),
+        }
+    return health
+
+
+def _people(lines: list[str]) -> tuple[dict, ...] | None:
+    """Per-user CPU and memory, largest memory first; None without any."""
+    users = []
+    for line in lines:
+        fields = line.split()
+        if len(fields) != 3:
+            continue
+        try:
+            users.append(
+                {
+                    "user": fields[0],
+                    "cpu_percent": round(float(fields[1]), 1),
+                    "memory_mb": round(float(fields[2]) / 1024, 1),
+                }
+            )
+        except ValueError:
+            continue
+    users.sort(key=lambda user: user["memory_mb"], reverse=True)
+    return tuple(users) or None
+
+
 def parse_collector_output(host: str, output: str, sampled_at: int, duration_ms: int) -> CollectionResult:
     sections = _sections(output)
     if not sections[GPU_MARKER]:
         raise ValueError("nvidia-smi returned no GPU rows")
 
     users: dict[int, str] = {}
+    elapsed: dict[int, int] = {}
     for line in sections[USER_MARKER]:
-        fields = line.split(None, 1)
-        if len(fields) == 2 and fields[0].isdigit():
-            users[int(fields[0])] = fields[1].strip()
+        fields = line.split()
+        if len(fields) >= 2 and fields[0].isdigit():
+            users[int(fields[0])] = fields[1]
+            if len(fields) >= 3 and fields[2].isdigit():
+                elapsed[int(fields[0])] = int(fields[2])
+    health = _health(sections[HEALTH_MARKER])
 
     gpus: list[GPUStat] = []
     for row in csv.reader(sections[GPU_MARKER]):
@@ -268,6 +352,7 @@ def parse_collector_output(host: str, output: str, sampled_at: int, duration_ms:
                 temperature_c=_number(row[6], optional=True),
                 power_w=_number(row[7], optional=True),
                 power_limit_w=_number(row[8], optional=True),
+                **health.get(int(row[0].strip()), {}),
             )
         )
 
@@ -287,6 +372,7 @@ def parse_collector_output(host: str, output: str, sampled_at: int, duration_ms:
                 username=users.get(pid, UNKNOWN_USER),
                 process_name=",".join(row[2:-1]).strip(),
                 used_memory_mb=float(_number(row[-1]) or 0),
+                elapsed_seconds=elapsed.get(pid),
             )
         )
 
@@ -297,8 +383,12 @@ def parse_collector_output(host: str, output: str, sampled_at: int, duration_ms:
         success=True,
         gpus=tuple(sorted(gpus, key=lambda gpu: gpu.index)),
         processes=tuple(processes),
-        system=_system(sections[SYSTEM_MARKER]),
+        system=_with_people(_system(sections[SYSTEM_MARKER]), _people(sections[PEOPLE_MARKER])),
     )
+
+
+def _with_people(system: SystemStat | None, people: tuple[dict, ...] | None) -> SystemStat | None:
+    return replace(system, users=people) if system is not None and people else system
 
 
 def parse_df_output(output: str) -> tuple[DiskStat, ...]:

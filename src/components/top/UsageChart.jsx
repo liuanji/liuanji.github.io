@@ -72,7 +72,7 @@ export default function UsageChart({ history, range, servers = null, server = 'a
           <button
             type="button"
             {...legendProps(key)}
-            className={`flex items-center gap-2 rounded-md px-1.5 py-0.5 text-xs leading-5 text-data-grey transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20 ${
+            className={`flex items-center gap-2 rounded-md px-1.5 text-xs leading-6 text-data-grey transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20 ${
               highlight && highlight !== key ? 'opacity-40' : ''
             }`}
           >
@@ -88,21 +88,20 @@ export default function UsageChart({ history, range, servers = null, server = 'a
   return (
     <div className="bg-white rounded-2xl border border-border-light p-6">
       {/* Two rows: the title beside the server switch (when there is one), then
-          the subtitle beside the legend; on phones they stack. */}
+          the subtitle beside the legend; on phones they stack. The subtitle and
+          the legend's entries share one 24 px line box, so their text lines up
+          in any browser. */}
       <div className="mb-5 grid gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-x-6">
         <h3 className="font-tight font-semibold text-lg text-inkwell sm:col-start-1 sm:row-start-1">Usage trend</h3>
-        <p className="text-xs text-data-grey sm:col-start-1 sm:row-start-2">Share of GPUs, compute and memory in use</p>
+        <p className="text-xs leading-6 text-data-grey sm:col-start-1 sm:row-start-2">
+          Share of GPUs, compute and memory in use
+        </p>
         {servers && (
           <div className="mt-2 sm:col-start-2 sm:row-start-1 sm:mt-0 sm:justify-self-end">
             <TextTabs label="Server shown" options={servers} value={server} onChange={onServer} />
           </div>
         )}
-        {/* Without a switch the legend takes the top right, as it always has. */}
-        <div
-          className={`sm:col-start-2 sm:justify-self-end ${
-            servers ? 'mt-1.5 sm:row-start-2 sm:mt-0' : 'sm:row-span-2 sm:row-start-1 sm:self-start'
-          }`}
-        >
+        <div className={`sm:col-start-2 sm:row-start-2 sm:mt-0 sm:justify-self-end ${servers ? 'mt-1.5' : ''}`}>
           {legend}
         </div>
       </div>

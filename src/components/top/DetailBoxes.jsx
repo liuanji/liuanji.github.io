@@ -5,6 +5,7 @@ import { StatTile } from './controls';
 import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, TEMPERATURE_ICON_RANGE } from './config';
 import { formatCpuCount, formatCpuModel, formatMemory, formatMemoryOf, gpuModels, userColor } from './format';
 import { idleGpuPhrase, pressurePhrase, reservedIdlePhrase } from './easterEggs';
+import { HeldIdleNote, formatDuration } from './Insights';
 import { ReservationMark, clashingUsers, formatLeft } from './Reservations';
 
 // The detail boxes a GPU, CPU or RAM reading opens on wider screens, in both the
@@ -161,6 +162,9 @@ export function GpuDetails({ gpu, host, reservation = null, me = null, now = 0 }
                 />
                 {user.username}
                 <span className="text-data-grey">{formatMemory(user.used_memory_mb)}</span>
+                {user.running_seconds != null && (
+                  <span className="text-data-grey/70">· {formatDuration(user.running_seconds)}</span>
+                )}
               </span>
             ))
           ) : (
@@ -172,7 +176,13 @@ export function GpuDetails({ gpu, host, reservation = null, me = null, now = 0 }
                   : idleGpuPhrase(host, gpu.index)}
             </span>
           )}
+          <HeldIdleNote gpu={gpu} />
         </div>
+        {gpu.problems?.length > 0 && (
+          <p className="mt-2 font-mono text-[11px]" style={{ color: READING_STYLES.hot.color }}>
+            Health: {gpu.problems.join('; ')}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -310,7 +320,7 @@ export function ChipGlyph({ share, color, size = 26, animated = false }) {
 // with compute load and its blades spin faster the busier it is (still when
 // idle or when the viewer prefers reduced motion), its eight memory chips fill
 // with memory in use, and gold contacts run along the bottom.
-function GpuGlyph({ compute, memory, width = 116 }) {
+export function GpuGlyph({ compute, memory, width = 116 }) {
   const fan = { x: 14.5, y: 13, radius: 8.4 };
   const circumference = 2 * Math.PI * fan.radius;
   const load = Math.min(1, Math.max(0, compute));
@@ -441,89 +451,137 @@ function loadText(value) {
 }
 
 // The CPU's box: a large chip, its load now and its load averages.
-export function CpuDetails({ host, system }) {
-  const percent = Math.round(system.cpu_percent ?? 0);
-  const load = system.load_averages;
+// A part's box: by default its large picture (and figure) in a column on the
+// left; with compact set, as in the expanded view, a small picture just before
+// the title and everything else at full width.
+function PartBox({ compact, large, small, title, subtitle, children }) {
+  const heading = (
+    <>
+      <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">{title}</h4>
+      <p className="mt-0.5 truncate font-mono text-[11px] text-data-grey">{subtitle}</p>
+    </>
+  );
+  if (compact) {
+    return (
+      <div>
+        <div className="flex items-center gap-3">
+          {small}
+          <div className="min-w-0 flex-1">{heading}</div>
+        </div>
+        {children}
+      </div>
+    );
+  }
   return (
     <div className="flex gap-6">
-      <div className="flex w-[104px] flex-shrink-0 flex-col items-center justify-center">
-        <ChipGlyph share={percent / 100} color={RING_SERIES.compute.color} size={92} animated />
-        <span className="mt-1 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell">{percent}%</span>
-      </div>
+      {large}
       <div className="min-w-0 flex-1">
-        <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">
-          {host} <span className="text-data-grey/60">·</span> CPU
-        </h4>
-        <p className="mt-0.5 truncate font-mono text-[11px] text-data-grey">{formatCpuModel(system) ?? 'Processor'}</p>
-        <div className="mt-4">
-          <Metric label="Load now" value={`${percent}%`} share={percent / 100} series={RING_SERIES.compute} />
-        </div>
-        {load && (
-          <div className="mt-3.5">
-            {/* Load averages count runnable threads, so the core and thread counts give them scale. */}
-            <span className="font-mono text-[11px] text-data-grey">
-              Load average
-              {formatCpuCount(system) && <span className="text-data-grey/60"> · {formatCpuCount(system)}</span>}
-            </span>
-            <div className="mt-1.5 grid grid-cols-3 gap-2">
-              {['1 min', '5 min', '15 min'].map((window, index) => (
-                <div key={window} className="rounded-lg bg-[#F6F7F9] px-2.5 py-1.5">
-                  <div className="font-mono text-[10px] text-data-grey">{window}</div>
-                  <div className="font-mono text-xs tabular-nums text-inkwell">{loadText(load[index])}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        <BoxFooter phrase={pressurePhrase('cpu', percent / 100, host)} />
+        {heading}
+        {children}
       </div>
     </div>
   );
 }
 
+// children, if any, go just above the footer (the expanded view adds who uses
+// it); compact puts a small chip before the title instead of the large one.
+export function CpuDetails({ host, system, children = null, compact = false }) {
+  const percent = Math.round(system.cpu_percent ?? 0);
+  const load = system.load_averages;
+  return (
+    <PartBox
+      compact={compact}
+      large={
+        <div className="flex w-[104px] flex-shrink-0 flex-col items-center justify-center">
+          <ChipGlyph share={percent / 100} color={RING_SERIES.compute.color} size={92} animated />
+          <span className="mt-1 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell">
+            {percent}%
+          </span>
+        </div>
+      }
+      small={<ChipGlyph share={percent / 100} color={RING_SERIES.compute.color} size={44} animated />}
+      title={
+        <>
+          {host} <span className="text-data-grey/60">·</span> CPU
+        </>
+      }
+      subtitle={formatCpuModel(system) ?? 'Processor'}
+    >
+      <div className="mt-4">
+        <Metric label="Load now" value={`${percent}%`} share={percent / 100} series={RING_SERIES.compute} />
+      </div>
+      {load && (
+        <div className="mt-3.5">
+          {/* Load averages count runnable threads, so the core and thread counts give them scale. */}
+          <span className="font-mono text-[11px] text-data-grey">
+            Load average
+            {formatCpuCount(system) && <span className="text-data-grey/60"> · {formatCpuCount(system)}</span>}
+          </span>
+          <div className="mt-1.5 grid grid-cols-3 gap-2">
+            {['1 min', '5 min', '15 min'].map((window, index) => (
+              <div key={window} className="rounded-lg bg-[#F6F7F9] px-2.5 py-1.5">
+                <div className="font-mono text-[10px] text-data-grey">{window}</div>
+                <div className="font-mono text-xs tabular-nums text-inkwell">{loadText(load[index])}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {children}
+      <BoxFooter phrase={pressurePhrase('cpu', percent / 100, host)} />
+    </PartBox>
+  );
+}
+
 // The RAM's box: a large memory stick, memory in use, cache, what is still
 // available, and swap.
-export function RamDetails({ host, system, level }) {
+export function RamDetails({ host, system, level, children = null, compact = false }) {
   const total = system.memory_total_mb;
   const used = system.memory_used_mb;
   const percent = Math.round((used / total) * 100);
   const inUse = LEVEL_SERIES[level] ?? RING_SERIES.memory;
   const swapKnown = system.swap_total_mb != null && system.swap_used_mb != null;
   return (
-    <div className="flex gap-6">
-      <div className="flex w-[112px] flex-shrink-0 flex-col items-center justify-center">
-        <StickGlyph share={used / total} color={inUse.color} width={112} />
-        <span
-          className="mt-3 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell"
-          style={level ? { color: READING_STYLES[level].color } : undefined}
-        >
-          {percent}%
-        </span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">
-          {host} <span className="text-data-grey/60">·</span> RAM
-        </h4>
-        <p className="mt-0.5 truncate font-mono text-[11px] text-data-grey">{formatMemory(total)} total</p>
-        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3.5">
-          <Metric label="In use" value={formatMemory(used)} share={used / total} series={inUse} />
-          <Metric label="Available" value={formatMemory(total - used)} share={(total - used) / total} series={QUIET} />
-          <Metric
-            label="Cache"
-            value={system.memory_cache_mb == null ? '—' : formatMemory(system.memory_cache_mb)}
-            share={system.memory_cache_mb == null ? null : system.memory_cache_mb / total}
-            series={QUIET}
-          />
-          <Metric
-            label="Swap"
-            value={swapKnown ? formatMemoryOf(system.swap_used_mb, system.swap_total_mb) : '—'}
-            share={swapKnown && system.swap_total_mb ? system.swap_used_mb / system.swap_total_mb : null}
-            series={QUIET}
-          />
+    <PartBox
+      compact={compact}
+      large={
+        <div className="flex w-[112px] flex-shrink-0 flex-col items-center justify-center">
+          <StickGlyph share={used / total} color={inUse.color} width={112} />
+          <span
+            className="mt-3 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell"
+            style={level ? { color: READING_STYLES[level].color } : undefined}
+          >
+            {percent}%
+          </span>
         </div>
-        <BoxFooter phrase={pressurePhrase('ram', used / total, host)} />
+      }
+      small={<StickGlyph share={used / total} color={inUse.color} width={60} />}
+      title={
+        <>
+          {host} <span className="text-data-grey/60">·</span> RAM
+        </>
+      }
+      subtitle={`${formatMemory(total)} total`}
+    >
+      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3.5">
+        <Metric label="In use" value={formatMemory(used)} share={used / total} series={inUse} />
+        <Metric label="Available" value={formatMemory(total - used)} share={(total - used) / total} series={QUIET} />
+        <Metric
+          label="Cache"
+          value={system.memory_cache_mb == null ? '—' : formatMemory(system.memory_cache_mb)}
+          share={system.memory_cache_mb == null ? null : system.memory_cache_mb / total}
+          series={QUIET}
+        />
+        <Metric
+          label="Swap"
+          value={swapKnown ? formatMemoryOf(system.swap_used_mb, system.swap_total_mb) : '—'}
+          share={swapKnown && system.swap_total_mb ? system.swap_used_mb / system.swap_total_mb : null}
+          series={QUIET}
+        />
       </div>
-    </div>
+      {children}
+      <BoxFooter phrase={pressurePhrase('ram', used / total, host)} />
+    </PartBox>
   );
 }
 
@@ -540,7 +598,10 @@ export function BoxTile({ details, width = 'w-[460px]', action, ...tile }) {
         aria-label={`${tile.label}: ${tile.value}. ${action}.`}
         className="group block h-full w-full rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20"
       >
-        <StatTile {...tile} className="h-full transition-colors group-hover:bg-paper group-data-[state=open]:bg-paper" />
+        <StatTile
+          {...tile}
+          className="h-full transition-colors group-hover:bg-paper group-data-[state=open]:bg-paper"
+        />
       </button>
     </DetailsPopover>
   );

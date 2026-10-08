@@ -113,3 +113,7 @@ export const RESERVATION_CLASH = { color: '#A15C07', mark: '#D08C1F', edge: '#E8
 // The viewer's own reservations: a bookmark in a soft lavender no reading uses,
 // with a faint tint of it on the tile. Everyone else's: a lock in a quiet grey.
 export const RESERVATION_MARKS = { mine: '#8478D6', others: '#8593AA' };
+
+// A GPU busy with memory held but almost no compute (see the backend's
+// IDLE_UTILIZATION_PERCENT) for this long is flagged, and its owner nudged.
+export const HELD_IDLE_FLAG_SECONDS = 3600;

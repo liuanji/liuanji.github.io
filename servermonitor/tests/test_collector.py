@@ -96,6 +96,28 @@ class CollectorParserTest(unittest.TestCase):
         self.assertEqual([process.username for process in result.processes], ["alice", "bob"])
         self.assertEqual(result.processes[0].used_memory_mb, 30000)
 
+    def test_parses_job_ages_health_and_people(self) -> None:
+        output = SAMPLE_OUTPUT.replace("   1234 alice\n", "   1234 alice  7200\n") + (
+            "__SERVERMONITOR_HEALTH__\n"
+            "0, 0x0000000000000044, 2, No, Yes\n"
+            "1, [N/A], [N/A], [N/A], [N/A]\n"
+            "__SERVERMONITOR_PEOPLE__\n"
+            "alice 350.5 4194304\n"
+            "root 1.0 102400\n"
+            "__SERVERMONITOR_SYSTEM__\n"
+            "cpu  100 0 100 800 0 0 0 0\n"
+            "cpu  200 0 200 1600 0 0 0 0\n"
+            "MemTotal: 8192000 kB\nMemAvailable: 4096000 kB\n"
+        )
+        result = parse_collector_output("brezel", output, 1_700_000_000, 123)
+
+        self.assertEqual([process.elapsed_seconds for process in result.processes], [7200, None])
+        self.assertEqual(result.gpus[0].clock_events, 0x44)
+        self.assertEqual(result.gpus[0].ecc_uncorrected, 2)
+        self.assertTrue(result.gpus[0].rows_remap_failed)
+        self.assertIsNone(result.gpus[1].clock_events)
+        self.assertEqual(result.system.users[0], {"user": "alice", "cpu_percent": 350.5, "memory_mb": 4096.0})
+
     def test_parses_cpu_load_and_memory(self) -> None:
         output = SAMPLE_OUTPUT + (
             "__SERVERMONITOR_SYSTEM__\n"

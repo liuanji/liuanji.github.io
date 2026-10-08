@@ -38,7 +38,7 @@ class PublishTest(unittest.TestCase):
             f"{kind}-{host}{suffix}"
             for host in ("all", "brezel", "toast")
             for kind, suffix in [("stats", "")] + [("history", f"-{name}") for name in ranges]
-        } | {f"uptime-{name}" for name in ranges}
+        } | {f"uptime-{name}" for name in ranges} | {"gpus-brezel", "gpus-toast"}
         self.assertEqual(set(files), expected)
 
     def test_live_only_publishes_overview_and_hour_histories(self) -> None:
@@ -123,6 +123,34 @@ class PublishTest(unittest.TestCase):
         self.assertEqual(scratch1["users"], [{"user": "alice", "bytes": 700}, {"user": "bob", "bytes": 500}])
         self.assertIsNone(scratch2["users"])
         self.assertIsNone(toast["usage_checked_at"])
+
+    def test_gpu_timeline_and_week_pattern(self) -> None:
+        gpus = build_files(self.settings, self.database, now=self.start + 120)["gpus-brezel"]
+
+        self.assertEqual(gpus["bucket_seconds"], 900)
+        self.assertEqual(gpus["end"] - gpus["start"], 86400)
+        first = gpus["gpus"][0]
+        self.assertEqual(len(first["utilization"]), 96)
+        filled = [value for value in first["utilization"] if value is not None]
+        self.assertEqual(filled, [50])
+        self.assertEqual([value for value in first["busy_share"] if value is not None], [1])
+        self.assertEqual([value for value in first["temperature_c"] if value is not None], [60])
+        self.assertEqual([value for value in first["power_w"] if value is not None], [200])
+        self.assertEqual([value for value in gpus["system"]["cpu_percent"] if value is not None], [12.5])
+        self.assertEqual([value for value in gpus["system"]["memory_percent"] if value is not None], [25])
+        self.assertEqual(len(gpus["week"]), 7)
+        self.assertEqual(sum(value is not None for day in gpus["week"] for value in day), 1)
+
+    def test_overview_keeps_only_account_holders_cpu_and_memory(self) -> None:
+        people = ({"user": "alice", "cpu_percent": 120.0, "memory_mb": 2048.0}, {"user": "root", "cpu_percent": 1.0, "memory_mb": 300.0})
+        system = SystemStat(cpu_percent=12.5, cpu_count=64, memory_used_mb=2048, memory_total_mb=8192, users=people)
+        self.database.save(replace(successful_result(self.start + 120), system=system))
+        self.database.save_disks(DiskResult("brezel", self.start, True, (), accounts=("alice",)))
+
+        brezel = build_files(self.settings, self.database, now=self.start + 120, live_only=True)["overview"]["hosts"][0]
+        self.assertEqual([user["user"] for user in brezel["system"]["users"]], ["alice"])
+        self.assertEqual(brezel["gpus"][0]["users"][0]["jobs"], 1)
+        self.assertEqual(brezel["gpus"][0]["problems"], [])
 
     def test_writes_json_files(self) -> None:
         output = self.directory / "files"
