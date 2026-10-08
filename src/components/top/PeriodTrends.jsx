@@ -70,41 +70,6 @@ function trendRows(history, metric) {
   );
 }
 
-// A slim line of the metric across the period, scaled to its own low and high
-// so the shape shows even when it barely moves.
-function Sparkline({ rows, history, color }) {
-  const values = rows.filter((row) => row.value != null).map((row) => row.value);
-  if (values.length < 2) return <div className="mt-3 h-7" aria-hidden="true" />;
-  const low = Math.min(...values);
-  const span = Math.max(...values) - low;
-  const width = history.end - history.start || 1;
-  let path = '';
-  let drawing = false;
-  for (const row of rows) {
-    if (row.value == null) {
-      drawing = false;
-      continue;
-    }
-    const x = ((row.time - history.start) / width) * 100;
-    const y = span ? 22 - ((row.value - low) / span) * 20 : 12;
-    path += `${drawing ? 'L' : 'M'}${x.toFixed(2)},${y.toFixed(2)} `;
-    drawing = true;
-  }
-  return (
-    <svg className="mt-3 h-7 w-full overflow-visible" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true">
-      <path
-        d={path}
-        fill="none"
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
-}
-
 function TrendTooltip({ active = false, payload = [], metric }) {
   if (!active || !payload?.length || payload[0].value == null) return null;
   const { time, value, point } = payload[0].payload;
@@ -212,8 +177,8 @@ function TrendDetails({ metric, rows, history, range, scope, average }) {
   );
 }
 
-// A period tile with a sparkline of its metric; on wider screens it opens the
-// metric's box on a click or a long hover, like the other readings.
+// A period tile; on wider screens it opens the metric's trend box on a click or
+// a long hover, like the other readings.
 export function TrendTile({ metric: key, history, range, scope, label, value, total = null, caption = null }) {
   const metric = TREND_METRICS[key];
   const interactive = !useIsMobile();
@@ -225,9 +190,7 @@ export function TrendTile({ metric: key, history, range, scope, label, value, to
       total={total}
       caption={caption}
       className={interactive ? 'h-full transition-colors group-hover:bg-paper group-data-[state=open]:bg-paper' : 'h-full'}
-    >
-      {history && <Sparkline rows={rows} history={history} color={metric.color} />}
-    </StatTile>
+    />
   );
   if (!interactive || !history) return tile;
   return (

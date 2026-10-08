@@ -35,6 +35,7 @@ import { useNow, useStatusFile } from '../components/top/useStatusFile';
 import { gpuStatusUrl } from '../data/servers';
 import { myCopyrightBody, myUpdateInfo } from '../data/profile';
 import { useDocumentTitle } from '../hooks/use-document-title';
+import { useStoredChoice } from '../hooks/use-stored-choice';
 import { useStoredFlag } from '../hooks/use-stored-flag';
 
 const EASE = [0.16, 1, 0.3, 1];
@@ -92,8 +93,8 @@ function LiveTiles({ hosts, allHosts, now }) {
   );
 }
 
-// Each tile shows its average over the period and a sparkline from the trend
-// chart's history, and opens the full trend on wider screens.
+// Each tile shows its average over the period and, on wider screens, opens the
+// metric's trend from the trend chart's history.
 function PeriodTiles({ period, range, history, scope }) {
   const ready = period?.has_data;
   const trend = { history, range, scope };
@@ -146,6 +147,8 @@ export default function Top() {
   const now = useNow();
   const { token, signIn, signOut } = useSession();
   const [compact, setCompact] = useStoredFlag('gpu-status-compact', true);
+  // The range a link names wins; otherwise the one last picked in this browser.
+  const [savedRange, setSavedRange] = useStoredChoice('gpu-status-range');
   const overview = useStatusFile('overview', LIVE_REFRESH_MS, token);
   const hosts = (overview.data?.hosts ?? []).map((item) => ({ ...item, status: currentStatus(item, now) }));
 
@@ -154,7 +157,7 @@ export default function Top() {
   const host = overview.data
     ? hosts.some((item) => item.name === requestedHost) ? requestedHost : 'all'
     : FILE_KEY.test(requestedHost) ? requestedHost : 'all';
-  const range = RANGES.find((item) => item.value === params.get('range')) ?? DEFAULT_RANGE;
+  const range = RANGES.find((item) => item.value === (params.get('range') ?? savedRange)) ?? DEFAULT_RANGE;
 
   const stats = useStatusFile(`stats-${host}`, HISTORY_REFRESH_MS, token);
   const history = useStatusFile(
@@ -310,7 +313,10 @@ export default function Top() {
                     label="Time range"
                     options={RANGES}
                     value={range.value}
-                    onChange={(value) => setParam('range', value, DEFAULT_RANGE.value)}
+                    onChange={(value) => {
+                      setSavedRange(value);
+                      setParam('range', value, DEFAULT_RANGE.value);
+                    }}
                   />
                 </div>
                 <div className={`transition-opacity duration-300 ${stats.isPlaceholderData ? 'opacity-50' : ''}`}>

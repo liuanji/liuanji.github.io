@@ -36,8 +36,7 @@ export function Switch({ label, checked, onChange }) {
   );
 }
 
-// children go below the caption, such as a period tile's sparkline.
-export function StatTile({ label, value, total = null, caption = null, className = '', children = null }) {
+export function StatTile({ label, value, total = null, caption = null, className = '' }) {
   return (
     <div className={`bg-white rounded-2xl border border-border-light p-5 ${className}`}>
       <div className="font-mono text-xs text-data-grey">{label}</div>
@@ -46,7 +45,6 @@ export function StatTile({ label, value, total = null, caption = null, className
         {total != null && <span className="font-tight text-base text-data-grey">/ {total}</span>}
       </div>
       {caption && <div className="text-xs text-data-grey mt-2 leading-snug">{caption}</div>}
-      {children}
     </div>
   );
 }
