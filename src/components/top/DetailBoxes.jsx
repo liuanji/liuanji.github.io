@@ -5,7 +5,7 @@ import { StatTile } from './controls';
 import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, TEMPERATURE_ICON_RANGE } from './config';
 import { formatCpuCount, formatCpuModel, formatMemory, formatMemoryOf, gpuModels, userColor } from './format';
 import { idleGpuPhrase, pressurePhrase, reservedIdlePhrase } from './easterEggs';
-import { ReservationMark, formatLeft } from './Reservations';
+import { ReservationMark, clashingUsers, formatLeft } from './Reservations';
 
 // The detail boxes a GPU, CPU or RAM reading opens on wider screens, in both the
 // compact and the full view, and the small hardware glyphs they and the compact
@@ -68,7 +68,8 @@ export function GpuDetails({ gpu, host, reservation = null, me = null, now = 0 }
   const power = gpu.power_limit_w && gpu.power_w != null ? gpu.power_w / gpu.power_limit_w : null;
   return (
     <div className="flex gap-6">
-      <div className="flex flex-col items-center justify-center">
+      {/* A fixed width, so a long holder's name truncates instead of pushing the readings. */}
+      <div className="flex w-[8.5rem] flex-shrink-0 flex-col items-center justify-center">
         <GpuGlyph
           compute={gpu.utilization / 100}
           memory={gpu.memory_total_mb ? gpu.memory_used_mb / gpu.memory_total_mb : 0}
@@ -93,12 +94,19 @@ export function GpuDetails({ gpu, host, reservation = null, me = null, now = 0 }
           {gpu.busy ? 'In use' : 'Idle'}
         </span>
         {reservation && (
-          <span className="mt-1.5 flex max-w-[170px] flex-col items-center font-mono text-[11px] text-data-grey">
+          <span
+            className="mt-1.5 flex max-w-full flex-col items-center font-mono text-[11px] text-data-grey"
+            title={`Reserved by ${mine ? 'you' : reservation.user}`}
+          >
             <span className="flex max-w-full items-center gap-1.5">
-              <ReservationMark mine={mine} className="h-3 w-3 flex-shrink-0" />
-              <span className="truncate">Reserved by {mine ? 'you' : reservation.user}</span>
+              <ReservationMark
+                mine={mine}
+                clash={clashingUsers(gpu, reservation).length > 0}
+                className="h-3 w-3 flex-shrink-0"
+              />
+              <span className="truncate">{mine ? 'you' : reservation.user}</span>
             </span>
-            <span className="text-data-grey/70">{formatLeft(reservation.ends_at - now)} left</span>
+            <span className="text-data-grey/70">reserved · {formatLeft(reservation.ends_at - now)} left</span>
           </span>
         )}
       </div>

@@ -215,7 +215,7 @@ function GpuRow({ gpu, host, interactive, now, reserving }) {
           <GpuDetails gpu={gpu} host={host} reservation={reservation} me={reserving?.me} now={now} />
         ) : null
       }
-      width="w-[460px]"
+      width="w-[480px]"
       label={`${host} GPU ${gpu.index}, ${Math.round(gpu.utilization)}% compute`}
       className={`${ROW_GRID} py-3 pl-6 ${reserving ? 'pr-2' : 'pr-6'} ${interactive ? 'hover:bg-black/[0.02] data-[state=open]:bg-black/[0.04]' : ''}`}
     >

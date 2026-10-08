@@ -168,7 +168,7 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
   const withDetails = interactive ? (
     <DetailsPopover
       content={<GpuDetails gpu={gpu} host={host} reservation={reservation} me={reserving?.me} now={now} />}
-      width="w-[460px]"
+      width="w-[480px]"
     >
       {tile}
     </DetailsPopover>
