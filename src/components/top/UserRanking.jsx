@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { SERIES } from './config';
-import { formatHours } from './format';
+import { CLOUD_SGD_PER_GPU_HOUR, CROISSANT_SGD, SERIES } from './config';
+import { cloudPhrase } from './easterEggs';
+import { formatHours, formatSgd } from './format';
 
 function WeightedHelp() {
   return (
@@ -22,13 +24,31 @@ function WeightedHelp() {
   );
 }
 
-export default function UserRanking({ users, rangeTitle, showHosts }) {
+// An easter egg pricing GPU-hours as cloud time: one user's while their bar is
+// hovered (or their hours tapped), otherwise everyone's shown here.
+function cloudEstimate(hours, user, who) {
+  const amount = hours * CLOUD_SGD_PER_GPU_HOUR;
+  return cloudPhrase({ amount: formatSgd(amount), croissants: Math.round(amount / CROISSANT_SGD), user, who });
+}
+
+export default function UserRanking({ users, rangeTitle, showHosts, who = 'The lab' }) {
   const maxHours = Math.max(0.001, ...users.map((user) => user.gpu_hours));
+  const [focused, setFocused] = useState(null);
+  const focusedUser = users.find((user) => user.username === focused);
+  const totalHours = users.reduce((total, user) => total + user.gpu_hours, 0);
+  const estimate = focusedUser
+    ? cloudEstimate(focusedUser.gpu_hours, focusedUser.username, who)
+    : totalHours > 0
+      ? cloudEstimate(totalHours, null, who)
+      : null;
   return (
     <div className="bg-white rounded-2xl border border-border-light overflow-hidden">
       <div className="border-b border-border-light px-6 pb-4 pt-5">
         <h3 className="font-tight font-semibold text-lg text-inkwell">GPU time by user</h3>
-        <p className="mt-0.5 text-xs text-data-grey">{rangeTitle}</p>
+        <p className="mt-0.5 text-xs text-data-grey" aria-live="polite">
+          {rangeTitle}
+          {estimate && <span className="italic text-data-grey/80"> · {estimate}</span>}
+        </p>
       </div>
       {users.length ? (
         <div className="overflow-x-auto">
@@ -64,7 +84,12 @@ export default function UserRanking({ users, rangeTitle, showHosts }) {
                   <td className="py-3 pr-4 font-mono text-sm text-inkwell">
                     <div className="truncate sm:w-40">{user.username}</div>
                   </td>
-                  <td className="py-3 pr-6">
+                  <td
+                    className="cursor-default py-3 pr-6"
+                    onPointerEnter={(event) => event.pointerType === 'mouse' && setFocused(user.username)}
+                    onPointerLeave={(event) => event.pointerType === 'mouse' && setFocused(null)}
+                    onClick={() => setFocused((current) => (current === user.username ? null : user.username))}
+                  >
                     {/* Fixed widths keep every row's track the same length. */}
                     <div className="flex items-center gap-3">
                       <div className="hidden h-2 w-40 flex-shrink-0 sm:block" aria-hidden="true">

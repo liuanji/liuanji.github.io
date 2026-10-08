@@ -44,6 +44,11 @@ export function formatCpuModel(system) {
   return system.cpu_sockets > 1 ? `${system.cpu_sockets} × ${system.cpu_model}` : system.cpu_model;
 }
 
+// "S$1,240", or "S$8.40" under a hundred.
+export function formatSgd(amount) {
+  return amount >= 100 ? `S$${Math.round(amount).toLocaleString('en-US')}` : `S$${amount.toFixed(2)}`;
+}
+
 export function formatPercent(value) {
   return `${Math.round(Number(value) || 0)}%`;
 }

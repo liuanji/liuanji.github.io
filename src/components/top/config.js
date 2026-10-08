@@ -72,6 +72,12 @@ export const LEVEL_SERIES = {
   hot: { color: '#B33A3A', track: '#B33A3A24' },
 };
 
+// Rough cloud price of one RTX PRO 6000 Blackwell GPU-hour, for the GPU time
+// card's easter egg: the median of ~54 on-demand offers was US$1.81 in October
+// 2026 (thundercompute.com, gpus.io), at about S$1.27 per US$. And a croissant.
+export const CLOUD_SGD_PER_GPU_HOUR = 2.3;
+export const CROISSANT_SGD = 4.5;
+
 // Availability bars: soft fills, since every bar also has a text description.
 // A bar is partly down when some of its checked time failed but at least
 // UPTIME_PARTIAL_AT of it was up.

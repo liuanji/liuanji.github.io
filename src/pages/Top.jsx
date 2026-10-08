@@ -352,6 +352,7 @@ export default function Top() {
                     users={stats.data?.users[range.value] ?? []}
                     rangeTitle={range.title}
                     showHosts={host === 'all' && hosts.length > 1}
+                    who={host === 'all' ? 'The lab' : host}
                   />
                 </div>
               </section>

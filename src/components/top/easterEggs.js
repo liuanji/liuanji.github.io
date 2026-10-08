@@ -326,6 +326,27 @@ const LEGEND = {
   },
 };
 
+// What GPU time would cost in the cloud, framed as value the lab keeps. {amount}
+// is in S$, {croissants} the same in croissants, {user} a person and {who} the
+// lab or a server.
+const CLOUD = {
+  user: [
+    '{user}’s GPU time is worth ≈ {amount} in the cloud',
+    '{user} saved the lab ≈ {amount} in cloud bills',
+    'In the cloud, {user}’s runs would cost ≈ {amount}',
+    '≈ {amount} of cloud GPUs, home-baked by {user}',
+    '{user} baked ≈ {amount} of cloud time in-house',
+    '{user}: ≈ {amount} of cloud time, or about {croissants} croissants',
+  ],
+  total: [
+    '{who} baked ≈ {amount} of cloud GPU time in-house',
+    'All this would cost ≈ {amount} in the cloud',
+    '≈ {amount} in cloud bills avoided; treat yourselves',
+    'Home-baked compute worth ≈ {amount}',
+    'That’s ≈ {amount}, or about {croissants} croissants',
+  ],
+};
+
 // Fresh on every page load, so each visit deals out different lines, while a bar
 // keeps its line as long as the page stays open.
 const SEED = Math.floor(Math.random() * 2 ** 32);
@@ -363,6 +384,18 @@ export function legendPhrase(state, count, total, key = '') {
   else band = share <= 0.1 ? 'few' : 'many';
   const pool = pools[band];
   return pool[hash(`legend|${state}|${band}|${key}`) % pool.length];
+}
+
+// amount and croissants are already formatted; croissant lines are left out
+// when there are fewer than two. With a user it is that person's line,
+// otherwise the total for who.
+export function cloudPhrase({ amount, croissants, user = null, who = 'The lab' }) {
+  const pool = CLOUD[user ? 'user' : 'total'].filter((line) => croissants >= 2 || !line.includes('{croissants}'));
+  return pool[hash(`cloud|${user ?? who}`) % pool.length]
+    .replace('{amount}', amount)
+    .replace('{croissants}', croissants.toLocaleString('en-US'))
+    .replace('{user}', user)
+    .replace('{who}', who);
 }
 
 export function idleGpuPhrase(host, index) {
