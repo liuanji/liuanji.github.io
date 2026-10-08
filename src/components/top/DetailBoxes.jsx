@@ -106,7 +106,7 @@ export function GpuDetails({ gpu, host, reservation = null, me = null, now = 0 }
               />
               <span className="truncate">{mine ? 'you' : reservation.user}</span>
             </span>
-            <span className="text-data-grey/70">reserved · {formatLeft(reservation.ends_at - now)} left</span>
+            <span className="whitespace-nowrap text-data-grey/70">{formatLeft(reservation.ends_at - now)} left</span>
           </span>
         )}
       </div>
