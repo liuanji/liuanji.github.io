@@ -114,7 +114,7 @@ function UptimeRow({ series, status, uptime, rangeAgo, focus }) {
         onPointerLeave={(event) => event.pointerType === 'mouse' && setActive(null)}
         onKeyDown={onKeyDown}
         onBlur={() => setActive(null)}
-        className={`flex h-8 cursor-crosshair touch-pan-y select-none rounded-[3px] outline-none focus-visible:ring-2 focus-visible:ring-inkwell/30 focus-visible:ring-offset-2 ${
+        className={`flex h-8 cursor-default touch-pan-y select-none rounded-[3px] outline-none focus-visible:ring-2 focus-visible:ring-inkwell/30 focus-visible:ring-offset-2 ${
           bars > 60 ? 'gap-px sm:gap-[2px]' : 'gap-[2px] sm:gap-[3px]'
         }`}
       >
