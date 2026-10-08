@@ -184,10 +184,8 @@ function HeaderMeter({ label, Glyph, share, title, series, level = null, details
 function SystemMeters({ system, host, interactive }) {
   const ramKnown = system.memory_used_mb != null && system.memory_total_mb;
   const ram = ramKnown ? ramLevel(system.memory_used_mb, system.memory_total_mb) : null;
-  // Nudged down a pixel to centre on the status pill beside it, which sits a
-  // little below its own text.
   return (
-    <span className="flex translate-y-px items-center gap-4">
+    <span className="flex items-center gap-4">
       {system.cpu_percent != null && (
         <HeaderMeter
           label="CPU"
@@ -238,7 +236,9 @@ function CompactHost({ host, now, interactive }) {
             </span>
           )}
         </span>
-        <span className="order-2 ml-auto sm:order-4 sm:ml-0">
+        {/* A pill's box sits a little below its text, so it rises a pixel to
+            centre on the text and glyphs beside it. */}
+        <span className="order-2 ml-auto -translate-y-px sm:order-4 sm:ml-0">
           <StatusPill status={host.status} />
         </span>
       </header>
