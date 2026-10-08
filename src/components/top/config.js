@@ -126,6 +126,8 @@ export const RESERVATION_MARKS = { mine: '#8478D6', others: '#8593AA' };
 // A GPU busy with memory held but almost no compute (see the backend's
 // IDLE_UTILIZATION_PERCENT) for this long is flagged, and its owner nudged.
 export const HELD_IDLE_FLAG_SECONDS = 3600;
+// Its owner gets a kind note at the top of their own page sooner, after this long.
+export const HELD_IDLE_REMIND_SECONDS = 30 * 60;
 
 // The lab's lifetime GPU-time milestones: bakery ranks reached at each total
 // of GPU hours, each with a line for its badge's box. One croissant in the

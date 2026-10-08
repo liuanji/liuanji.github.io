@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Hourglass } from 'lucide-react';
-import { HELD_IDLE_FLAG_SECONDS, READING_STYLES, SERIES } from './config';
+import { HELD_IDLE_FLAG_SECONDS, HELD_IDLE_REMIND_SECONDS, READING_STYLES, SERIES } from './config';
 
 // The compact view rings' soft compute blue.
 const SPARKLINE_COLOR = '#6F90EA';
@@ -302,13 +302,16 @@ export function WeekUsers({ stats }) {
 export function myHeldIdle(hosts, me) {
   return hosts.flatMap((host) =>
     host.gpus
-      .filter((gpu) => isHeldIdle(gpu) && gpu.users.some((user) => user.username === me))
+      .filter(
+        (gpu) =>
+          (gpu.held_idle_seconds ?? 0) >= HELD_IDLE_REMIND_SECONDS && gpu.users.some((user) => user.username === me),
+      )
       .map((gpu) => ({ host: host.name, gpu, memory: gpu.users.find((user) => user.username === me).used_memory_mb })),
   );
 }
 
-// A gentle note to whoever holds idle GPUs, in the same quiet card as the
-// other notices. Each GPU's name opens its server.
+// A kind note to whoever holds idle GPUs, only on their own page, in the same
+// quiet card as the other notices. Each GPU's name opens its server.
 export function IdleBanner({ items, onOpen }) {
   if (!items.length) return null;
   const color = SERIES.compute.color;
@@ -323,12 +326,12 @@ export function IdleBanner({ items, onOpen }) {
       <p className="text-inkwell">
         {items.length === 1 ? (
           <>
-            Your job on {gpuName(first)} has held {formatMemory(first.memory)} with almost no compute for{' '}
-            {formatDuration(first.gpu.held_idle_seconds)}.
+            Your dough on {gpuName(first)} has been resting for {formatDuration(first.gpu.held_idle_seconds)}, holding{' '}
+            {formatMemory(first.memory)} with almost no compute.
           </>
         ) : (
           <>
-            {items.length} of your GPUs have held memory with almost no compute for a while:{' '}
+            {items.length} of your GPUs have been resting for a while, holding memory with almost no compute:{' '}
             {items.map((item, index) => (
               <span key={`${item.host}/${item.gpu.index}`}>
                 {index > 0 && ', '}
@@ -341,7 +344,9 @@ export function IdleBanner({ items, onOpen }) {
         )}
       </p>
       <p className="text-data-grey">
-        If you are done with {items.length === 1 ? 'it, please free the GPU' : 'them, please free the GPUs'} for others.
+        Just a friendly nudge: if you have finished with {items.length === 1 ? 'it' : 'them'}, freeing{' '}
+        {items.length === 1 ? 'the GPU' : 'the GPUs'} would make room for others’ bakes. No worries if it is still
+        needed.
       </p>
     </Banner>
   );

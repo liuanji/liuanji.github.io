@@ -893,18 +893,19 @@ export function bakerLine(key, user, { host = '', peak = '' } = {}) {
 }
 
 // Short status lines for a GPU someone is using, in place of "In use": one set
-// while it computes hard, one while it holds memory but barely computes.
+// while it computes hard, one while it holds memory but barely computes. At most
+// 16 characters, so they fit on one line under the GPU box's picture.
 const BUSY_GPU = {
   hard: [
     'In the oven',
     'Baking away',
     'Kneading tensors',
-    'Whisking gradients',
-    'Oven at full heat',
+    'Whisking batches',
+    'Full heat ahead',
     'Rising nicely',
     'Crunching crumbs',
     'Busy as a bakery',
-    'Folding in layers',
+    'Folding layers',
     'Proofing a model',
   ],
   gentle: [
@@ -914,8 +915,8 @@ const BUSY_GPU = {
     'On a low simmer',
     'Warming the oven',
     'Letting it rise',
-    'Cooling on the rack',
-    'Waiting on the dough',
+    'Cooling off',
+    'Dough on hold',
   ],
 };
 
