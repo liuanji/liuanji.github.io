@@ -83,7 +83,7 @@ function LengthSlider({ minutes, onChange }) {
 }
 
 function formatClock(seconds) {
-  return new Date(seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return new Date(seconds * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
 function names(list) {
@@ -281,49 +281,60 @@ export function myClashes(hosts, reservations, me, now) {
 }
 
 // The notice at the top of the page while the viewer has jobs on GPUs someone
-// else reserved: a white card with an amber edge, naming each GPU, who holds it
-// and until when. Each server's name opens that server's panel.
+// else reserved: a quiet white card with a warm border and a small amber icon,
+// one sentence naming each GPU, who holds it and until when, and a softer
+// second line. Each GPU's name opens that server's panel.
 export function ClashBanner({ clashes, onOpen }) {
   if (!clashes.length) return null;
+  const holders = [...new Set(clashes.map(({ reservation }) => reservation.user))];
+  const gpuName = ({ host, gpu }) =>
+    onOpen ? (
+      <button
+        type="button"
+        onClick={() => onOpen(host)}
+        className="font-medium text-inkwell underline decoration-[#E8B14F]/50 decoration-1 underline-offset-[3px] transition-colors hover:decoration-[#E8B14F]"
+      >
+        {host} · GPU {gpu.index}
+      </button>
+    ) : (
+      <span className="font-medium text-inkwell">
+        {host} · GPU {gpu.index}
+      </span>
+    );
   return (
-    <div
-      role="alert"
-      className="mb-10 flex gap-3 rounded-2xl border border-border-light bg-white px-5 py-4"
-      style={{ boxShadow: `inset 4px 0 0 ${RESERVATION_CLASH.edge}` }}
-    >
-      <CircleAlert className="mt-0.5 h-5 w-5 flex-shrink-0" style={{ color: RESERVATION_CLASH.mark }} aria-hidden="true" />
-      <div className="min-w-0 text-sm leading-relaxed text-inkwell">
-        <p className="font-medium">
-          {clashes.length > 1
-            ? `You have jobs on ${clashes.length} GPUs that others reserved for debugging`
-            : 'You have jobs on a GPU someone else reserved for debugging'}
-        </p>
-        <ul className="mt-1 space-y-0.5 text-data-grey">
-          {clashes.map(({ host, gpu, reservation }) => (
-            <li key={`${host}/${gpu.index}`}>
-              {onOpen ? (
-                <button
-                  type="button"
-                  onClick={() => onOpen(host)}
-                  className="font-medium text-inkwell underline decoration-border-light underline-offset-4 transition-colors hover:decoration-inkwell/40"
-                >
-                  {host} · GPU {gpu.index}
-                </button>
-              ) : (
-                <span className="font-medium text-inkwell">
-                  {host} · GPU {gpu.index}
+    <div role="alert" className="mb-10 flex items-start gap-3.5 rounded-2xl border border-[#E8B14F]/45 bg-white px-4 py-3.5">
+      <span
+        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
+        style={{ backgroundColor: `${RESERVATION_CLASH.edge}26` }}
+        aria-hidden="true"
+      >
+        <CircleAlert className="h-4 w-4" style={{ color: RESERVATION_CLASH.mark }} strokeWidth={2.25} />
+      </span>
+      <div className="min-w-0 pt-1 text-sm leading-relaxed">
+        <p className="text-inkwell">
+          {clashes.length === 1 ? (
+            <>
+              Your jobs are on {gpuName(clashes[0])}, which {clashes[0].reservation.user} reserved for debugging until{' '}
+              {formatClock(clashes[0].reservation.ends_at)}.
+            </>
+          ) : (
+            <>
+              Your jobs are on {clashes.length} GPUs others reserved for debugging:{' '}
+              {clashes.map((clash, index) => (
+                <span key={`${clash.host}/${clash.gpu.index}`}>
+                  {index > 0 && ', '}
+                  {gpuName(clash)}{' '}
+                  <span className="whitespace-nowrap text-data-grey">
+                    ({clash.reservation.user}, until {formatClock(clash.reservation.ends_at)})
+                  </span>
                 </span>
-              )}
-              , reserved by {reservation.user} until {formatClock(reservation.ends_at)}
-            </li>
-          ))}
-        </ul>
-        <p className="mt-1.5 text-data-grey">
-          Please move your jobs to a free GPU, or check with{' '}
-          {new Set(clashes.map(({ reservation }) => reservation.user)).size > 1
-            ? 'whoever reserved each one'
-            : clashes[0].reservation.user}{' '}
-          first.
+              ))}
+              .
+            </>
+          )}
+        </p>
+        <p className="text-data-grey">
+          Please move them to a free GPU, or check with {holders.length > 1 ? 'them' : holders[0]} first.
         </p>
       </div>
     </div>
