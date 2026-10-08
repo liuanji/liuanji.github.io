@@ -3,6 +3,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CLOUD_SGD_PER_GPU_HOUR, CROISSANT_SGD, SERIES } from './config';
 import { cloudPhrase } from './easterEggs';
 import { formatHours, formatSgd } from './format';
+import BakerName from './BakerCard';
 import MilestoneBadge from './Milestone';
 
 function WeightedHelp() {
@@ -32,8 +33,9 @@ function cloudEstimate(hours, user, who) {
   return cloudPhrase({ amount: formatSgd(amount), croissants: Math.round(amount / CROISSANT_SGD), user, who });
 }
 
-// lifetime is the lab's all-time GPU time, shown as a milestone badge.
-export default function UserRanking({ users, rangeTitle, showHosts, who = 'The lab', lifetime = null }) {
+// lifetime is the lab's all-time GPU time, shown as a milestone badge; bakers
+// holds each user's baker card, opened from their name.
+export default function UserRanking({ users, rangeTitle, showHosts, who = 'The lab', lifetime = null, bakers = null }) {
   const maxHours = Math.max(0.001, ...users.map((user) => user.gpu_hours));
   const [focused, setFocused] = useState(null);
   const focusedUser = users.find((user) => user.username === focused);
@@ -68,7 +70,9 @@ export default function UserRanking({ users, rangeTitle, showHosts, who = 'The l
                 <th scope="col" className="py-2.5 pr-4 text-left font-normal">
                   <div className="sm:w-40">User</div>
                 </th>
-                <th scope="col" className="py-2.5 pr-6 text-left font-normal">GPU-hours</th>
+                <th scope="col" className="py-2.5 pr-6 text-left font-normal">
+                  GPU-hours
+                </th>
                 <th scope="col" className="hidden py-2.5 pr-8 text-left font-normal sm:table-cell">
                   <WeightedHelp />
                 </th>
@@ -94,7 +98,16 @@ export default function UserRanking({ users, rangeTitle, showHosts, who = 'The l
                     <div className="w-6">{index + 1}</div>
                   </td>
                   <td className="py-3 pr-4 font-mono text-sm text-inkwell">
-                    <div className="truncate sm:w-40">{user.username}</div>
+                    <div className="truncate sm:w-40">
+                      <BakerName
+                        user={user}
+                        profile={bakers?.[user.username]}
+                        rank={index + 1}
+                        rangeTitle={rangeTitle}
+                        share={totalHours > 0 ? user.gpu_hours / totalHours : null}
+                        who={who}
+                      />
+                    </div>
                   </td>
                   <td className="py-3 pr-6">
                     {/* Fixed widths keep every row's track the same length. */}

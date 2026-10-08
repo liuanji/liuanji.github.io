@@ -807,3 +807,87 @@ const PASTRY_PILE = [
 export function pastryPilePhrase(index) {
   return PASTRY_PILE[(hash('pile') + index) % PASTRY_PILE.length];
 }
+
+// Baker card titles, earned from how someone bakes (see bakerTraits), each with
+// lines crossing baking with machine learning. {host} is their favourite server
+// and {peak} their most GPUs at once.
+const BAKER_TITLES = {
+  holiday: {
+    title: 'On a long holiday',
+    lines: [
+      'The sourdough starter is in the fridge until they return',
+      'Off gathering fresh datasets somewhere sunny',
+      'Their oven mitts are hanging by the door',
+    ],
+  },
+  fresh: {
+    title: 'Fresh face',
+    lines: [
+      'Just joined the kitchen; first batch in the oven',
+      'Still learning where the flour is kept',
+      'Warming up, like a good learning rate schedule',
+    ],
+  },
+  batch: {
+    title: 'Batch baker',
+    lines: [
+      'Bakes by the trayful: up to {peak} GPUs at once',
+      'Why bake one croissant when you can bake {peak}?',
+      'Data parallel, dough parallel',
+    ],
+  },
+  weekend: {
+    title: 'Weekend baker',
+    lines: [
+      'Saves the best bakes for Saturday',
+      'Weekend proofing, Monday results',
+      'The ovens are quiet, so the weekend is theirs',
+    ],
+  },
+  night: {
+    title: 'Night owl',
+    lines: [
+      'Most of their dough rises after dark',
+      'Bakes while the city sleeps',
+      'Night shift: shorter queues, warmer ovens',
+    ],
+  },
+  loyal: {
+    title: 'Loyal regular',
+    lines: [
+      '{host} is their favourite oven',
+      'Knows every quirk of {host}’s oven',
+      'Would not trust their dough to any oven but {host}',
+    ],
+  },
+  globetrotter: {
+    title: 'Globetrotter',
+    lines: [
+      'Has a tray in every oven in the lab',
+      'Load-balancing their dough across all three ovens',
+      'Bakes wherever the oven is warm',
+    ],
+  },
+  daily: {
+    title: 'Daily baker',
+    lines: ['A daily loaf, like a nightly build', 'In the kitchen almost every day', 'Never misses a morning bake'],
+  },
+  steady: {
+    title: 'Steady baker',
+    lines: [
+      'Steady hands, steady loss curve',
+      'Keeps a calm, even bake',
+      'Bakes when inspiration (and a free GPU) strikes',
+    ],
+  },
+};
+
+export function bakerTitle(key) {
+  return BAKER_TITLES[key].title;
+}
+
+// The same line for a person all visit long.
+export function bakerLine(key, user, { host = '', peak = '' } = {}) {
+  const lines = BAKER_TITLES[key].lines;
+  return lines[hash(`baker|${key}|${user}`) % lines.length].replaceAll('{host}', host).replaceAll('{peak}', peak);
+}

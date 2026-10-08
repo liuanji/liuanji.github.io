@@ -247,6 +247,44 @@ class DatabaseTest(unittest.TestCase):
             rows = connection.execute("SELECT model, gpu_seconds FROM lifetime_gpu_time").fetchall()
         self.assertEqual([(row[0], row[1]) for row in rows], [("Test GPU", 120)])
 
+    def test_lifetime_per_user_is_counted_and_seeded_once(self) -> None:
+        start = 1_700_000_000
+        for offset in (0, 60, 120):
+            self.database.save(successful_result(start + offset))
+        with self.database.connect() as connection:
+            rows = connection.execute("SELECT username, gpu_seconds FROM lifetime_user_time ORDER BY username")
+            self.assertEqual([tuple(row) for row in rows], [("alice", 120), ("bob", 120)])
+            connection.execute("DELETE FROM lifetime_user_time")
+        self.database.initialize()
+        self.database.initialize()
+        with self.database.connect() as connection:
+            rows = connection.execute("SELECT username, gpu_seconds FROM lifetime_user_time ORDER BY username")
+            self.assertEqual([tuple(row) for row in rows], [("alice", 120), ("bob", 120)])
+
+    def test_baker_profiles_describe_when_and_where_each_user_bakes(self) -> None:
+        # Saturday 18 November 2023, 02:00 UTC: an hour of night baking at a weekend.
+        start = 1_700_272_800
+        for offset in range(0, 3601, 60):
+            self.database.save(successful_result(start + offset))
+        profiles = self.database.baker_profiles(now=start + 3600, utc_offset=0)
+        alice = profiles["alice"]
+        self.assertEqual(alice["lifetime_gpu_hours"], 1.0)
+        self.assertEqual(alice["since"], start)
+        recent = alice["recent"]
+        self.assertEqual(recent["gpu_hours"], 1.0)
+        self.assertEqual(recent["night_share"], 1.0)
+        self.assertEqual(recent["weekend_share"], 1.0)
+        self.assertEqual(recent["peak_gpus"], 1.0)
+        self.assertEqual(recent["active_days"], 1)
+        self.assertEqual(recent["hosts"], [{"name": "brezel", "share": 1.0}])
+        self.assertEqual(len(recent["week"]), 56)
+        self.assertAlmostEqual(sum(recent["week"]) * 3 * 3600, 3600, delta=60)
+        # Someone who only baked long ago keeps a card, without recent habits.
+        with self.database.connect() as connection:
+            connection.execute("INSERT INTO lifetime_user_time VALUES ('carol', 7200, 1600000000)")
+        carol = self.database.baker_profiles(now=start + 3600, utc_offset=0)["carol"]
+        self.assertEqual((carol["lifetime_gpu_hours"], carol["recent"]), (2.0, None))
+
     def test_observed_time_survives_collection_interval_change(self) -> None:
         start = 1_700_000_000
         for offset in (0, 60, 120, 180):

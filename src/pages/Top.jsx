@@ -139,8 +139,12 @@ export default function Top() {
   // Trust ?host= before the overview arrives so its files load in parallel.
   const requestedHost = params.get('host') ?? 'all';
   const host = overview.data
-    ? hosts.some((item) => item.name === requestedHost) ? requestedHost : 'all'
-    : FILE_KEY.test(requestedHost) ? requestedHost : 'all';
+    ? hosts.some((item) => item.name === requestedHost)
+      ? requestedHost
+      : 'all'
+    : FILE_KEY.test(requestedHost)
+      ? requestedHost
+      : 'all';
   const range = RANGES.find((item) => item.value === (params.get('range') ?? savedRange)) ?? DEFAULT_RANGE;
 
   const stats = useStatusFile(`stats-${host}`, HISTORY_REFRESH_MS, token);
@@ -166,8 +170,7 @@ export default function Top() {
   // At most once a minute, so a failing Worker is not asked any harder.
   const queryClient = useQueryClient();
   const lastKick = useRef(0);
-  const overdue =
-    token && overview.dataUpdatedAt > 0 && now * 1000 - overview.dataUpdatedAt > LIVE_REFRESH_MS * 1.5;
+  const overdue = token && overview.dataUpdatedAt > 0 && now * 1000 - overview.dataUpdatedAt > LIVE_REFRESH_MS * 1.5;
   useEffect(() => {
     if (!overdue || overview.isFetching || document.visibilityState !== 'visible') return;
     if (Date.now() - lastKick.current < LIVE_REFRESH_MS) return;
@@ -310,12 +313,13 @@ export default function Top() {
               )}
 
               <section className="mb-16" aria-labelledby="top-now">
-                <h2 id="top-now" className="sr-only">Right now</h2>
+                <h2 id="top-now" className="sr-only">
+                  Right now
+                </h2>
                 <SectionLabel
                   aside={
-                    host === 'all' && hosts.length > 1 && (
-                      <Switch label="Compact" checked={compact} onChange={setCompact} />
-                    )
+                    host === 'all' &&
+                    hosts.length > 1 && <Switch label="Compact" checked={compact} onChange={setCompact} />
                   }
                 >
                   Right now
@@ -333,7 +337,9 @@ export default function Top() {
               </section>
 
               <section aria-labelledby="top-history">
-                <h2 id="top-history" className="sr-only">Over time</h2>
+                <h2 id="top-history" className="sr-only">
+                  Over time
+                </h2>
                 <SectionLabel>Over time</SectionLabel>
                 <div className="mb-6">
                   <SegmentedControl
@@ -367,7 +373,10 @@ export default function Top() {
                       range={range.value}
                       servers={
                         host === 'all' && hosts.length > 1
-                          ? [{ value: 'all', label: 'All servers' }, ...hosts.map((item) => ({ value: item.name, label: item.name }))]
+                          ? [
+                              { value: 'all', label: 'All servers' },
+                              ...hosts.map((item) => ({ value: item.name, label: item.name })),
+                            ]
                           : null
                       }
                       server={trendServer}
@@ -395,12 +404,15 @@ export default function Top() {
                     showHosts={host === 'all' && hosts.length > 1}
                     who={host === 'all' ? 'The lab' : host}
                     lifetime={stats.data?.lifetime}
+                    bakers={stats.data?.bakers}
                   />
                 </div>
               </section>
 
               <section id="storage" className="mt-16 scroll-mt-28" aria-labelledby="top-storage">
-                <h2 id="top-storage" className="sr-only">Storage</h2>
+                <h2 id="top-storage" className="sr-only">
+                  Storage
+                </h2>
                 <SectionLabel>Storage</SectionLabel>
                 {diskHosts.length ? (
                   <div className={`grid gap-6 ${diskHosts.length > 1 ? 'lg:grid-cols-3' : ''}`}>

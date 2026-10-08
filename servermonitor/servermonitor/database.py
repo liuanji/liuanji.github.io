@@ -32,6 +32,10 @@ SCHEMA_VERSION = "2"
 # longer windows and are kept for the configured rollup retention.
 MINUTE_WINDOW_SECONDS = 48 * 3600
 MINUTE_RETENTION_SECONDS = MINUTE_WINDOW_SECONDS + 3600
+# Baker cards describe the last BAKER_DAYS of each user's GPU time, and their
+# last week in three-hour blocks.
+BAKER_DAYS = 90
+BAKER_WEEK_BLOCKS = 7 * 8
 
 
 @dataclass(frozen=True)
@@ -168,6 +172,13 @@ CREATE TABLE IF NOT EXISTS system_hour (
 -- cleanup never trims, for the lab's milestones. first_at is its earliest hour.
 CREATE TABLE IF NOT EXISTS lifetime_gpu_time (
     model TEXT PRIMARY KEY,
+    gpu_seconds REAL NOT NULL,
+    first_at INTEGER NOT NULL
+) WITHOUT ROWID;
+
+-- The same running total per user, for each person's baker card.
+CREATE TABLE IF NOT EXISTS lifetime_user_time (
+    username TEXT PRIMARY KEY,
     gpu_seconds REAL NOT NULL,
     first_at INTEGER NOT NULL
 ) WITHOUT ROWID;
@@ -364,7 +375,7 @@ class Database:
     @staticmethod
     def _add_lifetime(connection: sqlite3.Connection, result: CollectionResult, duration_seconds: int) -> None:
         """Add the same GPU time the users were just credited (each user on each
-        GPU) to the lifetime total of that GPU's model."""
+        GPU) to the lifetime totals of that GPU's model and of each user."""
         if duration_seconds <= 0:
             return
         gpus = {gpu.uuid: gpu for gpu in result.gpus}
@@ -373,19 +384,40 @@ class Database:
             if process.username != UNKNOWN_USER and process.gpu_uuid in gpus:
                 users[process.gpu_uuid].add(process.username)
         seconds: dict[str, float] = defaultdict(float)
+        per_user: dict[str, float] = defaultdict(float)
         for uuid, names in users.items():
             seconds[gpus[uuid].name] += len(names) * duration_seconds
+            for name in names:
+                per_user[name] += duration_seconds
+        start = result.sampled_at - duration_seconds
         connection.executemany(
             """
             INSERT INTO lifetime_gpu_time (model, gpu_seconds, first_at) VALUES (?, ?, ?)
             ON CONFLICT (model) DO UPDATE SET gpu_seconds = gpu_seconds + excluded.gpu_seconds
             """,
-            [(model, amount, result.sampled_at - duration_seconds) for model, amount in seconds.items()],
+            [(model, amount, start) for model, amount in seconds.items()],
+        )
+        connection.executemany(
+            """
+            INSERT INTO lifetime_user_time (username, gpu_seconds, first_at) VALUES (?, ?, ?)
+            ON CONFLICT (username) DO UPDATE SET gpu_seconds = gpu_seconds + excluded.gpu_seconds
+            """,
+            [(name, amount, start) for name, amount in per_user.items()],
         )
 
     def _seed_lifetime(self, connection: sqlite3.Connection) -> None:
-        """Start the lifetime totals, once, from the hourly user sums already
-        kept, each server's hours counted under its GPUs' model."""
+        """Start the lifetime totals, once each, from the hourly user sums
+        already kept: each server's hours counted under its GPUs' model, and
+        each user's hours under their name."""
+        if not connection.execute("SELECT 1 FROM lifetime_user_time LIMIT 1").fetchone():
+            connection.execute(
+                """
+                INSERT INTO lifetime_user_time (username, gpu_seconds, first_at)
+                SELECT username, SUM(active_gpu_seconds), MIN(bucket) FROM user_hour
+                WHERE username != ? GROUP BY username HAVING SUM(active_gpu_seconds) > 0
+                """,
+                (UNKNOWN_USER,),
+            )
         if connection.execute("SELECT 1 FROM lifetime_gpu_time LIMIT 1").fetchone():
             return
         models: dict[str, str] = {}
@@ -858,6 +890,80 @@ class Database:
                 if row["memory_count"]:
                     series["memory_percent"][row["step"]] = round(row["memory"] / row["memory_count"], 1)
         return series
+
+    def baker_profiles(self, now: int, utc_offset: int, days: int = BAKER_DAYS) -> dict[str, dict[str, Any]]:
+        """What each user's baker card needs: their GPU time ever and since
+        when, and over the last days how they bake, in the servers' local time:
+        the share at night (0-6 h) and at weekends, their most GPUs at once (an
+        hour's average across servers), each server's share, how many days they
+        baked, and their last week as average GPUs per three hours, oldest first."""
+        block = 3 * 3600
+        week_start = ((now + utc_offset) // block + 1) * block - utc_offset - BAKER_WEEK_BLOCKS * block
+        with self.connect() as connection:
+            lifetimes = {
+                row["username"]: row
+                for row in connection.execute("SELECT username, gpu_seconds, first_at FROM lifetime_user_time")
+            }
+            rows = connection.execute(
+                """
+                SELECT bucket, host, username, active_gpu_seconds AS seconds FROM user_hour
+                WHERE bucket >= ? AND username != ? AND active_gpu_seconds > 0
+                """,
+                (now - days * 86400, UNKNOWN_USER),
+            ).fetchall()
+        recent: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            user = recent.setdefault(
+                row["username"],
+                {
+                    "total": 0.0,
+                    "night": 0.0,
+                    "weekend": 0.0,
+                    "hours": defaultdict(float),
+                    "hosts": defaultdict(float),
+                    "days": set(),
+                    "week": [0.0] * BAKER_WEEK_BLOCKS,
+                },
+            )
+            seconds, bucket = row["seconds"], int(row["bucket"])
+            local = bucket + utc_offset
+            user["total"] += seconds
+            if (local % 86400) // 3600 < 6:
+                user["night"] += seconds
+            # 1 January 1970 was a Thursday, so Saturday and Sunday are 2 and 3.
+            if (local // 86400 + 3) % 7 >= 5:
+                user["weekend"] += seconds
+            user["hours"][bucket] += seconds
+            user["hosts"][row["host"]] += seconds
+            user["days"].add(local // 86400)
+            if bucket >= week_start:
+                user["week"][min(BAKER_WEEK_BLOCKS - 1, (bucket - week_start) // block)] += seconds
+        profiles: dict[str, dict[str, Any]] = {}
+        for name in set(lifetimes) | set(recent):
+            lifetime = lifetimes.get(name)
+            profile: dict[str, Any] = {
+                "lifetime_gpu_hours": round(lifetime["gpu_seconds"] / 3600, 1) if lifetime else None,
+                "since": int(lifetime["first_at"]) if lifetime else None,
+                "recent": None,
+            }
+            user = recent.get(name)
+            if user and user["total"] > 0:
+                total = user["total"]
+                profile["recent"] = {
+                    "days": days,
+                    "gpu_hours": round(total / 3600, 1),
+                    "night_share": round(user["night"] / total, 3),
+                    "weekend_share": round(user["weekend"] / total, 3),
+                    "peak_gpus": round(max(user["hours"].values()) / 3600, 1),
+                    "active_days": len(user["days"]),
+                    "hosts": [
+                        {"name": host, "share": round(amount / total, 3)}
+                        for host, amount in sorted(user["hosts"].items(), key=lambda item: -item[1])
+                    ],
+                    "week": [round(amount / block, 2) for amount in user["week"]],
+                }
+            profiles[name] = profile
+        return profiles
 
     def week_pattern(self, host: str, now: int, days: int, utc_offset: int) -> list[list[float | None]]:
         """The host's share of GPUs in use by weekday (Monday first) and hour,
