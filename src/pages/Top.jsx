@@ -68,7 +68,9 @@ function Freshness({ overview, now }) {
 
 // Each tile shows its average over the period and, on wider screens, opens the
 // metric's trend from the trend chart's history.
-function PeriodTiles({ period, range, history, scope }) {
+// powerLimit (W) is the shown GPUs' combined power limit, which the power icon
+// measures the average draw against.
+function PeriodTiles({ period, range, history, scope, powerLimit }) {
   const ready = period?.has_data;
   const trend = { history, range, scope };
   const incomplete = ready && Number(period.observed_hours) + 0.02 < range.hours;
@@ -85,6 +87,7 @@ function PeriodTiles({ period, range, history, scope }) {
           {...trend}
           label="GPUs in use"
           value={ready ? Number(period.average_busy_gpus).toFixed(1) : '—'}
+          share={ready ? period.gpu_usage_percent / 100 : 0}
           total={ready ? period.gpu_count : null}
           caption={ready ? `${formatPercent(period.gpu_usage_percent)} of GPUs on average` : 'No data yet'}
         />
@@ -93,6 +96,7 @@ function PeriodTiles({ period, range, history, scope }) {
           {...trend}
           label="GPU compute"
           value={ready ? formatPercent(period.compute_load) : '—'}
+          share={ready ? period.compute_load / 100 : 0}
           caption="Average across GPUs"
         />
         <TrendTile
@@ -100,6 +104,7 @@ function PeriodTiles({ period, range, history, scope }) {
           {...trend}
           label="GPU memory"
           value={ready ? formatPercent(period.memory_percent) : '—'}
+          share={ready ? period.memory_percent / 100 : 0}
           caption="Average share in use"
         />
         <TrendTile
@@ -107,6 +112,7 @@ function PeriodTiles({ period, range, history, scope }) {
           {...trend}
           label="GPU power"
           value={ready ? formatPower(period.average_power_w) : '—'}
+          share={ready && powerLimit ? period.average_power_w / powerLimit : 0}
           caption="Average total draw"
         />
       </div>
@@ -298,6 +304,10 @@ export default function Top() {
                     range={range}
                     history={history.data}
                     scope={host === 'all' ? 'All servers' : host}
+                    powerLimit={selectedHosts.reduce(
+                      (total, item) => total + item.gpus.reduce((sum, gpu) => sum + (gpu.power_limit_w ?? 0), 0),
+                      0,
+                    )}
                   />
                 </div>
                 <div

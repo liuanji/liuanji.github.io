@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { Gauge, LayoutGrid, MemoryStick, Zap } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { SERIES } from './config';
 import { BoxTile } from './DetailBoxes';
 import { formatAxisTime, formatFullTime, formatPercent, formatPower } from './format';
+import { MetricIcon } from './MetricIcons';
 
 // Power's axis tops out at the next whole kW above the highest reading.
 function powerTop(rows) {
@@ -15,8 +15,8 @@ function powerTop(rows) {
 // top is the chart's upper bound; it is drawn with marks at 0, half and top.
 export const TREND_METRICS = {
   busy: {
+    key: 'busy',
     label: 'GPUs in use',
-    Icon: LayoutGrid,
     color: SERIES.busy.color,
     read: (point) => point.gpus_in_use,
     format: (value) => value.toFixed(1),
@@ -24,8 +24,8 @@ export const TREND_METRICS = {
     top: (rows) => Math.max(1, ...rows.map((row) => row.point.gpu_count)),
   },
   compute: {
+    key: 'compute',
     label: 'GPU compute',
-    Icon: Gauge,
     color: SERIES.compute.color,
     read: (point) => point.utilization,
     format: formatPercent,
@@ -33,8 +33,8 @@ export const TREND_METRICS = {
     top: () => 100,
   },
   memory: {
+    key: 'memory',
     label: 'GPU memory',
-    Icon: MemoryStick,
     color: SERIES.memory.color,
     read: (point) => point.memory_percent,
     format: formatPercent,
@@ -42,8 +42,8 @@ export const TREND_METRICS = {
     top: () => 100,
   },
   power: {
+    key: 'power',
     label: 'GPU power',
-    Icon: Zap,
     color: '#8B80C9',
     read: (point) => point.power_w,
     format: formatPower,
@@ -94,7 +94,7 @@ function Extreme({ label, row, metric }) {
 
 // The box a period tile opens: the metric across the period, readable on hover,
 // with its average and its highest and lowest points.
-function TrendDetails({ metric, rows, history, range, scope, average }) {
+function TrendDetails({ metric, rows, history, range, scope, average, share }) {
   const readings = rows.filter((row) => row.value != null);
   const highest = readings.reduce((best, row) => (!best || row.value > best.value ? row : best), null);
   const lowest = readings.reduce((best, row) => (!best || row.value < best.value ? row : best), null);
@@ -108,7 +108,7 @@ function TrendDetails({ metric, rows, history, range, scope, average }) {
           style={{ backgroundColor: `${metric.color}1A` }}
           aria-hidden="true"
         >
-          <metric.Icon className="h-[18px] w-[18px]" style={{ color: metric.color }} strokeWidth={2} />
+          <MetricIcon metricKey={metric.key} share={share} color={metric.color} className="h-[18px] w-[18px]" />
         </span>
         <div className="min-w-0">
           <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">
@@ -177,7 +177,8 @@ function TrendDetails({ metric, rows, history, range, scope, average }) {
 
 // A period tile; on wider screens it opens the metric's trend box on a click or
 // a long hover, like the other readings.
-export function TrendTile({ metric: key, history, range, scope, label, value, total = null, caption = null }) {
+// share (0-1) drives the tile's icon: how full, busy or hot the average is.
+export function TrendTile({ metric: key, history, range, scope, label, value, share, total = null, caption = null }) {
   const metric = TREND_METRICS[key];
   const rows = useMemo(() => (history ? trendRows(history, metric) : []), [history, metric]);
   return (
@@ -186,11 +187,19 @@ export function TrendTile({ metric: key, history, range, scope, label, value, to
       value={value}
       total={total}
       caption={caption}
-      icon={metric}
+      icon={{ color: metric.color, glyph: <MetricIcon metricKey={key} share={share} color={metric.color} /> }}
       action="Show its trend"
       details={
         history ? (
-          <TrendDetails metric={metric} rows={rows} history={history} range={range} scope={scope} average={value} />
+          <TrendDetails
+            metric={metric}
+            rows={rows}
+            history={history}
+            range={range}
+            scope={scope}
+            average={value}
+            share={share}
+          />
         ) : null
       }
     />

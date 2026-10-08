@@ -36,7 +36,8 @@ export function Switch({ label, checked, onChange }) {
   );
 }
 
-// icon is { Icon, color }: a small tinted badge in the tile's top-right corner.
+// icon is { glyph, color }: a small badge tinted with color, holding glyph, in
+// the tile's top-right corner.
 export function StatTile({ label, value, total = null, caption = null, icon = null, className = '' }) {
   return (
     <div className={`bg-white rounded-2xl border border-border-light p-5 ${className}`}>
@@ -44,11 +45,11 @@ export function StatTile({ label, value, total = null, caption = null, icon = nu
         <div className="font-mono text-xs text-data-grey">{label}</div>
         {icon && (
           <span
-            className="-mr-1 -mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg"
+            className="-mr-1.5 -mt-1.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg"
             style={{ backgroundColor: `${icon.color}14` }}
             aria-hidden="true"
           >
-            <icon.Icon className="h-3.5 w-3.5" style={{ color: icon.color }} strokeWidth={2.25} />
+            {icon.glyph}
           </span>
         )}
       </div>

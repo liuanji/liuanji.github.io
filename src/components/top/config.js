@@ -74,9 +74,11 @@ export const LEVEL_SERIES = {
 
 // Rough cloud price of one RTX PRO 6000 Blackwell GPU-hour, for the GPU time
 // card's easter egg: the median of ~54 on-demand offers was US$1.81 in October
-// 2026 (thundercompute.com, gpus.io), at about S$1.27 per US$. And a croissant.
+// 2026 (thundercompute.com, gpus.io), at about S$1.27 per US$. And a plain
+// butter croissant, typically S$2-4 at Singapore bakeries in 2026 (eatbook.sg,
+// citynomads.com).
 export const CLOUD_SGD_PER_GPU_HOUR = 2.3;
-export const CROISSANT_SGD = 4.5;
+export const CROISSANT_SGD = 3;
 
 // Availability bars: soft fills, since every bar also has a text description.
 // A bar is partly down when some of its checked time failed but at least

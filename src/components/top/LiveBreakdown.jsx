@@ -1,6 +1,7 @@
 import { HOST_STATUS } from './config';
 import { BoxTile } from './DetailBoxes';
 import { formatMemory, formatMemoryOf, formatPercent, formatPower, hasCurrentData, summarize } from './format';
+import { MetricIcon } from './MetricIcons';
 import { TREND_METRICS } from './PeriodTrends';
 
 function sumOf(gpus, key) {
@@ -70,7 +71,7 @@ function breakdownRows(key, hosts, now) {
   });
 }
 
-function BreakdownDetails({ metricKey, hosts, now, summary }) {
+function BreakdownDetails({ metricKey, hosts, now, summary, share }) {
   const metric = TREND_METRICS[metricKey];
   const rows = breakdownRows(metricKey, hosts, now);
   const single = hosts.length === 1;
@@ -82,7 +83,7 @@ function BreakdownDetails({ metricKey, hosts, now, summary }) {
           style={{ backgroundColor: `${metric.color}1A` }}
           aria-hidden="true"
         >
-          <metric.Icon className="h-[18px] w-[18px]" style={{ color: metric.color }} strokeWidth={2} />
+          <MetricIcon metricKey={metricKey} share={share} color={metric.color} className="h-[18px] w-[18px]" />
         </span>
         <div className="min-w-0">
           <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">
@@ -125,6 +126,10 @@ export default function LiveTiles({ hosts, allHosts, now }) {
   const summary = summarize(hosts, now);
   const idle = summary.gpusTotal - summary.gpusBusy;
   const memoryShare = summary.memoryTotalMb ? (summary.memoryUsedMb / summary.memoryTotalMb) * 100 : 0;
+  // Draw is measured against the power limits of the GPUs in the totals.
+  const powerLimit = hosts
+    .filter((host) => hasCurrentData(host, now))
+    .reduce((total, host) => total + sumOf(host.gpus, 'power_limit_w'), 0);
   const tiles = [
     {
       key: 'busy',
@@ -132,24 +137,28 @@ export default function LiveTiles({ hosts, allHosts, now }) {
       total: summary.gpusTotal,
       caption: allHosts ? `${idle} idle · ${summary.hostsOnline}/${summary.hostsTotal} servers online` : `${idle} idle`,
       summary: `${summary.gpusBusy} of ${summary.gpusTotal} GPUs in use`,
+      share: summary.gpusTotal ? summary.gpusBusy / summary.gpusTotal : 0,
     },
     {
       key: 'compute',
       value: formatPercent(summary.computeLoad),
       caption: `Average across ${summary.gpusTotal} GPUs`,
       summary: `${formatPercent(summary.computeLoad)} average across ${summary.gpusTotal} GPUs`,
+      share: summary.computeLoad / 100,
     },
     {
       key: 'memory',
       value: formatPercent(memoryShare),
       caption: `${formatMemory(summary.memoryUsedMb)} of ${formatMemory(summary.memoryTotalMb)}`,
       summary: `${formatMemory(summary.memoryUsedMb)} of ${formatMemory(summary.memoryTotalMb)} in use`,
+      share: memoryShare / 100,
     },
     {
       key: 'power',
       value: formatPower(summary.powerW),
       caption: 'Current total draw',
       summary: `${formatPower(summary.powerW)} drawn in total`,
+      share: powerLimit ? summary.powerW / powerLimit : 0,
     },
   ];
   return (
@@ -161,11 +170,16 @@ export default function LiveTiles({ hosts, allHosts, now }) {
           value={tile.value}
           total={tile.total ?? null}
           caption={tile.caption}
-          icon={TREND_METRICS[tile.key]}
+          icon={{
+            color: TREND_METRICS[tile.key].color,
+            glyph: <MetricIcon metricKey={tile.key} share={tile.share} color={TREND_METRICS[tile.key].color} />,
+          }}
           width="w-[440px]"
           action={hosts.length === 1 ? 'Show each GPU' : 'Show each server'}
           details={
-            hosts.length ? <BreakdownDetails metricKey={tile.key} hosts={hosts} now={now} summary={tile.summary} /> : null
+            hosts.length ? (
+              <BreakdownDetails metricKey={tile.key} hosts={hosts} now={now} summary={tile.summary} share={tile.share} />
+            ) : null
           }
         />
       ))}
