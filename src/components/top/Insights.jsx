@@ -72,7 +72,7 @@ function dotColor(shade) {
   return `rgb(${r} ${g} ${b})`;
 }
 const DOT_MIN_PX = 4;
-const DOT_MAX_PX = 15;
+const DOT_MAX_PX = 13;
 // Hours are grouped in blocks this long, which keeps the card calm.
 const BLOCK_HOURS = 3;
 const BLOCKS = 24 / BLOCK_HOURS;
@@ -160,7 +160,7 @@ export function WeekHeatmap({ week, days, title }) {
       <div className="grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2">
         <div className="font-mono text-[10px] text-data-grey/80">
           {DAYS.map((day) => (
-            <span key={day} className="flex h-5 items-center">
+            <span key={day} className="flex h-4 items-center">
               {day}
             </span>
           ))}
@@ -174,7 +174,7 @@ export function WeekHeatmap({ week, days, title }) {
                   key={`${day}-${block}`}
                   onPointerEnter={() => setPicked({ day, block })}
                   onPointerDown={() => setPicked({ day, block })}
-                  className="flex h-5 items-center justify-center"
+                  className="flex h-4 items-center justify-center"
                   aria-hidden="true"
                 >
                   {cell == null ? (
@@ -254,6 +254,44 @@ export function PeoplePanel({ system }) {
             />
           </span>
           <span className="text-right tabular-nums text-inkwell">{formatMemory(user.memory_mb)}</span>
+        </li>
+      ))}
+    </ScrollList>
+  );
+}
+
+// Who has used this server's GPUs most over the last seven days: GPU-hours
+// per person, with a bar against the biggest user in the soft compute blue
+// (as the page's GPU time card), scrolling past about five.
+export function WeekUsers({ stats }) {
+  const users = (stats?.users?.['7d'] ?? []).filter((user) => user.gpu_hours >= 0.5);
+  if (!stats) return <p className="font-mono text-[11px] text-data-grey">Loading…</p>;
+  if (!users.length) return <p className="font-mono text-[11px] text-data-grey">Nobody this week yet.</p>;
+  const most = users[0].gpu_hours;
+  return (
+    <ScrollList count={users.length} rowRem={1.5} className="space-y-2">
+      {users.map((user) => (
+        <li
+          key={user.username}
+          className="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)_4.5rem] items-center gap-3 font-mono text-xs"
+        >
+          <span className="flex min-w-0 items-center gap-1.5 text-inkwell">
+            <span
+              className="h-2 w-2 flex-shrink-0 rounded-full"
+              style={{ backgroundColor: userColor(user.username) }}
+              aria-hidden="true"
+            />
+            <span className="truncate">{user.username}</span>
+          </span>
+          <span className="h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: `${SPARKLINE_COLOR}24` }}>
+            <span
+              className="block h-full rounded-full"
+              style={{ width: `${(user.gpu_hours / most) * 100}%`, backgroundColor: SPARKLINE_COLOR }}
+            />
+          </span>
+          <span className="whitespace-nowrap text-right tabular-nums text-inkwell">
+            {Math.round(user.gpu_hours).toLocaleString('en-US')} h
+          </span>
         </li>
       ))}
     </ScrollList>

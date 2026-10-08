@@ -58,7 +58,7 @@ function ChartTooltip({ active = false, payload = [], label = 0, lines }) {
 // A small chart of the last day: a title with its lines' keys, then the lines
 // with faint gridlines at half and full scale and a few times along the
 // bottom. Each line belongs to the left or right axis, and each axis used is
-// labelled at 0, half and full with its own range and unit (say °C on the
+// labelled at its bottom, middle and top with its own range and unit (say °C on the
 // left and % of the power limit on the right). Drawn at a fixed width, as a
 // responsive chart would measure the box mid-animation.
 const CHART_WIDTH = 556;
@@ -117,8 +117,8 @@ function MiniChart({
               key={side}
               yAxisId={side}
               orientation={side}
-              domain={[0, axis?.max ?? 100]}
-              ticks={axis ? [0, axis.max / 2, axis.max] : [0, 50, 100]}
+              domain={[axis?.min ?? 0, axis?.max ?? 100]}
+              ticks={axis ? [axis.min ?? 0, ((axis.min ?? 0) + axis.max) / 2, axis.max] : [0, 50, 100]}
               tickFormatter={axis ? axis.format : () => ''}
               hide={!axis}
               axisLine={false}
@@ -248,7 +248,10 @@ export function GpuDeepDetails({ gpu, host, timeline, reservation = null, me = n
               start={timeline.start}
               end={timeline.end}
               axes={{
-                left: { max: 100, format: (value) => `${value}°C`, width: 44 },
+                // 20-90 °C: idle GPUs sit near 30 °C and these throttle near 90 °C.
+                // Its marks (20, 55, 90) sit level with power's 0, 50 and 100%,
+                // so both share the gridlines.
+                left: { min: 20, max: 90, format: (value) => `${value}°C`, width: 44 },
                 right: { max: 100, format: (value) => `${value}%`, width: 40 },
               }}
               lines={[

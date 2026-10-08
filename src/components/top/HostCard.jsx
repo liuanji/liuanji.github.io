@@ -4,7 +4,7 @@ import { HISTORY_REFRESH_MS, LEVEL_SERIES, READING_STYLES, RESERVATION_CLASH, SE
 import { StatusPill } from './controls';
 import { DetailsPopover, RamDetails } from './DetailBoxes';
 import { CpuDeepDetails, GpuDeepDetails, SystemHistory, UsersBreakdown } from './ExpandedBoxes';
-import { PeoplePanel, Sparkline, WeekHeatmap, formatDuration, isHeldIdle } from './Insights';
+import { PeoplePanel, Sparkline, WeekHeatmap, WeekUsers, formatDuration, isHeldIdle } from './Insights';
 import { useStatusFile } from './useStatusFile';
 import { ReserveControl, clashingUsers, findReservation, formatLeft } from './Reservations';
 import {
@@ -335,13 +335,19 @@ function GpuRow({ gpu, host, interactive, now, reserving, timeline }) {
   );
 }
 
-// Below the GPUs: who uses the server's CPU and RAM, and its typical week.
-function ServerInsights({ host, timeline }) {
+// Below the GPUs: who uses the server's CPU and RAM now, who has used its GPUs
+// this week, and its typical week. The first keeps a compact width, the week
+// only what its grid needs, and this week's GPU time takes the rest.
+function ServerInsights({ host, timeline, stats }) {
   return (
-    <div className="grid gap-x-10 gap-y-6 border-t border-border-light px-6 py-5 lg:grid-cols-2">
+    <div className="grid gap-x-10 gap-y-6 border-t border-border-light px-6 py-5 lg:grid-cols-[22rem_minmax(0,1fr)_auto]">
       <section aria-label="CPU and RAM by user">
         <h4 className="mb-3 font-mono text-[11px] uppercase tracking-wider text-data-grey/70">CPU &amp; RAM by user</h4>
         <PeoplePanel system={host.system} />
+      </section>
+      <section aria-label="GPU time over the last 7 days">
+        <h4 className="mb-3 font-mono text-[11px] uppercase tracking-wider text-data-grey/70">GPU time · 7 days</h4>
+        <WeekUsers stats={stats} />
       </section>
       <section aria-label="Typical week">
         {timeline ? (
@@ -361,6 +367,8 @@ function ServerInsights({ host, timeline }) {
 export default function HostCard({ host, now, reserving = null, token }) {
   // Each GPU's last day and the server's typical week, refreshed with the trends.
   const timeline = useStatusFile(`gpus-${host.name}`, HISTORY_REFRESH_MS, token).data;
+  // This server's own stats, shared with the page when it is the one selected.
+  const stats = useStatusFile(`stats-${host.name}`, HISTORY_REFRESH_MS, token).data;
   // Each GPU's series with the span they cover, which the file gives once.
   const timelines = Object.fromEntries(
     (timeline?.gpus ?? []).map((gpu) => [
@@ -429,7 +437,7 @@ export default function HostCard({ host, now, reserving = null, token }) {
         ) : (
           <p className="px-6 py-8 text-sm text-data-grey">No data from this server right now.</p>
         )}
-        <ServerInsights host={host} timeline={timeline} />
+        <ServerInsights host={host} timeline={timeline} stats={stats} />
       </div>
     </article>
   );
