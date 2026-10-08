@@ -216,12 +216,15 @@ def build_files(
     if not live_only:
         for host in settings.hosts:
             files[f"gpus-{host}"] = public_gpus(database, host, now, utc_offset)
+    lifetime = None if live_only else database.lifetime()
     for host in (None, *settings.hosts):
         key = host or "all"
         if not live_only:
             files[f"stats-{key}"] = {
                 "generated_at": now,
                 "host": host,
+                # The lab's all-time GPU time, the same in every stats file.
+                "lifetime": lifetime,
                 "periods": database.period_summaries(PERIODS, now=now, host=host),
                 "users": {
                     name: database.user_summary(now - seconds, now, host)

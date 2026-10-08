@@ -12,6 +12,7 @@ import {
 const decimal = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
 const clock = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const day = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
+const fullDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 const weekday = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 const dayAndClock = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
@@ -46,6 +47,11 @@ export function formatCpuModel(system) {
 }
 
 // "S$1,240", or "S$8.40" under a hundred.
+// "14 Sep 2026".
+export function formatDate(timestamp) {
+  return fullDate.format(new Date(timestamp * 1000));
+}
+
 export function formatSgd(amount) {
   return amount >= 100 ? `S$${Math.round(amount).toLocaleString('en-US')}` : `S$${amount.toFixed(2)}`;
 }

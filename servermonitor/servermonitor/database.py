@@ -164,6 +164,14 @@ CREATE TABLE IF NOT EXISTS system_hour (
     PRIMARY KEY (bucket, host)
 ) WITHOUT ROWID;
 
+-- GPU time ever credited to users, per GPU model: a running total that the
+-- cleanup never trims, for the lab's milestones. first_at is its earliest hour.
+CREATE TABLE IF NOT EXISTS lifetime_gpu_time (
+    model TEXT PRIMARY KEY,
+    gpu_seconds REAL NOT NULL,
+    first_at INTEGER NOT NULL
+) WITHOUT ROWID;
+
 -- The latest successful disk check per host; each check replaces the last.
 CREATE TABLE IF NOT EXISTS disk_state (
     host TEXT NOT NULL,
@@ -315,6 +323,7 @@ class Database:
             legacy = tables.intersection(LEGACY_TABLES)
             if legacy:
                 self._migrate_legacy(connection, legacy)
+            self._seed_lifetime(connection)
         if legacy:
             # Give the space of the dropped sample tables back to the disk.
             connection = self.connect()
@@ -350,6 +359,68 @@ class Database:
                 self.interval_seconds * 2,
             )
             self._add_user_sums(connection, result, duration)
+            self._add_lifetime(connection, result, duration)
+
+    @staticmethod
+    def _add_lifetime(connection: sqlite3.Connection, result: CollectionResult, duration_seconds: int) -> None:
+        """Add the same GPU time the users were just credited (each user on each
+        GPU) to the lifetime total of that GPU's model."""
+        if duration_seconds <= 0:
+            return
+        gpus = {gpu.uuid: gpu for gpu in result.gpus}
+        users: dict[str, set[str]] = defaultdict(set)
+        for process in result.processes:
+            if process.username != UNKNOWN_USER and process.gpu_uuid in gpus:
+                users[process.gpu_uuid].add(process.username)
+        seconds: dict[str, float] = defaultdict(float)
+        for uuid, names in users.items():
+            seconds[gpus[uuid].name] += len(names) * duration_seconds
+        connection.executemany(
+            """
+            INSERT INTO lifetime_gpu_time (model, gpu_seconds, first_at) VALUES (?, ?, ?)
+            ON CONFLICT (model) DO UPDATE SET gpu_seconds = gpu_seconds + excluded.gpu_seconds
+            """,
+            [(model, amount, result.sampled_at - duration_seconds) for model, amount in seconds.items()],
+        )
+
+    def _seed_lifetime(self, connection: sqlite3.Connection) -> None:
+        """Start the lifetime totals, once, from the hourly user sums already
+        kept, each server's hours counted under its GPUs' model."""
+        if connection.execute("SELECT 1 FROM lifetime_gpu_time LIMIT 1").fetchone():
+            return
+        models: dict[str, str] = {}
+        for row in connection.execute("SELECT host, snapshot FROM host_state"):
+            gpus = json.loads(row["snapshot"]).get("gpus", []) if row["snapshot"] else []
+            if gpus:
+                models[row["host"]] = gpus[0]["name"]
+        totals: dict[str, list[float]] = {}
+        for row in connection.execute(
+            """
+            SELECT host, SUM(active_gpu_seconds) AS seconds, MIN(bucket) AS first_at
+            FROM user_hour WHERE username != ? GROUP BY host
+            """,
+            (UNKNOWN_USER,),
+        ):
+            model = models.get(row["host"], "Unknown GPU")
+            total = totals.setdefault(model, [0.0, row["first_at"]])
+            total[0] += row["seconds"] or 0
+            total[1] = min(total[1], row["first_at"])
+        connection.executemany(
+            "INSERT INTO lifetime_gpu_time (model, gpu_seconds, first_at) VALUES (?, ?, ?)",
+            [(model, seconds, first_at) for model, (seconds, first_at) in totals.items()],
+        )
+
+    def lifetime(self) -> dict[str, Any]:
+        """All GPU time ever credited, in GPU-hours per model and in total."""
+        with self.connect() as connection:
+            rows = connection.execute(
+                "SELECT model, gpu_seconds, first_at FROM lifetime_gpu_time ORDER BY gpu_seconds DESC"
+            ).fetchall()
+        return {
+            "since": min((int(row["first_at"]) for row in rows), default=None),
+            "gpu_hours": round(sum(row["gpu_seconds"] for row in rows) / 3600, 1),
+            "models": [{"model": row["model"], "gpu_hours": round(row["gpu_seconds"] / 3600, 1)} for row in rows],
+        }
 
     @staticmethod
     def _add_system_sums(connection: sqlite3.Connection, result: CollectionResult) -> None:

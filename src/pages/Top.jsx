@@ -394,6 +394,7 @@ export default function Top() {
                     rangeTitle={range.title}
                     showHosts={host === 'all' && hosts.length > 1}
                     who={host === 'all' ? 'The lab' : host}
+                    lifetime={stats.data?.lifetime}
                   />
                 </div>
               </section>

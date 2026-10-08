@@ -3,6 +3,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CLOUD_SGD_PER_GPU_HOUR, CROISSANT_SGD, SERIES } from './config';
 import { cloudPhrase } from './easterEggs';
 import { formatHours, formatSgd } from './format';
+import MilestoneBadge from './Milestone';
 
 function WeightedHelp() {
   return (
@@ -31,7 +32,8 @@ function cloudEstimate(hours, user, who) {
   return cloudPhrase({ amount: formatSgd(amount), croissants: Math.round(amount / CROISSANT_SGD), user, who });
 }
 
-export default function UserRanking({ users, rangeTitle, showHosts, who = 'The lab' }) {
+// lifetime is the lab's all-time GPU time, shown as a milestone badge.
+export default function UserRanking({ users, rangeTitle, showHosts, who = 'The lab', lifetime = null }) {
   const maxHours = Math.max(0.001, ...users.map((user) => user.gpu_hours));
   const [focused, setFocused] = useState(null);
   const focusedUser = users.find((user) => user.username === focused);
@@ -43,12 +45,16 @@ export default function UserRanking({ users, rangeTitle, showHosts, who = 'The l
       : null;
   return (
     <div className="bg-white rounded-2xl border border-border-light overflow-hidden">
-      <div className="border-b border-border-light px-6 pb-4 pt-5">
-        <h3 className="font-tight font-semibold text-lg text-inkwell">GPU time by user</h3>
-        <p className="mt-0.5 text-xs text-data-grey" aria-live="polite">
-          {rangeTitle}
-          {estimate && <span className="italic text-data-grey/80"> · {estimate}</span>}
-        </p>
+      {/* The milestone badge sits at the right, centred on the title and subtitle. */}
+      <div className="flex items-center justify-between gap-4 border-b border-border-light px-6 pb-4 pt-5">
+        <div className="min-w-0">
+          <h3 className="font-tight font-semibold text-lg text-inkwell">GPU time by user</h3>
+          <p className="mt-0.5 text-xs text-data-grey" aria-live="polite">
+            {rangeTitle}
+            {estimate && <span className="italic text-data-grey/80"> · {estimate}</span>}
+          </p>
+        </div>
+        <MilestoneBadge lifetime={lifetime} />
       </div>
       {users.length ? (
         <div className="overflow-x-auto">

@@ -221,6 +221,32 @@ class DatabaseTest(unittest.TestCase):
             ["hardware thermal slowdown", "3 uncorrected memory errors", "memory row remapping pending (needs a reset)"],
         )
 
+    def test_lifetime_counts_each_users_gpu_time_and_survives_cleanup(self) -> None:
+        start = 1_700_000_000
+        for offset in (0, 60, 120):
+            self.database.save(successful_result(start + offset))
+        # Two users on GPU-a for two 60 s intervals: 240 GPU-seconds.
+        lifetime = self.database.lifetime()
+        self.assertEqual(lifetime["models"], [{"model": "Test GPU", "gpu_hours": round(240 / 3600, 1)}])
+        with self.database.connect() as connection:
+            seconds = connection.execute("SELECT gpu_seconds FROM lifetime_gpu_time").fetchone()[0]
+        self.assertEqual(seconds, 240)
+        self.database.cleanup(rollup_retention_days=1, now=start + 10 * 86400)
+        with self.database.connect() as connection:
+            self.assertEqual(connection.execute("SELECT gpu_seconds FROM lifetime_gpu_time").fetchone()[0], 240)
+
+    def test_lifetime_is_seeded_once_from_hourly_sums(self) -> None:
+        start = 1_700_000_000
+        for offset in (0, 60):
+            self.database.save(successful_result(start + offset))
+        with self.database.connect() as connection:
+            connection.execute("DELETE FROM lifetime_gpu_time")
+        self.database.initialize()
+        self.database.initialize()
+        with self.database.connect() as connection:
+            rows = connection.execute("SELECT model, gpu_seconds FROM lifetime_gpu_time").fetchall()
+        self.assertEqual([(row[0], row[1]) for row in rows], [("Test GPU", 120)])
+
     def test_observed_time_survives_collection_interval_change(self) -> None:
         start = 1_700_000_000
         for offset in (0, 60, 120, 180):
