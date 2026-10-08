@@ -88,9 +88,17 @@ class PublishTest(unittest.TestCase):
     def test_history_points_carry_only_chart_fields(self) -> None:
         points = build_files(self.settings, self.database, now=self.start + 60)["history-all-1h"]["points"]
 
+        # Power is the total: the two GPUs draw 200 W and 40 W.
         self.assertEqual(
             points[0],
-            {"timestamp": self.start, "utilization": 25.0, "memory_percent": 10.0, "gpus_in_use": 1.0, "gpu_count": 2},
+            {
+                "timestamp": self.start,
+                "utilization": 25.0,
+                "memory_percent": 10.0,
+                "gpus_in_use": 1.0,
+                "gpu_count": 2,
+                "power_w": 240,
+            },
         )
 
     def test_writes_json_files(self) -> None:

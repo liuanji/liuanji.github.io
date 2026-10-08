@@ -31,12 +31,17 @@ HISTORY_FIELDS = ("utilization", "memory_percent", "gpus_in_use")
 
 
 def public_history(points: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Only what the trend chart draws, to one decimal."""
+    """Only what the trend chart and the period tiles' trends draw, to one
+    decimal. Power is the total draw, like the GPU power tile: the average per
+    GPU reading times the GPUs in the point."""
     return [
         {
             "timestamp": point["timestamp"],
             **{key: round(point[key], 1) for key in HISTORY_FIELDS},
             "gpu_count": point["gpu_count"],
+            "power_w": None
+            if point.get("power_w") is None
+            else round(point["power_w"] * point["gpu_count"]),
         }
         for point in points
     ]

@@ -352,8 +352,9 @@ export function pressurePhrase(part, share, host) {
 }
 
 // state is one of uptimeState's; count of total bars were in it. "A few" is up
-// to a tenth of them, or for up, anything short of most.
-export function legendPhrase(state, count, total) {
+// to a tenth of them, or for up, anything short of most. key (such as a server's
+// name) deals different lines to different rows with the same counts.
+export function legendPhrase(state, count, total, key = '') {
   const pools = LEGEND[state];
   const share = total ? count / total : 0;
   let band;
@@ -361,7 +362,7 @@ export function legendPhrase(state, count, total) {
   else if (state === 'up') band = count === total ? 'all' : share >= 0.5 ? 'many' : 'few';
   else band = share <= 0.1 ? 'few' : 'many';
   const pool = pools[band];
-  return pool[hash(`legend|${state}|${band}`) % pool.length];
+  return pool[hash(`legend|${state}|${band}|${key}`) % pool.length];
 }
 
 export function idleGpuPhrase(host, index) {

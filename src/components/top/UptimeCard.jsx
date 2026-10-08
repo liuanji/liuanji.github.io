@@ -43,11 +43,19 @@ function legendCount(seriesList, state) {
   return { count, of, adjective: monitored ? 'monitored' : '' };
 }
 
-// "brezel: 34 of 36 monitored days up", "brezel: no data for 54 of 90 days".
-function rowSummary(series, state, barSeconds) {
+// "brezel: 34 of 36 monitored days up", "brezel: no data for 54 of 90 days",
+// then the server's own easter egg.
+function RowSummary({ series, state, barSeconds }) {
   const { count, of, adjective } = legendCount([series], state);
   const span = `${count} of ${formatBarCount(of, barSeconds, adjective)}`;
-  return state === 'none' ? `${series.name}: no data for ${span}` : `${series.name}: ${span} ${UPTIME_STATES[state].label.toLowerCase()}`;
+  return (
+    <>
+      {state === 'none'
+        ? `${series.name}: no data for ${span}`
+        : `${series.name}: ${span} ${UPTIME_STATES[state].label.toLowerCase()}`}
+      <span className="italic text-data-grey/80"> · {legendPhrase(state, count, of, series.name)}</span>
+    </>
+  );
 }
 
 // One server: hover, tap or arrow keys pick a bar, whose details replace the axis
@@ -128,7 +136,9 @@ function UptimeRow({ series, status, uptime, rangeAgo, focus }) {
       </div>
       <div className="mt-2 flex h-4 items-center justify-between gap-3 font-mono text-[11px] text-data-grey/70" aria-live="polite">
         {active == null && focus ? (
-          <span className="w-full truncate text-center text-data-grey">{rowSummary(series, focus, uptime.bar_seconds)}</span>
+          <span className="w-full truncate text-center text-data-grey">
+            <RowSummary series={series} state={focus} barSeconds={uptime.bar_seconds} />
+          </span>
         ) : active == null ? (
           <>
             <span>{rangeAgo}</span>

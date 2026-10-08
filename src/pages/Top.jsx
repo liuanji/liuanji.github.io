@@ -7,6 +7,7 @@ import CompactHosts from '../components/top/CompactHosts';
 import DiskCard from '../components/top/DiskCard';
 import HostCard from '../components/top/HostCard';
 import LoginCard from '../components/top/LoginCard';
+import { TrendTile } from '../components/top/PeriodTrends';
 import UptimeCard from '../components/top/UptimeCard';
 import UsageChart from '../components/top/UsageChart';
 import UserRanking from '../components/top/UserRanking';
@@ -91,8 +92,11 @@ function LiveTiles({ hosts, allHosts, now }) {
   );
 }
 
-function PeriodTiles({ period, range }) {
+// Each tile shows its average over the period and a sparkline from the trend
+// chart's history, and opens the full trend on wider screens.
+function PeriodTiles({ period, range, history, scope }) {
   const ready = period?.has_data;
+  const trend = { history, range, scope };
   const incomplete = ready && Number(period.observed_hours) + 0.02 < range.hours;
   return (
     <>
@@ -102,23 +106,31 @@ function PeriodTiles({ period, range }) {
         </p>
       )}
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile
+        <TrendTile
+          metric="busy"
+          {...trend}
           label="GPUs in use"
           value={ready ? Number(period.average_busy_gpus).toFixed(1) : '—'}
           total={ready ? period.gpu_count : null}
           caption={ready ? `${formatPercent(period.gpu_usage_percent)} of GPUs on average` : 'No data yet'}
         />
-        <StatTile
+        <TrendTile
+          metric="compute"
+          {...trend}
           label="GPU compute"
           value={ready ? formatPercent(period.compute_load) : '—'}
           caption="Average across GPUs"
         />
-        <StatTile
+        <TrendTile
+          metric="memory"
+          {...trend}
           label="GPU memory"
           value={ready ? formatPercent(period.memory_percent) : '—'}
           caption="Average share in use"
         />
-        <StatTile
+        <TrendTile
+          metric="power"
+          {...trend}
           label="GPU power"
           value={ready ? formatPower(period.average_power_w) : '—'}
           caption="Average total draw"
@@ -218,7 +230,7 @@ export default function Top() {
             className="mb-10"
           >
             <div className="font-mono text-sm text-data-grey mb-3">Lab Compute</div>
-            <h1 className="font-tight font-bold text-5xl lg:text-6xl text-inkwell">GPU Servers</h1>
+            <h1 className="font-tight font-bold text-5xl lg:text-6xl text-inkwell">Servers</h1>
             <p className="text-data-grey mt-4 max-w-2xl text-base leading-relaxed">
               Live usage of the Tractable Bakery Lab&apos;s servers.
             </p>
@@ -302,7 +314,12 @@ export default function Top() {
                   />
                 </div>
                 <div className={`transition-opacity duration-300 ${stats.isPlaceholderData ? 'opacity-50' : ''}`}>
-                  <PeriodTiles period={period} range={range} />
+                  <PeriodTiles
+                    period={period}
+                    range={range}
+                    history={history.data}
+                    scope={host === 'all' ? 'All servers' : host}
+                  />
                 </div>
                 <div
                   className={`mb-6 transition-opacity duration-300 ${history.isPlaceholderData ? 'opacity-50' : ''}`}
