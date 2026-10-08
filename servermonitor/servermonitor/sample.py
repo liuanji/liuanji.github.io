@@ -21,7 +21,7 @@ from pathlib import Path
 from .collector import CollectionResult, DiskResult, DiskStat, GPUStat, ProcessStat, SystemStat
 from .config import Settings
 from .database import Database
-from .publish import build_files, public_disks, write_files
+from .publish import build_files, public_disks, public_roster, write_files
 
 
 LIVE_INTERVAL_SECONDS = 30
@@ -49,6 +49,13 @@ DISK_USE = {
 SCRATCH_DISK_BYTES = 15_238_728_286_208
 USERS = ("alice", "bob", "carol", "dave", "erin", "frank", "grace")
 USER_WEIGHTS = (6, 4, 3, 2, 2, 1, 1)
+# Login accounts per host: heidi has accounts but runs nothing, and grace has
+# none on toast.
+SIMULATED_ACCOUNTS = {
+    "brezel": (*USERS, "heidi"),
+    "toast": (*(user for user in USERS if user != "grace"), "heidi"),
+    "croissant": (*USERS, "heidi"),
+}
 
 
 @dataclass(frozen=True)
@@ -104,7 +111,7 @@ class SimulatedHost:
             DiskStat(mount, size, round(size * share), size - round(size * share))
             for mount, share in zip(("/scratch1", "/scratch2"), DISK_USE[self.name])
         )
-        return DiskResult(self.name, now, True, disks)
+        return DiskResult(self.name, now, True, disks, accounts=tuple(sorted(SIMULATED_ACCOUNTS[self.name])))
 
     def sample(self, now: int, seconds: int) -> CollectionResult:
         if now >= self.down_until and self.random.random() < 1 - math.exp(-seconds / OUTAGE_EVERY_SECONDS):
@@ -204,6 +211,7 @@ def main() -> None:
     def publish(database: Database) -> None:
         files = build_files(settings, database)
         files["disks"] = public_disks(settings, database)
+        files["roster"] = public_roster(settings, database)
         write_files(files, args.work_dir / "files")
 
     print(f"servermonitor.sample: simulating {args.days} days of usage…", flush=True)

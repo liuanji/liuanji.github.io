@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 import subprocess
 import time
 from dataclasses import dataclass
@@ -15,13 +16,20 @@ GPU_MARKER = "__SERVERMONITOR_GPUS__"
 APP_MARKER = "__SERVERMONITOR_APPS__"
 USER_MARKER = "__SERVERMONITOR_USERS__"
 SYSTEM_MARKER = "__SERVERMONITOR_SYSTEM__"
+ACCOUNT_MARKER = "__SERVERMONITOR_ACCOUNTS__"
 
 # Every /scratch* mount, in bytes; a host without one reports no disks. timeout
-# stops a hung mount from stalling the check.
-DISK_SCRIPT = """\
+# stops a hung mount from stalling the check. The same slow check lists the
+# host's login accounts (regular UIDs with a usable shell), the usernames that
+# may sign in to the /top page.
+DISK_SCRIPT = f"""\
 export LC_ALL=C
 timeout 10 df -P -B1 /scratch* 2>/dev/null || true
+printf '%s\\n' '{ACCOUNT_MARKER}'
+timeout 10 getent passwd 2>/dev/null | awk -F: '$3 >= 1000 && $3 < 60000 && $7 !~ /(nologin|false)$/ {{print $1}}' || true
 """
+# What a username may look like; anything else in getent's output is skipped.
+ACCOUNT_PATTERN = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,31}$")
 
 # The system section prints the aggregate "cpu" line of /proc/stat from before
 # the GPU queries and again at least a second later, so CPU load is measured
@@ -111,6 +119,8 @@ class DiskResult:
     success: bool
     disks: tuple[DiskStat, ...] = ()
     error: str | None = None
+    # The host's login accounts, sorted; None when they could not be listed.
+    accounts: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -294,8 +304,14 @@ def parse_df_output(output: str) -> tuple[DiskStat, ...]:
     return tuple(disks.values())
 
 
+def parse_accounts(output: str) -> tuple[str, ...]:
+    """One username per line, as the disk check's account section prints them."""
+    return tuple(sorted({line.strip() for line in output.splitlines() if ACCOUNT_PATTERN.match(line.strip())}))
+
+
 def _check_disks(host: str, command: list[str], timeout_seconds: int) -> DiskResult:
     checked_at = int(time.time())
+    accounts = None
     try:
         completed = subprocess.run(
             command,
@@ -309,9 +325,12 @@ def _check_disks(host: str, command: list[str], timeout_seconds: int) -> DiskRes
             raise ValueError(
                 completed.stderr.strip() or f"disk check exited with code {completed.returncode}"
             )
-        return DiskResult(host, checked_at, True, parse_df_output(completed.stdout))
+        df_output, marker, account_output = completed.stdout.partition(ACCOUNT_MARKER)
+        accounts = parse_accounts(account_output) if marker else None
+        return DiskResult(host, checked_at, True, parse_df_output(df_output), accounts=accounts)
     except (OSError, subprocess.TimeoutExpired, ValueError) as exc:
-        return DiskResult(host, checked_at, False, error=str(exc)[-500:])
+        # Accounts listed before df failed are still worth keeping.
+        return DiskResult(host, checked_at, False, error=str(exc)[-500:], accounts=accounts)
 
 
 class LocalCollector:

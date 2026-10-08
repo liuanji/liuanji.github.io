@@ -184,6 +184,14 @@ class DatabaseTest(unittest.TestCase):
         self.assertEqual(brezel["disks"][1]["used_bytes"], 700)
         self.assertEqual(toast, {"name": "toast", "checked_at": None, "disks": []})
 
+    def test_accounts_keep_the_latest_listing(self) -> None:
+        self.database.save_disks(DiskResult("brezel", 1_700_000_000, True, (), accounts=("alice", "bob")))
+        self.database.save_disks(DiskResult("brezel", 1_700_001_800, False, error="timed out"))
+        self.assertEqual(self.database.accounts(("brezel", "toast")), {"brezel": ["alice", "bob"], "toast": []})
+
+        self.database.save_disks(DiskResult("brezel", 1_700_003_600, False, error="no disks", accounts=("carol",)))
+        self.assertEqual(self.database.accounts(("brezel",)), {"brezel": ["carol"]})
+
     def test_observed_time_survives_collection_interval_change(self) -> None:
         start = 1_700_000_000
         for offset in (0, 60, 120, 180):

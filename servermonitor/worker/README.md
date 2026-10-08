@@ -8,12 +8,22 @@ instead of being billed.
 | Endpoint | Who | What |
 | --- | --- | --- |
 | `POST /upload` | jump machine, `Authorization: Bearer <UPLOAD_TOKEN>` | body `{"files": {"<name>": "<JSON text>", ...}}`, 1–40 files, ≤ 1 MB |
-| `POST /login` | anyone, 10 attempts per IP per minute | body `{"password": "<LOGIN_PASSWORD>"}`; returns `{"token", "expires_at"}`, a session valid 30 days |
-| `GET /files/<name>` | `Authorization: Bearer <session>`; CORS only for `ALLOWED_ORIGINS` | the stored JSON text |
+| `POST /login` | anyone, 10 attempts per IP per minute | body `{"username": "<server account>", "password": "<LOGIN_PASSWORD>"}`; returns `{"token", "expires_at", "user"}`, a session valid 30 days |
+| `GET /files/<name>` | `Authorization: Bearer <session>`; CORS only for `ALLOWED_ORIGINS` | the stored JSON text; the overview also carries `reservations` |
+| `POST /reservations` | session, 10 per person per minute | body `{"host", "gpu", "minutes"}` (1–240); reserves a free GPU |
+| `DELETE /reservations/<host>/<gpu>` | session | releases your own reservation |
 
-A session is its expiry plus an HMAC of the expiry and `LOGIN_PASSWORD`, keyed
-with `SESSION_SECRET`; nothing is stored. Changing either secret signs everyone
-out.
+Only usernames in the **roster** may sign in: the servers' login accounts, which
+the jump machine lists during its 30-minute disk check and uploads as the
+private `roster` file (never served) whenever it changes. A session is its
+expiry and username plus an HMAC of both and `LOGIN_PASSWORD`, keyed with
+`SESSION_SECRET`; nothing is stored. Changing either secret signs everyone out.
+
+**Reservations** let someone hold a GPU for debugging: at most 4 hours and 2
+GPUs per person, only on servers where they have an account. They live in the
+`reservations` table, one row per GPU that is overwritten when the GPU is
+reserved again, so each reserve or release is a single D1 row write. The page
+reads them from the overview it already polls, so they add no requests.
 
 File contents are sent as JSON *strings* so the Worker stores them without
 parsing (the free plan allows 10 ms CPU per request).

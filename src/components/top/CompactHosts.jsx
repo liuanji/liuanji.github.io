@@ -1,6 +1,6 @@
-import { Thermometer, Zap } from 'lucide-react';
+import { Bookmark, Lock, Thermometer, Zap } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, TEMPERATURE_ICON_RANGE } from './config';
+import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, RESERVATION_MARKS, TEMPERATURE_ICON_RANGE } from './config';
 import { ServerLink, StatusPill } from './controls';
 import {
   ChipGlyph,
@@ -14,8 +14,9 @@ import {
   heatColor,
 } from './DetailBoxes';
 import { formatAgo, formatMemory, formatMemoryOf, hasCurrentData, ramLevel, temperatureLevel, userColor } from './format';
+import { ReserveControl, clashingUsers, findReservation } from './Reservations';
 
-function describe(gpu, host) {
+function describe(gpu, host, reservation) {
   const parts = [
     `${host} GPU ${gpu.index}`,
     `${Math.round(gpu.utilization)}% compute`,
@@ -28,6 +29,7 @@ function describe(gpu, host) {
     );
   }
   parts.push(gpu.users.length ? gpu.users.map((user) => user.username).join(', ') : gpu.busy ? 'in use' : 'idle');
+  if (reservation) parts.push(`reserved by ${reservation.user}`);
   return parts.join(' · ');
 }
 
@@ -102,21 +104,35 @@ function HeatIcons({ temperature, power, className }) {
 // is worth a closer look, while high power is normal under load and only shows
 // its icon. On phones the icons sit beside the GPU's name, as its ring leaves
 // no room in the corner. On wider screens the tile is a button that opens the
-// GPU's details.
-function GpuRing({ gpu, host, interactive }) {
+// GPU's details. With reservations on, the top-left corner reserves the GPU or
+// shows its holder's bookmark, which tells who and for how long. The viewer's
+// own reservations get a lavender bookmark and a faint lavender tint, others'
+// a grey lock; a reserved GPU someone else runs on turns soft amber, with
+// an amber outline when that someone is the viewer.
+function GpuRing({ gpu, host, interactive, now, reserving }) {
   const hot = temperatureLevel(gpu.temperature_c) === 'hot';
   const temperature = heat(gpu.temperature_c, TEMPERATURE_ICON_RANGE);
   const power = heat(gpu.power_limit_w ? gpu.power_w / gpu.power_limit_w : null, POWER_ICON_RANGE);
-  const label = describe(gpu, host);
+  const reservation = reserving ? findReservation(reserving.reservations, host, gpu.index, now) : null;
+  const clash = clashingUsers(gpu, reservation);
+  const meClashing = Boolean(reserving) && clash.includes(reserving.me);
+  const mine = Boolean(reservation) && reservation.user === reserving.me;
+  const label = describe(gpu, host, reservation);
   const Tile = interactive ? 'button' : 'div';
   const tile = (
     <Tile
       {...(interactive
         ? { type: 'button', 'aria-label': `${label}. Show details.` }
         : { role: 'img', 'aria-label': label, title: label })}
-      className={`relative flex w-full min-w-0 flex-col items-center rounded-2xl px-1.5 pb-2.5 pt-3 transition-colors ${
-        hot ? 'bg-[#B33A3A]/[0.07]' : 'bg-[#F6F7F9] hover:bg-[#F1F3F6] data-[state=open]:bg-[#ECEFF3]'
-      } ${gpu.busy ? '' : 'opacity-55'} ${
+      className={`relative flex h-full w-full min-w-0 flex-col items-center rounded-2xl px-1.5 pb-2.5 pt-3 transition-colors ${
+        hot
+          ? 'bg-[#B33A3A]/[0.07]'
+          : clash.length
+            ? 'bg-[#E8B14F]/[0.13] hover:bg-[#E8B14F]/[0.18] data-[state=open]:bg-[#E8B14F]/[0.22]'
+            : mine
+              ? 'bg-[#8478D6]/[0.08] hover:bg-[#8478D6]/[0.11] data-[state=open]:bg-[#8478D6]/[0.14]'
+              : 'bg-[#F6F7F9] hover:bg-[#F1F3F6] data-[state=open]:bg-[#ECEFF3]'
+      } ${meClashing ? 'ring-2 ring-inset ring-[#E8B14F]' : ''} ${gpu.busy || reservation ? '' : 'opacity-55'} ${
         interactive ? 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20' : ''
       }`}
     >
@@ -132,11 +148,30 @@ function GpuRing({ gpu, host, interactive }) {
       </div>
     </Tile>
   );
-  if (!interactive) return tile;
-  return (
+  const withDetails = interactive ? (
     <DetailsPopover content={<GpuDetails gpu={gpu} host={host} />} width="w-[460px]">
       {tile}
     </DetailsPopover>
+  ) : (
+    tile
+  );
+  if (!reserving) return withDetails;
+  // A sibling over the tile's corner, since a button cannot hold another.
+  return (
+    <div className="relative min-w-0">
+      {withDetails}
+      <ReserveControl
+        host={host}
+        gpu={gpu}
+        reservation={reservation}
+        me={reserving.me}
+        held={reserving.held}
+        now={now}
+        onReserve={reserving.reserve}
+        onRelease={reserving.release}
+        className="absolute left-0.5 top-0.5 sm:left-1 sm:top-1"
+      />
+    </div>
   );
 }
 
@@ -211,7 +246,7 @@ function SystemMeters({ system, host, interactive }) {
   );
 }
 
-function CompactHost({ host, now, interactive, onOpen }) {
+function CompactHost({ host, now, interactive, onOpen, reserving }) {
   const busy = host.gpus.filter((gpu) => gpu.busy).length;
   const compute = host.gpus.length
     ? host.gpus.reduce((total, gpu) => total + gpu.utilization, 0) / host.gpus.length
@@ -247,7 +282,14 @@ function CompactHost({ host, now, interactive, onOpen }) {
       {host.gpus.length ? (
         <div className={`grid grid-cols-4 gap-1 sm:gap-2 lg:grid-cols-8 ${outdated ? 'opacity-50' : ''}`}>
           {host.gpus.map((gpu) => (
-            <GpuRing key={gpu.index} gpu={gpu} host={host.name} interactive={interactive} />
+            <GpuRing
+              key={gpu.index}
+              gpu={gpu}
+              host={host.name}
+              interactive={interactive}
+              now={now}
+              reserving={reserving}
+            />
           ))}
         </div>
       ) : (
@@ -283,15 +325,23 @@ function LegendItem({ children }) {
   return <span className="inline-flex items-center gap-1.5">{children}</span>;
 }
 
-// onOpen(name) switches the page to that server's own panel.
-export default function CompactHosts({ hosts, now, onOpen }) {
+// onOpen(name) switches the page to that server's own panel. reserving, when
+// the Worker supports reservations, is { reservations, me, held, reserve, release }.
+export default function CompactHosts({ hosts, now, onOpen, reserving = null }) {
   // The details box needs room beside the tiles, so phones keep plain tiles.
   const interactive = !useIsMobile();
   return (
     <div>
       <div className="space-y-4">
         {hosts.map((host) => (
-          <CompactHost key={host.name} host={host} now={now} interactive={interactive} onOpen={onOpen} />
+          <CompactHost
+            key={host.name}
+            host={host}
+            now={now}
+            interactive={interactive}
+            onOpen={onOpen}
+            reserving={reserving}
+          />
         ))}
       </div>
       <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 font-mono text-[11px] text-data-grey">
@@ -311,6 +361,29 @@ export default function CompactHosts({ hosts, now, onOpen }) {
           <HeatScale Icon={Zap} />
           70–100% of power limit
         </LegendItem>
+        {reserving && (
+          <>
+            <LegendItem>
+              <Bookmark
+                className="h-3.5 w-3.5"
+                style={{ color: RESERVATION_MARKS.mine }}
+                fill="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+              />
+              Reserved by you
+            </LegendItem>
+            <LegendItem>
+              <Lock
+                className="h-3.5 w-3.5"
+                style={{ color: RESERVATION_MARKS.others }}
+                strokeWidth={2.25}
+                aria-hidden="true"
+              />
+              Reserved by others (debugging, up to 4 h)
+            </LegendItem>
+          </>
+        )}
       </div>
     </div>
   );

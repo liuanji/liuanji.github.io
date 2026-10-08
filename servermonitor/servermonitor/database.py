@@ -142,6 +142,14 @@ CREATE TABLE IF NOT EXISTS disk_state (
     PRIMARY KEY (host, mount)
 ) WITHOUT ROWID;
 
+-- Each host's login accounts from the latest check that could list them, as a
+-- JSON array.
+CREATE TABLE IF NOT EXISTS account_state (
+    host TEXT PRIMARY KEY,
+    accounts TEXT NOT NULL,
+    checked_at INTEGER NOT NULL
+) WITHOUT ROWID;
+
 CREATE TABLE IF NOT EXISTS app_metadata (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -355,7 +363,18 @@ class Database:
             )
 
     def save_disks(self, result: DiskResult) -> None:
-        """A failed check keeps the host's previous numbers."""
+        """A failed check keeps the host's previous numbers, and a check that
+        could not list accounts keeps the previous accounts."""
+        if result.accounts is not None:
+            with self.connect() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO account_state (host, accounts, checked_at) VALUES (?, ?, ?)
+                    ON CONFLICT (host) DO UPDATE SET
+                        accounts = excluded.accounts, checked_at = excluded.checked_at
+                    """,
+                    (result.host, json.dumps(list(result.accounts)), result.checked_at),
+                )
         if not result.success:
             return
         with self.connect() as connection:
@@ -378,6 +397,15 @@ class Database:
                     for disk in result.disks
                 ],
             )
+
+    def accounts(self, hosts: Iterable[str]) -> dict[str, list[str]]:
+        """Each host's latest login accounts; empty for a host never listed."""
+        with self.connect() as connection:
+            stored = {
+                row["host"]: json.loads(row["accounts"])
+                for row in connection.execute("SELECT host, accounts FROM account_state")
+            }
+        return {host: stored.get(host, []) for host in hosts}
 
     def disks(self, hosts: Iterable[str]) -> list[dict[str, Any]]:
         """Each host's latest disks, by mount."""

@@ -94,3 +94,14 @@ export const UPTIME_PARTIAL_AT = 0.95;
 // Age of the newest published overview before the page calls it delayed / offline.
 export const DELAYED_AFTER_SECONDS = 3 * 60;
 export const OFFLINE_AFTER_SECONDS = 15 * 60;
+
+// GPU reservations for debugging; the Worker enforces the same limits.
+export const RESERVATION_MINUTES = [30, 60, 120, 240];
+export const DEFAULT_RESERVATION_MINUTES = 60;
+export const MAX_RESERVATIONS_PER_USER = 2;
+// A reserved GPU someone else is running on: a soft amber, stronger when that
+// someone is the viewer.
+export const RESERVATION_CLASH = { color: '#A15C07', tint: '#E8B14F' };
+// The viewer's own reservations: a bookmark in a soft lavender no reading uses,
+// with a faint tint of it on the tile. Everyone else's: a lock in a quiet grey.
+export const RESERVATION_MARKS = { mine: '#8478D6', others: '#A3B1C6' };

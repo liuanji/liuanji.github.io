@@ -113,6 +113,22 @@ def public_disks(settings: Settings, database: Database, now: int | None = None)
     }
 
 
+def public_roster(settings: Settings, database: Database) -> dict[str, Any]:
+    """Who may sign in to the page and reserve which GPUs: each host's login
+    accounts and GPU indices. Uploaded for the Worker only; it never serves it."""
+    accounts = database.accounts(settings.hosts)
+    overview = database.overview(settings.hosts, settings.stale_after_seconds)
+    return {
+        "hosts": {
+            host["name"]: {
+                "users": accounts[host["name"]],
+                "gpus": [gpu["index"] for gpu in host["gpus"]],
+            }
+            for host in overview["hosts"]
+        }
+    }
+
+
 def build_files(
     settings: Settings,
     database: Database,

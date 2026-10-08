@@ -12,6 +12,14 @@ function withTimeout(signal) {
   return AbortSignal.any ? AbortSignal.any([signal, timeout]) : timeout;
 }
 
+// The Worker lets the browser reuse a file for 15 s. Right after this page
+// changes a reservation, refetches skip that cache, so the change cannot be
+// undone on screen by an older copy of the overview.
+let reloadUntil = 0;
+export function skipCacheBriefly() {
+  reloadUntil = Date.now() + 20_000;
+}
+
 // One JSON file published by servermonitor (see servermonitor/servermonitor/publish.py).
 // While a new host or range loads, the previous file stays on screen as placeholder data.
 // A rejected session fails with error.status 401 and is not retried. Polling pauses
@@ -24,6 +32,7 @@ export function useStatusFile(name, refetchInterval, token) {
       const response = await fetch(`${gpuStatusUrl}/files/${name}`, {
         signal: withTimeout(signal),
         headers: { Authorization: `Bearer ${token}` },
+        cache: Date.now() < reloadUntil ? 'reload' : 'default',
       });
       if (!response.ok) {
         throw Object.assign(new Error(`${name} returned ${response.status}`), { status: response.status });

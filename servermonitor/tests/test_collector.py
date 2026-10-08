@@ -5,6 +5,7 @@ from unittest.mock import patch
 from servermonitor.collector import (
     LocalCollector,
     SSHCollector,
+    parse_accounts,
     parse_collector_output,
     parse_df_output,
 )
@@ -40,6 +41,27 @@ class DiskParserTest(unittest.TestCase):
     def test_no_rows_is_an_error(self) -> None:
         with self.assertRaisesRegex(ValueError, "no disks"):
             parse_df_output("Filesystem 1-blocks Used Available Capacity Mounted on\n")
+
+
+class AccountTest(unittest.TestCase):
+    def test_parses_sorted_unique_usernames(self) -> None:
+        self.assertEqual(parse_accounts("\nbob\nalice\nbob\n-rf\nnot a name\n"), ("alice", "bob"))
+
+    def test_disk_check_returns_disks_and_accounts(self) -> None:
+        output = DF_OUTPUT + "__SERVERMONITOR_ACCOUNTS__\nalice\nbob\n"
+        with patch("subprocess.run", return_value=CompletedProcess([], 0, output, "")):
+            result = SSHCollector().collect_disks("brezel")
+
+        self.assertTrue(result.success)
+        self.assertEqual(len(result.disks), 2)
+        self.assertEqual(result.accounts, ("alice", "bob"))
+
+    def test_accounts_survive_a_host_without_disks(self) -> None:
+        with patch("subprocess.run", return_value=CompletedProcess([], 0, "__SERVERMONITOR_ACCOUNTS__\nalice\n", "")):
+            result = SSHCollector().collect_disks("brezel")
+
+        self.assertFalse(result.success)
+        self.assertEqual(result.accounts, ("alice",))
 
 
 class CollectorParserTest(unittest.TestCase):

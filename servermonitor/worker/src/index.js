@@ -3,14 +3,22 @@
 //
 //   POST /upload        Authorization: Bearer <UPLOAD_TOKEN>
 //                       body: {"files": {"<name>": "<JSON text>", ...}}
-//   POST /login         body: {"password": "<LOGIN_PASSWORD>"}
-//                       returns {"token": "<session>", "expires_at": <unix seconds>}
+//   POST /login         body: {"username": "<server account>", "password": "<LOGIN_PASSWORD>"}
+//                       returns {"token": "<session>", "expires_at": <unix seconds>, "user": "<name>"}
 //   GET  /files/<name>  Authorization: Bearer <session>
-//                       the stored JSON text, readable from ALLOWED_ORIGINS
+//                       the stored JSON text, readable from ALLOWED_ORIGINS; the
+//                       overview also lists the current GPU reservations
+//   POST /reservations  Authorization: Bearer <session>
+//                       body: {"host": "<name>", "gpu": <index>, "minutes": <1-240>}
+//                       reserves a free GPU
+//   DELETE /reservations/<host>/<gpu>
+//                       Authorization: Bearer <session>; releases your reservation
+//   Both reservation calls return {"reservations": [...]}, the current list.
 //
-// A session is "<expiry>.<HMAC of the expiry and LOGIN_PASSWORD>" keyed with
-// SESSION_SECRET, so changing the password signs everyone out without any
-// session storage.
+// A session is "<expiry>.<username>.<HMAC of both and LOGIN_PASSWORD>" keyed
+// with SESSION_SECRET, so changing the password signs everyone out without any
+// session storage. Only usernames in the roster, the servers' login accounts
+// uploaded by the jump machine, may sign in; the roster itself is never served.
 //
 // File contents arrive as JSON strings and are stored verbatim, so the Worker
 // never parses or re-serializes them: the free plan allows 10 ms CPU per request.
@@ -20,6 +28,29 @@ const MAX_UPLOAD_CHARS = 1_000_000;
 // D1 allows 50 queries per invocation on the free plan; each file is one query.
 const MAX_FILES_PER_UPLOAD = 40;
 const SESSION_SECONDS = 30 * 24 * 60 * 60;
+const USERNAME_PATTERN = /^[A-Za-z0-9_][A-Za-z0-9._-]{0,31}$/;
+const SESSION_PATTERN = /^(\d{1,12})\.([A-Za-z0-9_][A-Za-z0-9._-]{0,31})\.([A-Za-z0-9_-]{43})$/;
+// Files only the Worker reads.
+const PRIVATE_FILES = new Set(["roster"]);
+// GPUs are reserved for debugging: at most this long, and this many per person.
+const MAX_RESERVATION_MINUTES = 240;
+const MAX_RESERVATIONS_PER_USER = 2;
+const ACTIVE_RESERVATIONS = `
+  SELECT host, gpu, user, starts_at, ends_at FROM reservations
+  WHERE ends_at > ?1 ORDER BY host, gpu
+`;
+// Takes a free GPU (or one whose reservation has ended) unless the caller
+// already holds the maximum. One statement, so two people clicking at once
+// cannot both win. A reservation is never extended: its holder releases it
+// and reserves again, like anyone else.
+const RESERVE = `
+  INSERT INTO reservations (host, gpu, user, starts_at, ends_at)
+  SELECT ?1, ?2, ?3, ?4, ?5
+  WHERE (SELECT COUNT(*) FROM reservations WHERE user = ?3 AND ends_at > ?4) < ?6
+  ON CONFLICT (host, gpu) DO UPDATE SET
+    user = excluded.user, starts_at = excluded.starts_at, ends_at = excluded.ends_at
+  WHERE reservations.ends_at <= excluded.starts_at
+`;
 const UPSERT = `
   INSERT INTO files (name, body, updated_at) VALUES (?1, ?2, ?3)
   ON CONFLICT (name) DO UPDATE SET body = excluded.body, updated_at = excluded.updated_at
@@ -40,10 +71,22 @@ export default {
         return await login(request, env, cors);
       }
       if (request.method === "GET" && url.pathname.startsWith("/files/")) {
-        if (!(await validSession(bearer(request), env))) {
+        if (!(await sessionUser(bearer(request), env))) {
           return json({ error: "login required" }, 401, cors);
         }
         return await read(url.pathname.slice("/files/".length), env, cors);
+      }
+      if (url.pathname === "/reservations" || url.pathname.startsWith("/reservations/")) {
+        const user = await sessionUser(bearer(request), env);
+        if (!user) {
+          return json({ error: "login required" }, 401, cors);
+        }
+        if (request.method === "POST" && url.pathname === "/reservations") {
+          return await reserve(request, user, env, cors);
+        }
+        if (request.method === "DELETE") {
+          return await release(url.pathname.slice("/reservations/".length), user, env, cors);
+        }
       }
       return json({ error: "not found" }, 404, cors);
     } catch (error) {
@@ -90,11 +133,16 @@ async function upload(request, env) {
 }
 
 async function read(name, env, cors) {
-  const body = NAME_PATTERN.test(name)
+  let body = NAME_PATTERN.test(name) && !PRIVATE_FILES.has(name)
     ? await env.DB.prepare("SELECT body FROM files WHERE name = ?1").bind(name).first("body")
     : null;
   if (body === null) {
     return json({ error: "not found" }, 404, cors);
+  }
+  if (name === "overview" && body.startsWith("{") && body !== "{}") {
+    // Spliced in as text, so the overview itself is never parsed.
+    const reservations = await activeReservations(env);
+    body = `{"reservations":${JSON.stringify(reservations)},${body.slice(1)}`;
   }
   return new Response(body, {
     headers: {
@@ -114,33 +162,107 @@ async function login(request, env, cors) {
   if (env.LOGIN_LIMITER && !(await env.LOGIN_LIMITER.limit({ key: ip })).success) {
     return json({ error: "too many attempts" }, 429, cors);
   }
-  let password;
+  let password, username;
   try {
-    ({ password } = await request.json());
+    ({ password, username } = await request.json());
   } catch {
     return json({ error: "body must be a JSON object" }, 400, cors);
   }
   if (typeof password !== "string" || !(await secretEquals(password, env.LOGIN_PASSWORD))) {
     return json({ error: "wrong password" }, 401, cors);
   }
+  const roster = await readRoster(env);
+  if (!roster) {
+    return json({ error: "the server accounts have not been uploaded yet" }, 503, cors);
+  }
+  // Accounts are matched ignoring case, then signed in under their exact name.
+  const wanted = typeof username === "string" ? username.trim().toLowerCase() : "";
+  const accounts = new Set(Object.values(roster.hosts ?? {}).flatMap((host) => host.users ?? []));
+  const user = [...accounts].find((account) => account.toLowerCase() === wanted);
+  if (!user || !USERNAME_PATTERN.test(user)) {
+    return json({ error: "unknown user" }, 403, cors);
+  }
   const expiresAt = Math.floor(Date.now() / 1000) + SESSION_SECONDS;
-  const token = `${expiresAt}.${base64url(await sessionSignature(expiresAt, env))}`;
-  return json({ token, expires_at: expiresAt }, 200, cors);
+  const token = `${expiresAt}.${user}.${base64url(await sessionSignature(expiresAt, user, env))}`;
+  return json({ token, expires_at: expiresAt, user }, 200, cors);
 }
 
-async function validSession(token, env) {
+// The signed-in username, or null for a missing, expired or forged session.
+async function sessionUser(token, env) {
   if (!env.LOGIN_PASSWORD || !env.SESSION_SECRET) {
-    return false;
+    return null;
   }
-  const match = /^(\d{1,12})\.([A-Za-z0-9_-]{43})$/.exec(token);
+  const match = SESSION_PATTERN.exec(token);
   if (!match || Number(match[1]) <= Date.now() / 1000) {
-    return false;
+    return null;
   }
-  const expected = await sessionSignature(Number(match[1]), env);
-  return crypto.subtle.timingSafeEqual(fromBase64url(match[2]), expected);
+  const expected = await sessionSignature(Number(match[1]), match[2], env);
+  return crypto.subtle.timingSafeEqual(fromBase64url(match[3]), expected) ? match[2] : null;
 }
 
-async function sessionSignature(expiresAt, env) {
+async function readRoster(env) {
+  const body = await env.DB.prepare("SELECT body FROM files WHERE name = 'roster'").first("body");
+  try {
+    return body ? JSON.parse(body) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function activeReservations(env) {
+  const now = Math.floor(Date.now() / 1000);
+  const { results } = await env.DB.prepare(ACTIVE_RESERVATIONS).bind(now).all();
+  return results;
+}
+
+async function reserve(request, user, env, cors) {
+  // Shares the login limiter, so a runaway page cannot burn through D1 writes.
+  if (env.LOGIN_LIMITER && !(await env.LOGIN_LIMITER.limit({ key: `reserve:${user}` })).success) {
+    return json({ error: "too many attempts" }, 429, cors);
+  }
+  let host, gpu, minutes;
+  try {
+    ({ host, gpu, minutes } = await request.json());
+  } catch {
+    return json({ error: "body must be a JSON object" }, 400, cors);
+  }
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > MAX_RESERVATION_MINUTES) {
+    return json({ error: `minutes must be 1 to ${MAX_RESERVATION_MINUTES}` }, 400, cors);
+  }
+  const roster = await readRoster(env);
+  const server = typeof host === "string" ? roster?.hosts?.[host] : undefined;
+  if (!server || !Number.isInteger(gpu) || !(server.gpus ?? []).includes(gpu)) {
+    return json({ error: "no such GPU" }, 404, cors);
+  }
+  if (!(server.users ?? []).includes(user)) {
+    return json({ error: "no account on this server" }, 403, cors);
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const { meta } = await env.DB.prepare(RESERVE)
+    .bind(host, gpu, user, now, now + minutes * 60, MAX_RESERVATIONS_PER_USER)
+    .run();
+  const reservations = await activeReservations(env);
+  if (!meta.changes) {
+    const holder = reservations.find((item) => item.host === host && item.gpu === gpu);
+    return holder
+      ? json({ error: "already reserved", reservations }, 409, cors)
+      : json({ error: "reservation limit reached", reservations }, 409, cors);
+  }
+  return json({ reservations }, 200, cors);
+}
+
+async function release(path, user, env, cors) {
+  const match = /^([^/]{1,64})\/(\d{1,3})$/.exec(path);
+  if (!match) {
+    return json({ error: "not found" }, 404, cors);
+  }
+  await env.DB.prepare("DELETE FROM reservations WHERE host = ?1 AND gpu = ?2 AND user = ?3")
+    .bind(decodeURIComponent(match[1]), Number(match[2]), user)
+    .run();
+  return json({ reservations: await activeReservations(env) }, 200, cors);
+}
+
+async function sessionSignature(expiresAt, user, env) {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(env.SESSION_SECRET),
@@ -148,7 +270,7 @@ async function sessionSignature(expiresAt, env) {
     false,
     ["sign"],
   );
-  const message = new TextEncoder().encode(`${expiresAt}\n${env.LOGIN_PASSWORD}`);
+  const message = new TextEncoder().encode(`${expiresAt}\n${user}\n${env.LOGIN_PASSWORD}`);
   return new Uint8Array(await crypto.subtle.sign("HMAC", key, message));
 }
 
@@ -190,7 +312,7 @@ function corsHeaders(request, env) {
   return {
     Vary: "Origin",
     "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Authorization, Content-Type",
     "Access-Control-Max-Age": "86400",
   };

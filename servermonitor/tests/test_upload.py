@@ -78,8 +78,8 @@ class UploaderTest(unittest.TestCase):
         self.assertEqual(request.full_url, "https://relay.example/upload")
         self.assertEqual(request.get_header("Authorization"), "Bearer secret")
         names = set(json.loads(request.data)["files"])
-        self.assertEqual(names, {"overview", "history-all-1h", "history-brezel-1h", "uptime-1h"})
-        self.assertEqual(count, 4)
+        self.assertEqual(names, {"overview", "history-all-1h", "history-brezel-1h", "uptime-1h", "roster"})
+        self.assertEqual(count, 5)
 
     def test_uploads_disks_only_after_a_new_check(self) -> None:
         def uploaded_names() -> set[str]:
@@ -92,6 +92,18 @@ class UploaderTest(unittest.TestCase):
         self.uploader.database.save_disks(DiskResult("brezel", 1_700_000_030, True, (disk,)))
         self.assertIn("disks", uploaded_names())
         self.assertNotIn("disks", uploaded_names())
+
+    def test_uploads_the_roster_only_when_it_changes(self) -> None:
+        def uploaded() -> dict[str, str]:
+            with patch.object(upload.urllib.request, "urlopen") as urlopen:
+                self.uploader.upload_once(live_only=True, now=1_700_000_060)
+            return json.loads(urlopen.call_args.args[0].data)["files"]
+
+        self.assertEqual(json.loads(uploaded()["roster"]), {"hosts": {"brezel": {"users": [], "gpus": [0, 1]}}})
+        self.assertNotIn("roster", uploaded())
+        self.uploader.database.save_disks(DiskResult("brezel", 1_700_000_030, False, error="x", accounts=("alice",)))
+        self.assertEqual(json.loads(uploaded()["roster"])["hosts"]["brezel"]["users"], ["alice"])
+        self.assertNotIn("roster", uploaded())
 
     def test_missing_token_is_an_upload_error(self) -> None:
         self.token_path.unlink()

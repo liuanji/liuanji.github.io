@@ -29,6 +29,7 @@ import {
   formatPercent,
   formatPower,
 } from '../components/top/format';
+import { useReservations } from '../components/top/useReservations';
 import { useSession } from '../components/top/useSession';
 import { useNow, useStatusFile } from '../components/top/useStatusFile';
 import { gpuStatusUrl } from '../data/servers';
@@ -124,7 +125,8 @@ export default function Top() {
   useDocumentTitle('Servers · NUS Tractable Bakery Lab');
   const [params, setParams] = useSearchParams();
   const now = useNow();
-  const { token, signIn, signOut } = useSession();
+  const { token, user, signIn, signOut } = useSession();
+  const { reserve, release } = useReservations(token, signOut);
   const [compact, setCompact] = useStoredFlag('gpu-status-compact', true);
   // The range a link names wins; otherwise the one last picked in this browser.
   const [savedRange, setSavedRange] = useStoredChoice('gpu-status-range');
@@ -210,6 +212,17 @@ export default function Top() {
   const period = stats.data?.periods.find((item) => item.range === range.value);
   const selectedNames = new Set(selectedHosts.map((item) => item.name));
   const diskHosts = (disks.data?.hosts ?? []).filter((item) => selectedNames.has(item.name));
+  // Only a Worker that supports reservations lists them in the overview.
+  const reservations = overview.data?.reservations;
+  const reserving = reservations
+    ? {
+        reservations,
+        me: user,
+        held: reservations.filter((item) => item.user === user && item.ends_at > now).length,
+        reserve,
+        release,
+      }
+    : null;
 
   return (
     <div className="bg-paper min-h-screen page-enter">
@@ -230,13 +243,13 @@ export default function Top() {
             {gpuStatusUrl && token && (
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                 <Freshness overview={overview} now={now} />
-                <button
-                  type="button"
-                  onClick={signOut}
-                  className="font-mono text-xs text-data-grey transition-colors hover:text-inkwell"
-                >
-                  Sign out
-                </button>
+                <span className="font-mono text-xs text-data-grey">
+                  {user}
+                  <span aria-hidden="true"> · </span>
+                  <button type="button" onClick={signOut} className="transition-colors hover:text-inkwell">
+                    Sign out
+                  </button>
+                </span>
               </div>
             )}
           </motion.div>
@@ -285,7 +298,7 @@ export default function Top() {
                 </SectionLabel>
                 <LiveTiles hosts={selectedHosts} allHosts={host === 'all'} now={now} />
                 {host === 'all' && compact ? (
-                  <CompactHosts hosts={selectedHosts} now={now} onOpen={openHost} />
+                  <CompactHosts hosts={selectedHosts} now={now} onOpen={openHost} reserving={reserving} />
                 ) : (
                   <div className="space-y-6">
                     {selectedHosts.map((item) => (

@@ -3,7 +3,8 @@
 The page refreshes the overview and the 1h histories and availability every
 minute and everything else every 5 minutes, so uploads follow the same cadence.
 That is about 17,000 D1 row writes a day for three hosts, well inside the free
-plan's 100,000.
+plan's 100,000. The disks and the roster (who may sign in) go up only when they
+change, a few dozen writes a day at most.
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from typing import Any, Iterator
 
 from .config import Settings
 from .database import Database
-from .publish import build_files, public_disks
+from .publish import build_files, public_disks, public_roster
 
 
 LOGGER = logging.getLogger(__name__)
@@ -75,6 +76,8 @@ class Uploader:
         self._error: str | None = None
         # The newest disk check already uploaded; disks go up only after a new one.
         self._disks_checked_at: int | None = None
+        # The roster last uploaded, as JSON text; it goes up again only once it changes.
+        self._roster: str | None = None
 
     def _token(self) -> str:
         # Read on every upload so a rotated token takes effect without a restart.
@@ -113,9 +116,14 @@ class Uploader:
         disks = public_disks(self.settings, self.database, now=now)
         if disks["checked_at"] is not None and disks["checked_at"] != self._disks_checked_at:
             files["disks"] = disks
+        roster = public_roster(self.settings, self.database)
+        roster_text = json.dumps(roster, sort_keys=True)
+        if roster_text != self._roster:
+            files["roster"] = roster
         for body in batches(files):
             self._post(body, token)
         self._disks_checked_at = disks["checked_at"]
+        self._roster = roster_text
         return len(files)
 
     def _log_failure(self, error: str | None) -> None:
