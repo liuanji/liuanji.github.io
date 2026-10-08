@@ -1,6 +1,7 @@
 import { Croissant } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CLOUD_SGD_PER_GPU_HOUR, MILESTONES, PASTRIES } from './config';
+import { pastryPilePhrase } from './easterEggs';
 import { formatDate, formatSgd } from './format';
 
 // Warm bakery tones for the badge and its box.
@@ -74,18 +75,32 @@ function PastryMountain({ climb }) {
     filled -= baked;
     return { count, baked };
   });
+  // Each row's first croissant's place in baking order, bottom row first.
+  const starts = rows.map((_, row) => rows.slice(0, row).reduce((total, { count }) => total + count, 0));
   return (
     <div className="flex flex-col-reverse items-center gap-0.5" aria-hidden="true">
       {rows.map(({ count, baked }, row) => (
         <div key={row} className="flex gap-0.5">
-          {Array.from({ length: count }, (_, index) => (
-            <Croissant
-              key={index}
-              className="h-6 w-6"
-              strokeWidth={1.6}
-              style={index < baked ? { color: CRUST, fill: BUTTER } : { color: FLOUR }}
-            />
-          ))}
+          {Array.from({ length: count }, (_, index) =>
+            index < baked ? (
+              // A baked croissant lifts and glows on hover, with a little line above it.
+              <span key={index} className="group/pastry relative">
+                <Croissant
+                  className="h-6 w-6 transition-transform duration-200 group-hover/pastry:-translate-y-0.5 group-hover/pastry:scale-125 group-hover/pastry:drop-shadow-[0_1px_3px_rgba(183,121,43,0.45)]"
+                  strokeWidth={1.6}
+                  style={{ color: CRUST, fill: BUTTER }}
+                />
+                <span
+                  className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md border px-2 py-1 font-tight text-[11px] text-inkwell opacity-0 shadow-sm transition-opacity duration-200 group-hover/pastry:opacity-100"
+                  style={{ backgroundColor: '#FFFBF4', borderColor: '#F1DFBD' }}
+                >
+                  {pastryPilePhrase(starts[row] + index)}
+                </span>
+              </span>
+            ) : (
+              <Croissant key={index} className="h-6 w-6" strokeWidth={1.6} style={{ color: FLOUR }} />
+            ),
+          )}
         </div>
       ))}
     </div>

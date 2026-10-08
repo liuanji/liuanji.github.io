@@ -140,5 +140,8 @@ export const MILESTONES = [
   { hours: 100000, rank: 'Pastry empire', line: 'Croissants as far as the eye can see.' },
   { hours: 250000, rank: 'Flour-powered planet', line: 'The whole world runs on our bread.' },
   { hours: 500000, rank: 'Galactic patisserie', line: 'Deliveries now reach other star systems.' },
-  { hours: 1000000, rank: 'Croissant cosmos', line: 'A universe of perfectly laminated dough. Well done, everyone.' },
+  { hours: 1000000, rank: 'Croissant cosmos', line: 'A universe of perfectly laminated dough.' },
+  { hours: 2000000, rank: 'Pastry multiverse', line: 'Every universe has a branch of this bakery.' },
+  { hours: 5000000, rank: 'Eternal oven', line: 'The ovens have been warm since the dawn of time.' },
+  { hours: 10000000, rank: 'The Great Croissant', line: 'Ten million hours of baking. Well done, everyone.' },
 ];

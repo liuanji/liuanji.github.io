@@ -1,7 +1,7 @@
 import { TriangleAlert } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { HISTORY_REFRESH_MS, LEVEL_SERIES, READING_STYLES, RESERVATION_CLASH, SERIES } from './config';
-import { StatusPill } from './controls';
+import { DownNotice, StatusPill } from './controls';
 import { DetailsPopover, RamDetails } from './DetailBoxes';
 import { CpuDeepDetails, GpuDeepDetails, SystemHistory, UsersBreakdown } from './ExpandedBoxes';
 import { PeoplePanel, Sparkline, WeekHeatmap, WeekUsers, formatDuration, isHeldIdle } from './Insights';
@@ -381,6 +381,9 @@ export default function HostCard({ host, now, reserving = null, token }) {
   const interactive = !useIsMobile();
   // A server that stopped reporting keeps its last readings, dimmed and labelled.
   const outdated = host.data_sampled_at != null && !hasCurrentData(host, now);
+  // Not reporting: the GPUs fade back behind a note saying so.
+  const down = outdated || host.status === 'error';
+  const dim = outdated ? 'opacity-50' : undefined;
   return (
     <article className="bg-white rounded-2xl border border-border-light overflow-hidden">
       <header className="flex flex-col gap-3 border-b border-border-light px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -397,47 +400,48 @@ export default function HostCard({ host, now, reserving = null, token }) {
           <StatusPill status={host.status} />
         </div>
       </header>
-      {outdated && (
-        <p className="border-b border-border-light bg-paper/60 px-6 py-2.5 text-xs text-data-grey">
-          Last reported {formatAgo(now - host.data_sampled_at)}. The readings below may be out of date and are left out
-          of the totals.
-        </p>
-      )}
-      <div className={outdated ? 'opacity-50' : undefined}>
+      <div>
         {host.system && (
-          <SystemStrip system={host.system} host={host.name} interactive={interactive} timeline={timeline} />
+          <div className={dim}>
+            <SystemStrip system={host.system} host={host.name} interactive={interactive} timeline={timeline} />
+          </div>
         )}
         {host.gpus.length ? (
-          <>
-            <div className="hidden border-b border-border-light font-mono text-[11px] uppercase tracking-wider text-data-grey/70 md:flex">
-              <div className={`${ROW_GRID} min-w-0 flex-1 py-2 pl-6 ${reserving ? 'pr-2' : 'pr-6'}`}>
-                <span>GPU</span>
-                <span>Last 24 h</span>
-                <span>Compute</span>
-                <span>Memory</span>
-                <span>Temp · Power</span>
-                <span>Users</span>
+          <div className="relative">
+            <div className={down ? 'opacity-25 grayscale' : undefined}>
+              <div className="hidden border-b border-border-light font-mono text-[11px] uppercase tracking-wider text-data-grey/70 md:flex">
+                <div className={`${ROW_GRID} min-w-0 flex-1 py-2 pl-6 ${reserving ? 'pr-2' : 'pr-6'}`}>
+                  <span>GPU</span>
+                  <span>Last 24 h</span>
+                  <span>Compute</span>
+                  <span>Memory</span>
+                  <span>Temp · Power</span>
+                  <span>Users</span>
+                </div>
+                {reserving && <span className={`${RESERVE_COLUMN} py-2`}>Reserved</span>}
               </div>
-              {reserving && <span className={`${RESERVE_COLUMN} py-2`}>Reserved</span>}
+              <div className="divide-y divide-border-light">
+                {host.gpus.map((gpu) => (
+                  <GpuRow
+                    key={gpu.index}
+                    gpu={gpu}
+                    host={host.name}
+                    interactive={interactive}
+                    now={now}
+                    reserving={reserving}
+                    timeline={timelines[gpu.index]}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="divide-y divide-border-light">
-              {host.gpus.map((gpu) => (
-                <GpuRow
-                  key={gpu.index}
-                  gpu={gpu}
-                  host={host.name}
-                  interactive={interactive}
-                  now={now}
-                  reserving={reserving}
-                  timeline={timelines[gpu.index]}
-                />
-              ))}
-            </div>
-          </>
+            {down && <DownNotice host={host} now={now} />}
+          </div>
         ) : (
           <p className="px-6 py-8 text-sm text-data-grey">No data from this server right now.</p>
         )}
-        <ServerInsights host={host} timeline={timeline} stats={stats} />
+        <div className={dim}>
+          <ServerInsights host={host} timeline={timeline} stats={stats} />
+        </div>
       </div>
     </article>
   );

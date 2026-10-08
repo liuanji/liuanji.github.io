@@ -220,6 +220,23 @@ const IDLE_GPU = [
   'Warm, empty and waiting',
 ];
 
+// Lines across a server's dimmed GPUs while it is not reporting, in the present
+// tense since they describe right now; {host} is the server's name.
+const HOST_DOWN = [
+  '{host} is out of the oven for now',
+  '{host} is taking a little nap',
+  '{host} is cooling on the rack',
+  '{host} stepped out for more flour',
+  '{host} is waiting for the dough to rise',
+  '{host} has gone quiet in the kitchen',
+  '{host} is off the menu for a moment',
+  'The ovens at {host} are cold right now',
+  '{host} is having a long coffee break',
+  '{host} wandered off to the market',
+  '{host} is resting between batches',
+  'Nobody is answering the door at {host}',
+];
+
 // Lines for a reserved GPU nobody is running on yet, in place of the idle
 // ones: the viewer's own, or someone else's, where {user} is who holds it.
 const RESERVED_IDLE = {
@@ -753,4 +770,38 @@ export function reservedIdlePhrase(host, index, holder, mine) {
 
 export function idleGpuPhrase(host, index) {
   return IDLE_GPU[hash(`idle|${host}|${index}`) % IDLE_GPU.length];
+}
+
+// Chosen once per page load, so the line stays put while the server is down.
+export function hostDownPhrase(host) {
+  return HOST_DOWN[hash(`down|${host}`) % HOST_DOWN.length].replaceAll('{host}', host);
+}
+
+// Lines for the baked croissants in the milestone box's pastry pile, one per
+// croissant on hover.
+const PASTRY_PILE = [
+  'Golden and extra flaky',
+  'Still warm, careful!',
+  'Baked with love and tensors',
+  'Laminated with 81 layers of butter',
+  'Fresh from brezel’s oven',
+  'Toast says this one is the best',
+  'Proofed overnight, like a long training run',
+  'Crunchy outside, fluffy inside',
+  'Somebody took a tiny bite already',
+  'The baker’s favourite',
+  'Perfectly crescent-shaped',
+  'Smells like a converged loss',
+  'Made from 100% organic gradients',
+  'A little lopsided, still delicious',
+  'Saved for the lab meeting',
+  'Pairs well with a kopi',
+  'Do not tell the others, but this one is the best',
+  'Ready for the morning queue',
+];
+
+// Lines are dealt in a fresh order each page load, so no two croissants in the
+// pile share one.
+export function pastryPilePhrase(index) {
+  return PASTRY_PILE[(hash('pile') + index) % PASTRY_PILE.length];
 }

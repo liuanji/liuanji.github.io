@@ -1,7 +1,7 @@
 import { Thermometer, Zap } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, RESERVATION_CLASH, TEMPERATURE_ICON_RANGE } from './config';
-import { ServerLink, StatusPill } from './controls';
+import { DownNotice, ServerLink, StatusPill } from './controls';
 import {
   ChipGlyph,
   CpuDetails,
@@ -13,7 +13,7 @@ import {
   heat,
   heatColor,
 } from './DetailBoxes';
-import { formatAgo, formatMemory, formatMemoryOf, hasCurrentData, ramLevel, temperatureLevel, userColor } from './format';
+import { formatMemory, formatMemoryOf, hasCurrentData, ramLevel, temperatureLevel, userColor } from './format';
 import { ReservationMark, ReserveControl, clashingUsers, findReservation } from './Reservations';
 
 function describe(gpu, host, reservation) {
@@ -25,7 +25,9 @@ function describe(gpu, host, reservation) {
   if (gpu.temperature_c != null) parts.push(`${Math.round(gpu.temperature_c)}°C`);
   if (gpu.power_w != null) {
     parts.push(
-      gpu.power_limit_w ? `${Math.round(gpu.power_w)} of ${Math.round(gpu.power_limit_w)} W` : `${Math.round(gpu.power_w)} W`,
+      gpu.power_limit_w
+        ? `${Math.round(gpu.power_w)} of ${Math.round(gpu.power_limit_w)} W`
+        : `${Math.round(gpu.power_w)} W`,
     );
   }
   parts.push(gpu.users.length ? gpu.users.map((user) => user.username).join(', ') : gpu.busy ? 'in use' : 'idle');
@@ -93,7 +95,11 @@ function UserLabel({ gpu, reservation, me, clash }) {
   if (!first) return <span className="text-data-grey/60">{gpu.busy ? 'in use' : 'idle'}</span>;
   return (
     <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-inkwell">
-      <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: userColor(first.username) }} aria-hidden="true" />
+      <span
+        className="h-2 w-2 flex-shrink-0 rounded-full"
+        style={{ backgroundColor: userColor(first.username) }}
+        aria-hidden="true"
+      />
       <span className="truncate" style={clash ? { color: RESERVATION_CLASH.color } : undefined}>
         {first.username}
       </span>
@@ -106,7 +112,9 @@ function HeatIcons({ temperature, power, className }) {
   if (temperature == null && power == null) return null;
   return (
     <span className={`items-center gap-0.5 ${className}`} aria-hidden="true">
-      {temperature != null && <Thermometer className="h-3.5 w-3.5" style={{ color: heatColor(temperature) }} strokeWidth={2.25} />}
+      {temperature != null && (
+        <Thermometer className="h-3.5 w-3.5" style={{ color: heatColor(temperature) }} strokeWidth={2.25} />
+      )}
       {power != null && <Zap className="h-3.5 w-3.5" style={{ color: heatColor(power) }} strokeWidth={2.25} />}
     </span>
   );
@@ -141,8 +149,8 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
         hot
           ? 'bg-[#B33A3A]/[0.07]'
           : mine
-              ? 'bg-[#8478D6]/[0.11] hover:bg-[#8478D6]/[0.14] data-[state=open]:bg-[#8478D6]/[0.17]'
-              : 'bg-[#F6F7F9] hover:bg-[#F1F3F6] data-[state=open]:bg-[#ECEFF3]'
+            ? 'bg-[#8478D6]/[0.11] hover:bg-[#8478D6]/[0.14] data-[state=open]:bg-[#8478D6]/[0.17]'
+            : 'bg-[#F6F7F9] hover:bg-[#F1F3F6] data-[state=open]:bg-[#ECEFF3]'
       } ${
         meClashing
           ? 'ring-2 ring-inset ring-[#E8B14F]'
@@ -150,10 +158,16 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
             ? 'outline-dashed outline-[1.5px] outline-offset-[-1.5px] outline-[#94A3B8]'
             : ''
       } ${gpu.busy || reservation ? '' : 'opacity-55'} ${
-        interactive ? 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20' : ''
+        interactive
+          ? 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20'
+          : ''
       }`}
     >
-      <HeatIcons temperature={temperature} power={power} className="absolute right-1.5 top-1.5 hidden flex-col sm:flex" />
+      <HeatIcons
+        temperature={temperature}
+        power={power}
+        className="absolute right-1.5 top-1.5 hidden flex-col sm:flex"
+      />
       <UsageRing gpu={gpu} />
       <div className="mt-2 flex items-center gap-1 whitespace-nowrap font-mono text-[11px] text-data-grey">
         GPU {gpu.index}
@@ -272,6 +286,8 @@ function CompactHost({ host, now, interactive, onOpen, reserving }) {
     ? host.gpus.reduce((total, gpu) => total + gpu.utilization, 0) / host.gpus.length
     : 0;
   const outdated = host.data_sampled_at != null && !hasCurrentData(host, now);
+  // Not reporting: the GPUs fade back behind a note saying so.
+  const down = outdated || host.status === 'error';
   return (
     <article className="bg-white rounded-2xl border border-border-light px-4 pb-3 pt-4 sm:px-5">
       {/* One line on wider screens; on phones the status moves up beside the
@@ -286,7 +302,6 @@ function CompactHost({ host, now, interactive, onOpen, reserving }) {
           </span>
         )}
         <span className="order-4 flex w-full flex-wrap items-center gap-x-5 gap-y-2 font-mono text-xs text-data-grey sm:order-3 sm:ml-auto sm:w-auto">
-          {outdated && <span>last reported {formatAgo(now - host.data_sampled_at)}</span>}
           {host.system && (
             <span className={outdated ? 'opacity-50' : undefined}>
               <SystemMeters system={host.system} host={host.name} interactive={interactive} />
@@ -300,17 +315,22 @@ function CompactHost({ host, now, interactive, onOpen, reserving }) {
         </span>
       </header>
       {host.gpus.length ? (
-        <div className={`grid grid-cols-4 gap-1 sm:gap-2 lg:grid-cols-8 ${outdated ? 'opacity-50' : ''}`}>
-          {host.gpus.map((gpu) => (
-            <GpuRing
-              key={gpu.index}
-              gpu={gpu}
-              host={host.name}
-              interactive={interactive}
-              now={now}
-              reserving={reserving}
-            />
-          ))}
+        <div className="relative">
+          <div
+            className={`grid grid-cols-4 gap-1 transition-opacity sm:gap-2 lg:grid-cols-8 ${down ? 'opacity-25 grayscale' : ''}`}
+          >
+            {host.gpus.map((gpu) => (
+              <GpuRing
+                key={gpu.index}
+                gpu={gpu}
+                host={host.name}
+                interactive={interactive}
+                now={now}
+                reserving={reserving}
+              />
+            ))}
+          </div>
+          {down && <DownNotice host={host} now={now} />}
         </div>
       ) : (
         <p className="px-1 py-4 text-sm text-data-grey">No data from this server right now.</p>
@@ -335,8 +355,22 @@ function HeatScale({ Icon }) {
 function RingKey({ series, outer }) {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-      <circle cx="7" cy="7" r="5.5" fill="none" stroke={outer ? series.color : RING_SERIES.compute.track} strokeWidth="2" />
-      <circle cx="7" cy="7" r="2.5" fill="none" stroke={outer ? RING_SERIES.memory.track : series.color} strokeWidth="2" />
+      <circle
+        cx="7"
+        cy="7"
+        r="5.5"
+        fill="none"
+        stroke={outer ? series.color : RING_SERIES.compute.track}
+        strokeWidth="2"
+      />
+      <circle
+        cx="7"
+        cy="7"
+        r="2.5"
+        fill="none"
+        stroke={outer ? RING_SERIES.memory.track : series.color}
+        strokeWidth="2"
+      />
     </svg>
   );
 }

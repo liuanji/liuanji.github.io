@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { HOST_STATUS } from './config';
+import { hostDownPhrase } from './easterEggs';
+import { formatAgo } from './format';
 
 // aside sits at the right end of the label's row, e.g. a view switch.
 export function SectionLabel({ children, aside = null }) {
@@ -243,6 +245,23 @@ export function Notice({ title, children }) {
     <div className="bg-white rounded-2xl border border-border-light px-7 py-10 text-center">
       <h3 className="font-tight font-semibold text-lg text-inkwell">{title}</h3>
       <p className="text-sm text-data-grey mt-2 max-w-md mx-auto leading-relaxed">{children}</p>
+    </div>
+  );
+}
+
+// Laid over a server's dimmed GPUs while it is not reporting: a bakery line in
+// the middle and when it last reported. The parent is relative.
+export function DownNotice({ host, now }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
+      <div className="rounded-xl border border-border-light bg-white/90 px-5 py-3 text-center shadow-sm backdrop-blur-[1px]">
+        <p className="font-tight text-sm font-medium text-inkwell">{hostDownPhrase(host.name)}</p>
+        <p className="mt-0.5 font-mono text-[11px] text-data-grey">
+          {host.data_sampled_at
+            ? `Last reported ${formatAgo(now - host.data_sampled_at)}; these readings are out of date`
+            : 'No readings yet'}
+        </p>
+      </div>
     </div>
   );
 }
