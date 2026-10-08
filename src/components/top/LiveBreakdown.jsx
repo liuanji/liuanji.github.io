@@ -92,13 +92,14 @@ function BreakdownDetails({ metricKey, hosts, now, summary, share }) {
           <p className="mt-0.5 truncate font-mono text-[11px] text-data-grey">Right now · {summary}</p>
         </div>
       </div>
-      <ul className="mt-4 space-y-2.5">
+      {/* One grid for every row, so the values column is as wide as its longest
+          value and the bars take the rest. */}
+      <ul className="mt-4 grid grid-cols-[6rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2.5">
         {rows.map((row) => (
-          <li
-            key={row.name}
-            className={`grid grid-cols-[6rem_minmax(0,1fr)_8.5rem] items-center gap-3 ${row.dim ? 'opacity-50' : ''}`}
-          >
-            <span className="flex min-w-0 items-center gap-2 font-mono text-xs text-inkwell">
+          <li key={row.name} className="contents">
+            <span
+              className={`flex min-w-0 items-center gap-2 font-mono text-xs text-inkwell ${row.dim ? 'opacity-50' : ''}`}
+            >
               <span
                 className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${row.dot ? '' : 'ring-1 ring-inset ring-data-grey/50'}`}
                 style={row.dot ? { backgroundColor: row.dot } : undefined}
@@ -106,13 +107,20 @@ function BreakdownDetails({ metricKey, hosts, now, summary, share }) {
               />
               <span className="truncate">{row.name}</span>
             </span>
-            <span className="h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: `${metric.color}1F` }}>
+            <span
+              className={`h-1.5 overflow-hidden rounded-full ${row.dim ? 'opacity-50' : ''}`}
+              style={{ backgroundColor: `${metric.color}1F` }}
+            >
               <span
                 className="block h-full rounded-full"
                 style={{ width: `${Math.min(100, Math.max(0, row.share * 100))}%`, backgroundColor: metric.color }}
               />
             </span>
-            <span className="truncate text-right font-mono text-xs tabular-nums text-inkwell">{row.value}</span>
+            <span
+              className={`max-w-[11rem] truncate text-right font-mono text-xs tabular-nums text-inkwell ${row.dim ? 'opacity-50' : ''}`}
+            >
+              {row.value}
+            </span>
           </li>
         ))}
       </ul>
