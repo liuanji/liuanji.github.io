@@ -277,7 +277,7 @@ export default function Top() {
             >
               <ClashBanner clashes={clashes} onOpen={hosts.length > 1 ? showHost : undefined} />
               {hosts.length > 1 && (
-                <div id="top-servers" className="mb-12 scroll-mt-28">
+                <div id="top-servers" className="mb-8 scroll-mt-28">
                   <SegmentedControl
                     label="Server"
                     options={hostOptions}
