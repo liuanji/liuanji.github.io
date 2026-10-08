@@ -128,13 +128,15 @@ export const RESERVATION_MARKS = { mine: '#8478D6', others: '#8593AA' };
 export const HELD_IDLE_FLAG_SECONDS = 3600;
 
 // The lab's lifetime GPU-time milestones: bakery ranks reached at each total
-// of GPU-hours, each with a line for its badge's box.
+// of GPU hours, each with a line for its badge's box. One croissant in the
+// box's pile of 15 per rank, so keep exactly 15.
 export const MILESTONES = [
   { hours: 0, rank: 'Rising dough', line: 'Every great bakery starts with a pinch of yeast.' },
+  { hours: 250, rank: 'Flour dusted', line: 'A light dusting of flour on every bench.' },
   { hours: 1000, rank: 'Apprentice baker', line: 'The first trays are out of the oven.' },
   { hours: 2500, rank: 'Dough whisperer', line: 'The dough listens now.' },
   { hours: 5000, rank: 'Journeyman baker', line: 'The kitchen smells wonderful these days.' },
-  { hours: 10000, rank: 'Master baker', line: 'The ovens have never been warmer.' },
+  { hours: 10000, rank: 'Head baker', line: 'The ovens have never been warmer.' },
   { hours: 25000, rank: 'Grand pâtissier', line: 'People queue around the block for these bakes.' },
   { hours: 50000, rank: 'Bakery legend', line: 'Songs are sung about this bakery.' },
   { hours: 100000, rank: 'Pastry empire', line: 'Croissants as far as the eye can see.' },

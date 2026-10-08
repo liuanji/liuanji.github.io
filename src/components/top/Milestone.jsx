@@ -1,6 +1,7 @@
-import { Croissant } from 'lucide-react';
+import { Cake, Croissant, Crown, Orbit, Wheat } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CLOUD_SGD_PER_GPU_HOUR, MILESTONES, PASTRIES } from './config';
+import { ScrollList } from './controls';
 import { pastryPilePhrase } from './easterEggs';
 import { formatDate, formatSgd } from './format';
 
@@ -11,9 +12,11 @@ const FLOUR = '#E7EAF0';
 const PILE_ROWS = 5;
 const PILE_SIZE = (PILE_ROWS * (PILE_ROWS + 1)) / 2;
 
+// The badge's total, short and without trailing zeros: 1,234, 10.3k, 250k, 1.25M.
 function compact(hours) {
-  if (hours >= 1000000) return `${(hours / 1000000).toFixed(2)}M`;
-  return hours >= 10000 ? `${(hours / 1000).toFixed(1)}k` : Math.round(hours).toLocaleString('en-US');
+  if (hours >= 1000000) return `${Number((hours / 1000000).toFixed(2))}M`;
+  if (hours >= 100000) return `${Math.round(hours / 1000)}k`;
+  return hours >= 10000 ? `${Number((hours / 1000).toFixed(1))}k` : Math.round(hours).toLocaleString('en-US');
 }
 
 // A milestone's round number of hours: 2.5k, 10k, 1M.
@@ -28,8 +31,21 @@ function shortModel(name) {
   return name.replace(/^NVIDIA\s+/, '').replace(/\s+Edition$/, '');
 }
 
+// A croissant's rank in the pile, with the hours it took: "Head baker · 10k hours".
+function rankLabel({ rank, hours }) {
+  return `${rank} · ${hours ? `${short(hours)} hours` : 'from the start'}`;
+}
+
+// The emblem grows grander every three ranks: wheat, a croissant, a cake, a
+// planet in orbit and, at the top, a crown.
+const EMBLEMS = [Wheat, Croissant, Cake, Orbit, Crown];
+
+function emblemFor(milestone) {
+  return EMBLEMS[Math.min(EMBLEMS.length - 1, Math.floor(MILESTONES.indexOf(milestone) / 3))];
+}
+
 // The badge's emblem: a croissant in a ring that fills toward the next milestone.
-function Emblem({ progress }) {
+function Emblem({ progress, icon: Icon }) {
   const radius = 9.5;
   const circumference = 2 * Math.PI * radius;
   return (
@@ -49,7 +65,7 @@ function Emblem({ progress }) {
           transform="rotate(-90 12 12)"
         />
       </svg>
-      <Croissant className="relative h-3 w-3" strokeWidth={2.2} style={{ color: CRUST, fill: BUTTER }} />
+      <Icon className="relative h-3 w-3" strokeWidth={2.2} style={{ color: CRUST, fill: BUTTER }} />
     </span>
   );
 }
@@ -60,15 +76,16 @@ function milestoneFor(hours) {
   const next = MILESTONES[index + 1] ?? null;
   // The share of the way from nothing to the next milestone, for the bar and ring.
   const progress = next ? hours / next.hours : 1;
-  // How far up the whole ladder of ranks the lab has climbed (0-1).
-  const climb = next ? (index + (hours - current.hours) / (next.hours - current.hours)) / (MILESTONES.length - 1) : 1;
-  return { current, next, progress, climb };
+  // Ranks reached so far, counting the first.
+  const reached = Math.max(0, index) + 1;
+  return { current, next, progress, reached };
 }
 
-// A mountain of pastries: a pyramid of croissants, filled from the bottom row
-// up as the lab climbs the ranks, and full at the last one.
-function PastryMountain({ climb }) {
-  let filled = Math.floor(climb * PILE_SIZE);
+// A mountain of pastries: a pyramid of croissants, one per rank, baked from
+// the bottom row up as the lab reaches each rank. On hover a baked croissant
+// names its rank, with a little line.
+function PastryMountain({ reached }) {
+  let filled = Math.min(reached, PILE_SIZE);
   // Bottom row first: the pile grows from its base.
   const rows = Array.from({ length: PILE_ROWS }, (_, row) => PILE_ROWS - row).map((count) => {
     const baked = Math.min(count, filled);
@@ -83,7 +100,7 @@ function PastryMountain({ climb }) {
         <div key={row} className="flex gap-0.5">
           {Array.from({ length: count }, (_, index) =>
             index < baked ? (
-              // A baked croissant lifts and glows on hover, with a little line above it.
+              // A baked croissant lifts and glows on hover, with its rank and a line above it.
               <span key={index} className="group/pastry relative">
                 <Croissant
                   className="h-6 w-6 transition-transform duration-200 group-hover/pastry:-translate-y-0.5 group-hover/pastry:scale-125 group-hover/pastry:drop-shadow-[0_1px_3px_rgba(183,121,43,0.45)]"
@@ -91,9 +108,12 @@ function PastryMountain({ climb }) {
                   style={{ color: CRUST, fill: BUTTER }}
                 />
                 <span
-                  className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md border px-2 py-1 font-tight text-[11px] text-inkwell opacity-0 shadow-sm transition-opacity duration-200 group-hover/pastry:opacity-100"
+                  className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md border px-2 py-1 text-center font-tight text-[11px] text-inkwell opacity-0 shadow-sm transition-opacity duration-200 group-hover/pastry:opacity-100"
                   style={{ backgroundColor: '#FFFBF4', borderColor: '#F1DFBD' }}
                 >
+                  <span className="block font-medium" style={{ color: CRUST }}>
+                    {rankLabel(MILESTONES[starts[row] + index])}
+                  </span>
                   {pastryPilePhrase(starts[row] + index)}
                 </span>
               </span>
@@ -111,11 +131,11 @@ function PastryMountain({ climb }) {
 // GPU hours ever, its croissant ringed by progress to the next milestone, with
 // the rank reached and the total beside it. Its box shows the bakery rank reached, the total since the
 // first record and per GPU model, what it would have cost in the cloud, and
-// the pastry pile growing as the lab climbs the ranks.
+// the pastry pile, one croissant per rank reached.
 export default function MilestoneBadge({ lifetime }) {
   if (!lifetime?.gpu_hours) return null;
   const hours = lifetime.gpu_hours;
-  const { current, next, progress, climb } = milestoneFor(hours);
+  const { current, next, progress, reached } = milestoneFor(hours);
   const value = hours * CLOUD_SGD_PER_GPU_HOUR;
   return (
     <Popover>
@@ -124,7 +144,7 @@ export default function MilestoneBadge({ lifetime }) {
         style={{ backgroundColor: '#FDF8EF', borderColor: '#F1DFBD' }}
         aria-label={`Lab milestone: ${current.rank}, ${compact(hours)} GPU hours in all. Show details.`}
       >
-        <Emblem progress={next ? progress : 1} />
+        <Emblem progress={next ? progress : 1} icon={emblemFor(current)} />
         <span className="font-medium" style={{ color: CRUST }}>
           {current.rank}
         </span>
@@ -134,10 +154,10 @@ export default function MilestoneBadge({ lifetime }) {
         align="end"
         sideOffset={8}
         collisionPadding={16}
-        className="w-80 rounded-2xl border-border-light bg-white p-5 shadow-xl"
+        className="flex max-h-[var(--radix-popover-content-available-height)] w-96 flex-col rounded-2xl border-border-light bg-white p-5 shadow-xl"
       >
-        <div className="text-center">
-          <PastryMountain climb={climb} />
+        <div className="flex-shrink-0 text-center">
+          <PastryMountain reached={reached} />
           <p className="mt-3 font-mono text-[10px] uppercase tracking-widest text-data-grey/70">Lab milestone</p>
           <h4 className="mt-0.5 font-tight text-lg font-semibold leading-tight" style={{ color: CRUST }}>
             {current.rank}
@@ -149,57 +169,93 @@ export default function MilestoneBadge({ lifetime }) {
           {lifetime.since && <p className="font-mono text-[11px] text-data-grey">since {formatDate(lifetime.since)}</p>}
         </div>
 
-        {lifetime.models.length > 0 && (
-          <ul className="mt-4 space-y-1 border-t border-border-light pt-3">
-            {lifetime.models.map((model) => (
-              <li key={model.model} className="flex items-baseline justify-between gap-3 font-mono text-[11px]">
-                <span className="min-w-0 truncate text-data-grey" title={model.model}>
-                  {shortModel(model.model)}
-                </span>
-                <span className="whitespace-nowrap tabular-nums text-inkwell">
-                  {Math.round(model.gpu_hours).toLocaleString('en-US')} h
-                </span>
-              </li>
+        {/* On a short screen the rest scrolls under the pile, which stays put so its
+            hover lines are never clipped. */}
+        <div className="-mr-2 min-h-0 overflow-y-auto overscroll-contain pr-2 [scrollbar-width:thin]">
+          {lifetime.models.length > 0 && (
+            <ul className="mt-4 space-y-1 border-t border-border-light pt-3">
+              {lifetime.models.map((model) => (
+                <li key={model.model} className="flex items-baseline justify-between gap-3 font-mono text-[11px]">
+                  <span className="min-w-0 truncate text-data-grey" title={model.model}>
+                    {shortModel(model.model)}
+                  </span>
+                  <span className="whitespace-nowrap tabular-nums text-inkwell">
+                    {Math.round(model.gpu_hours).toLocaleString('en-US')} h
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <p className="mt-3 text-xs leading-relaxed text-data-grey">
+            In the cloud, that would be <span className="font-medium text-inkwell">≈ {formatSgd(value)}</span>. That is
+            about{' '}
+            {PASTRIES.map((pastry, index) => (
+              <span key={pastry.name}>
+                {index === PASTRIES.length - 1 ? 'or ' : ''}
+                <span className="font-medium text-inkwell">
+                  {Math.round(value / pastry.sgd).toLocaleString('en-US')}
+                </span>{' '}
+                {pastry.name}
+                {index < PASTRIES.length - 1 ? ', ' : '.'}
+              </span>
             ))}
-          </ul>
-        )}
+          </p>
 
-        <p className="mt-3 text-xs leading-relaxed text-data-grey">
-          In the cloud, that would be <span className="font-medium text-inkwell">≈ {formatSgd(value)}</span>. That is
-          about{' '}
-          {PASTRIES.map((pastry, index) => (
-            <span key={pastry.name}>
-              {index === PASTRIES.length - 1 ? 'or ' : ''}
-              <span className="font-medium text-inkwell">
-                {Math.round(value / pastry.sgd).toLocaleString('en-US')}
-              </span>{' '}
-              {pastry.name}
-              {index < PASTRIES.length - 1 ? ', ' : '.'}
-            </span>
-          ))}
-        </p>
-
-        {next && (
-          <div className="mt-3">
-            {/* From nothing to the next milestone, with a sliver showing even at the very start. */}
-            <div className="flex items-center gap-2 font-mono text-[10px] tabular-nums text-data-grey/70">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ backgroundColor: '#F6EEDD' }}>
-                <div
-                  className="h-full rounded-full"
-                  style={{ width: `max(${progress * 100}%, 0.5rem)`, backgroundColor: CRUST }}
-                />
+          {next && (
+            <div className="mt-3">
+              {/* From nothing to the next milestone, with a sliver showing even at the very start. */}
+              <div className="flex items-center gap-2 font-mono text-[10px] tabular-nums text-data-grey/70">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ backgroundColor: '#F6EEDD' }}>
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `max(${progress * 100}%, 0.5rem)`, backgroundColor: CRUST }}
+                  />
+                </div>
+                <span>{short(next.hours)}</span>
               </div>
-              <span>{short(next.hours)}</span>
+              <p className="mt-1.5 font-mono text-[11px] text-data-grey">
+                {Math.ceil(next.hours - hours).toLocaleString('en-US')} h to{' '}
+                <span style={{ color: CRUST }}>{next.rank}</span>
+              </p>
             </div>
-            <p className="mt-1.5 font-mono text-[11px] text-data-grey">
-              {Math.ceil(next.hours - hours).toLocaleString('en-US')} h to{' '}
-              <span style={{ color: CRUST }}>{next.rank}</span>
+          )}
+          <div className="mt-3 border-t border-border-light pt-3">
+            <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-data-grey/70">
+              Milestones reached
             </p>
+            {/* Newest first, the current rank in crust; about three show and the rest scroll. */}
+            <ScrollList count={reached} visible={3} rowRem={1.5}>
+              {MILESTONES.slice(0, reached)
+                .reverse()
+                .map((milestone, index) => {
+                  const MilestoneIcon = emblemFor(milestone);
+                  return (
+                    <li key={milestone.rank} className="flex h-6 items-center gap-2 text-xs">
+                      <MilestoneIcon
+                        className="h-3.5 w-3.5 flex-shrink-0"
+                        strokeWidth={1.8}
+                        style={{ color: CRUST, fill: BUTTER }}
+                        aria-hidden="true"
+                      />
+                      <span
+                        className={`min-w-0 flex-1 truncate font-tight ${index === 0 ? 'font-medium' : 'text-data-grey'}`}
+                        style={index === 0 ? { color: CRUST } : undefined}
+                      >
+                        {milestone.rank}
+                      </span>
+                      <span className="font-mono text-[11px] tabular-nums text-data-grey/80">
+                        {milestone.hours ? `${short(milestone.hours)} hours` : 'the start'}
+                      </span>
+                    </li>
+                  );
+                })}
+            </ScrollList>
           </div>
-        )}
-        <p className="mt-3 border-t border-border-light pt-3 font-mono text-[11px] italic text-data-grey/80">
-          {current.line}
-        </p>
+          <p className="mt-3 border-t border-border-light pt-3 font-mono text-[11px] italic text-data-grey/80">
+            {current.line}
+          </p>
+        </div>
       </PopoverContent>
     </Popover>
   );
