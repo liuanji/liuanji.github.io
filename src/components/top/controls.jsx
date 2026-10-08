@@ -112,7 +112,8 @@ export function StatusPill({ status }) {
 // draws itself in from the left (a growing background line). Without onOpen it
 // is plain text.
 export function ServerLink({ name, onOpen, className = '' }) {
-  if (!onOpen) return <span className={className}>{name}</span>;
+  // Padded like the button, so the name sits in the same place either way.
+  if (!onOpen) return <span className={`pb-0.5 ${className}`}>{name}</span>;
   return (
     <button
       type="button"

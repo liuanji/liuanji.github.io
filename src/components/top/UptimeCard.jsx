@@ -87,9 +87,13 @@ function UptimeRow({ series, status, uptime, rangeAgo, focus, onOpen }) {
     <div className="px-6 py-5">
       <div className="mb-3 flex items-baseline justify-between gap-4">
         <div className="flex min-w-0 items-center gap-2">
+          {/* Centred on the name's lowercase letters; an online server's dot
+              breathes like the status pill's. */}
           <span
-            className="h-2 w-2 flex-shrink-0 translate-y-[-1px] rounded-full"
-            style={{ backgroundColor: statusStyle.color }}
+            className={`h-2 w-2 flex-shrink-0 translate-y-[0.5px] rounded-full ${
+              status === 'online' ? 'motion-safe:animate-breathe' : ''
+            }`}
+            style={{ backgroundColor: statusStyle.color, color: statusStyle.color }}
             title={statusStyle.label}
             aria-hidden="true"
           />
