@@ -1,8 +1,16 @@
 import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
 import { POWER_ICON_RANGE, RESERVATION_CLASH, SERIES, TEMPERATURE_ICON_RANGE } from './config';
-import { GpuGlyph, Metric, QUIET, RING_SERIES, heat, heatColor } from './DetailBoxes';
-import { idleGpuPhrase, reservedIdlePhrase } from './easterEggs';
-import { formatAxisTime, formatFullTime, formatMemory, formatMemoryOf, gpuModels, userColor } from './format';
+import { BoxFooter, ChipGlyph, GpuGlyph, Metric, QUIET, RING_SERIES, heat, heatColor } from './DetailBoxes';
+import { idleGpuPhrase, pressurePhrase, reservedIdlePhrase } from './easterEggs';
+import {
+  formatAxisTime,
+  formatCpuModel,
+  formatFullTime,
+  formatMemory,
+  formatMemoryOf,
+  gpuModels,
+  userColor,
+} from './format';
 import { ScrollList } from './controls';
 import { formatDuration, isHeldIdle } from './Insights';
 import { ReservationMark, clashingUsers, formatLeft } from './Reservations';
@@ -54,22 +62,38 @@ function ChartTooltip({ active = false, payload = [], label = 0, lines }) {
 // left and % of the power limit on the right). Drawn at a fixed width, as a
 // responsive chart would measure the box mid-animation.
 const CHART_WIDTH = 556;
+// The CPU and RAM boxes' full text width: 440 px less padding and border.
+const CHART_WIDTH_SMALL = 396;
 const PERCENT_AXIS = { max: 100, format: (value) => `${value}%` };
 
-function MiniChart({ title, points, lines, start, end, width = CHART_WIDTH, axes = { left: PERCENT_AXIS } }) {
+// aside, if given, takes the place of the key (a one-line chart needs none).
+function MiniChart({
+  title,
+  points,
+  lines,
+  start,
+  end,
+  width = CHART_WIDTH,
+  axes = { left: PERCENT_AXIS },
+  aside = null,
+}) {
   // Times at the inner quarters only, so none is cut off at an edge.
   const ticks = [1, 2, 3].map((step) => start + ((end - start) * step) / 4);
   return (
     <div>
       <div className="mb-1 flex items-center justify-between gap-3 font-mono text-[11px] text-data-grey">
         <span>{title}</span>
+        {/* A key only when there is more than one line to tell apart. */}
         <span className="flex items-center gap-3">
-          {lines.map((line) => (
-            <span key={line.key} className="flex items-center gap-1.5">
-              <span className="h-0.5 w-2.5 rounded-full" style={{ backgroundColor: line.color }} aria-hidden="true" />
-              {line.label}
-            </span>
-          ))}
+          {aside}
+          {!aside &&
+            lines.length > 1 &&
+            lines.map((line) => (
+              <span key={line.key} className="flex items-center gap-1.5">
+                <span className="h-0.5 w-2.5 rounded-full" style={{ backgroundColor: line.color }} aria-hidden="true" />
+                {line.label}
+              </span>
+            ))}
         </span>
       </div>
       <LineChart width={width} height={100} data={points} margin={{ top: 6, right: 2, bottom: 0, left: 2 }}>
@@ -301,7 +325,7 @@ export function GpuDeepDetails({ gpu, host, timeline, reservation = null, me = n
 // In the expanded view's CPU or RAM box: the server's last day of CPU load (in
 // percent) or RAM in use (as an amount, up to the server's total), from the
 // per-server timeline, drawn at the box's text width.
-export function SystemHistory({ timeline, part, system }) {
+export function SystemHistory({ timeline, part, system, width = CHART_WIDTH_SMALL }) {
   if (!timeline?.system) return null;
   const key = part === 'cpu' ? 'cpu_percent' : 'memory_percent';
   const values = timeline.system[key];
@@ -312,6 +336,11 @@ export function SystemHistory({ timeline, part, system }) {
     value: value == null || !amounts ? value : (value / 100) * total,
   }));
   const color = part === 'cpu' ? SERIES.compute.color : SERIES.memory.color;
+  // The day's peak (and when) and average, beside the chart's title.
+  const known = points.filter((point) => point.value != null);
+  const peak = known.reduce((best, point) => (!best || point.value > best.value ? point : best), null);
+  const average = known.length ? known.reduce((total, point) => total + point.value, 0) / known.length : null;
+  const show = (amount) => (amounts ? formatMemory(amount) : `${Math.round(amount)}%`);
   return (
     <div className="mt-4">
       {values.some((value) => value != null) ? (
@@ -320,9 +349,16 @@ export function SystemHistory({ timeline, part, system }) {
           points={points}
           start={timeline.start}
           end={timeline.end}
-          // The box's full text width: 440 px less its padding and border.
-          width={396}
+          width={width}
           axes={{ left: amounts ? { max: total, format: (value) => formatMemory(value), width: 52 } : PERCENT_AXIS }}
+          aside={
+            peak && (
+              <span>
+                peak <span className="text-inkwell">{show(peak.value)}</span> at {formatAxisTime(peak.timestamp, '24h')}
+                <span className="text-data-grey/60"> · </span>avg <span className="text-inkwell">{show(average)}</span>
+              </span>
+            )
+          }
           lines={[
             {
               key: 'value',
@@ -387,6 +423,62 @@ export function UsersBreakdown({ system, part }) {
       ) : (
         <p className="font-mono text-[11px] text-data-grey">Nobody is using much right now.</p>
       )}
+    </div>
+  );
+}
+
+// The expanded view's CPU box: the chip before its name, then three readings
+// in a row (load now, time waiting on disks, roughly how many threads are
+// busy, from the 1-minute load average), the last day's load with its peak and
+// average, who is using it, and how long the server has been up.
+export function CpuDeepDetails({ host, system, timeline }) {
+  const percent = Math.round(system.cpu_percent ?? 0);
+  const iowait = system.iowait_percent;
+  const load = system.load_averages;
+  const threads = system.cpu_count;
+  return (
+    <div>
+      <div className="flex items-center gap-3">
+        <ChipGlyph share={percent / 100} color={RING_SERIES.compute.color} size={44} animated />
+        <div className="min-w-0 flex-1">
+          <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">
+            {host} <span className="text-data-grey/60">·</span> CPU
+          </h4>
+          <p className="mt-0.5 truncate font-mono text-[11px] text-data-grey">
+            {formatCpuModel(system) ?? 'Processor'}
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-3 gap-x-5">
+        <Metric label="Load" value={`${percent}%`} share={percent / 100} series={RING_SERIES.compute} />
+        <div title="Share of CPU time spent waiting on the disks; high when jobs are stuck loading data">
+          <Metric
+            label="I/O wait"
+            value={iowait == null ? '—' : `${iowait}%`}
+            share={iowait == null ? 0 : iowait / 100}
+            series={QUIET}
+          />
+        </div>
+        <div
+          title={
+            load
+              ? `About this many threads busy, from the load average ${load.map((value) => value.toFixed(1)).join(' · ')} (1, 5, 15 min)`
+              : undefined
+          }
+        >
+          <Metric
+            label="Threads"
+            value={load && threads ? `${Math.round(load[0])} / ${threads}` : '—'}
+            share={load && threads ? load[0] / threads : 0}
+            series={QUIET}
+          />
+        </div>
+      </div>
+      <SystemHistory timeline={timeline} part="cpu" system={system} width={CHART_WIDTH_SMALL} />
+      <UsersBreakdown system={system} part="cpu" />
+      <BoxFooter phrase={pressurePhrase('cpu', percent / 100, host)}>
+        {system.uptime_seconds != null && `up ${formatDuration(system.uptime_seconds)}`}
+      </BoxFooter>
     </div>
   );
 }

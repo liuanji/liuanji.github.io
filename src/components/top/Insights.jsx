@@ -59,89 +59,155 @@ export function Sparkline({ values, color = SPARKLINE_COLOR, width = 104, height
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-function heatColor(value) {
-  // From a faint wash when quiet to a soft, never full, orange when busy.
-  return value == null
-    ? '#F1F3F6'
-    : `${SERIES.busy.color}${Math.round(10 + value * 120)
-        .toString(16)
-        .padStart(2, '0')}`;
+// The punch card's dots: each dot's diameter follows how busy that block of
+// hours usually is, from 0% to 100% of GPUs in use, and its indigo deepens
+// from the week's quietest block to its busiest, so size and colour both
+// tell the rhythm.
+const DOT_LOW = [196, 203, 234];
+const DOT_HIGH = [78, 94, 168];
+
+function dotColor(shade) {
+  const t = Math.min(1, Math.max(0, shade));
+  const [r, g, b] = DOT_LOW.map((channel, index) => Math.round(channel + (DOT_HIGH[index] - channel) * t));
+  return `rgb(${r} ${g} ${b})`;
+}
+const DOT_MIN_PX = 4;
+const DOT_MAX_PX = 15;
+// Hours are grouped in blocks this long, which keeps the card calm.
+const BLOCK_HOURS = 3;
+const BLOCKS = 24 / BLOCK_HOURS;
+const COLUMN_REM = 1.75;
+
+// Eased, since most blocks sit between about 40% and 100%: the curve spreads
+// that range out, so a half-busy block looks clearly smaller than a busy one.
+function dotSize(place) {
+  return DOT_MIN_PX + (DOT_MAX_PX - DOT_MIN_PX) * Math.min(1, Math.max(0, place)) ** 1.8;
 }
 
-// How busy the server usually is by weekday and hour: each cell the average
-// share of its GPUs in use over the last weeks, stronger when busier. The
-// title row carries a quiet-to-busy scale, replaced by a cell's reading while
-// one is hovered or tapped.
+function hourLabel(hour) {
+  return String(hour % 24).padStart(2, '0');
+}
+
+// Each day's hours averaged in blocks of BLOCK_HOURS (null if none observed).
+function toBlocks(week) {
+  return week.map((hours) =>
+    Array.from({ length: BLOCKS }, (_, block) => {
+      const known = hours.slice(block * BLOCK_HOURS, (block + 1) * BLOCK_HOURS).filter((cell) => cell != null);
+      return known.length ? known.reduce((total, cell) => total + cell, 0) / known.length : null;
+    }),
+  );
+}
+
+// How busy the server usually is through the week, as a punch card: a row per
+// weekday and a dot per three hours, its size following the average share of
+// GPUs in use over the last weeks, from 0% to 100%. The columns keep a fixed
+// width, so the card stays compact. A hovered or tapped dot shows its own
+// reading in place of the legend.
 export function WeekHeatmap({ week, days, title }) {
   const [picked, setPicked] = useState(null);
-  const value = picked ? week[picked.day][picked.hour] : undefined;
-  const time = picked ? `${DAYS[picked.day]} ${String(picked.hour).padStart(2, '0')}:00` : '';
+  const blocks = toBlocks(week);
+  // Size is absolute: the smallest dot is 0% of GPUs in use, the largest 100%.
+  const [from, to] = [0, 1];
+  const place = (cell) => cell;
+  // Colour spans the week's own range, quietest to busiest block.
+  const known = blocks.flat().filter((cell) => cell != null);
+  const low = known.length ? Math.min(...known) : 0;
+  const high = known.length ? Math.max(...known) : 1;
+  const shade = (cell) => (high - low < 0.02 ? 0.5 : (cell - low) / (high - low));
+  const span = (day, block) => `${DAYS[day]} ${hourLabel(block * BLOCK_HOURS)}–${hourLabel((block + 1) * BLOCK_HOURS)}`;
+  const value = picked ? blocks[picked.day][picked.block] : undefined;
   return (
-    <div onPointerLeave={() => setPicked(null)}>
-      <div className="mb-3 flex items-baseline justify-between gap-4">
+    // As wide as the grid, so the legend and readings sit right above it.
+    <div className="w-fit max-w-full" onPointerLeave={() => setPicked(null)}>
+      {/* w-0 min-w-full: the grid alone sets the width, so the legend ends where
+          the dots do; a hovered block's short reading takes its place. */}
+      <div
+        className="mb-3 flex w-0 min-w-full items-baseline justify-between gap-4 whitespace-nowrap"
+        // In by half the space around a full-size dot in its column, so the legend
+        // ends where the largest dots do.
+        style={{ paddingRight: (COLUMN_REM * 16 - DOT_MAX_PX) / 2 }}
+      >
         {title}
         <span className="font-mono text-[11px] text-data-grey" aria-live="polite">
           {picked ? (
             value == null ? (
-              `${time} · no data yet`
+              `${span(picked.day, picked.block)} · no data yet`
             ) : (
               <>
-                {time} · usually <span className="text-inkwell">{Math.round(value * 100)}%</span> in use
+                {span(picked.day, picked.block)} · <span className="text-inkwell">{Math.round(value * 100)}%</span>
               </>
             )
           ) : (
             <span
-              className="inline-flex items-center gap-1.5"
-              title={`Average share of GPUs in use, last ${days / 7} weeks`}
+              className="inline-flex items-center gap-2"
+              title={`Size: average share of GPUs in use, last ${days / 7} weeks. Colour: from the quietest (${Math.round(low * 100)}%) to the busiest (${Math.round(high * 100)}%) block.`}
             >
-              quiet
-              {[0, 0.25, 0.5, 0.75, 1].map((step) => (
-                <span
-                  key={step}
-                  className="h-2.5 w-2.5 rounded-[2px]"
-                  style={{ backgroundColor: heatColor(step) }}
-                  aria-hidden="true"
-                />
-              ))}
-              busy
+              {Math.round(from * 100)}%
+              <span className="flex items-center gap-1.5" aria-hidden="true">
+                {[0, 0.5, 1].map((step) => (
+                  <span
+                    key={step}
+                    className="rounded-full"
+                    style={{ width: dotSize(step), height: dotSize(step), backgroundColor: dotColor(step) }}
+                  />
+                ))}
+              </span>
+              {Math.round(to * 100)}%
             </span>
           )}
         </span>
       </div>
       <div className="grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2">
-        <div className="grid grid-rows-7 gap-[3px] font-mono text-[10px] leading-3 text-data-grey/80">
+        <div className="font-mono text-[10px] text-data-grey/80">
           {DAYS.map((day) => (
-            <span key={day} className="flex items-center">
+            <span key={day} className="flex h-5 items-center">
               {day}
             </span>
           ))}
         </div>
-        <div className="grid grid-rows-7 gap-[3px]" style={{ gridTemplateColumns: 'repeat(24, minmax(0, 1fr))' }}>
-          {week.map((hours, day) =>
-            hours.map((cell, hour) => (
-              <span
-                key={`${day}-${hour}`}
-                onPointerEnter={() => setPicked({ day, hour })}
-                onPointerDown={() => setPicked({ day, hour })}
-                className="h-3 rounded-[2px]"
-                style={{
-                  backgroundColor: heatColor(cell),
-                  outline: picked?.day === day && picked?.hour === hour ? '1.5px solid #0F172A' : 'none',
-                }}
-                aria-hidden="true"
-              />
-            )),
+        <div className="grid" style={{ gridTemplateColumns: `repeat(${BLOCKS}, ${COLUMN_REM}rem)` }}>
+          {blocks.map((row, day) =>
+            row.map((cell, block) => {
+              const chosen = picked?.day === day && picked?.block === block;
+              return (
+                <span
+                  key={`${day}-${block}`}
+                  onPointerEnter={() => setPicked({ day, block })}
+                  onPointerDown={() => setPicked({ day, block })}
+                  className="flex h-5 items-center justify-center"
+                  aria-hidden="true"
+                >
+                  {cell == null ? (
+                    <span className="h-1 w-1 rounded-full bg-[#E2E8F0]" />
+                  ) : (
+                    // While one dot is read, the others fade back, as the
+                    // page's other legends and bars do.
+                    <span
+                      className="rounded-full transition-opacity duration-150"
+                      style={{
+                        width: dotSize(place(cell)),
+                        height: dotSize(place(cell)),
+                        backgroundColor: dotColor(shade(cell)),
+                        opacity: picked && !chosen ? 0.3 : 1,
+                      }}
+                    />
+                  )}
+                </span>
+              );
+            }),
           )}
         </div>
       </div>
       <div
-        className="mt-1.5 grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2 font-mono text-[10px] text-data-grey/80"
+        className="mt-1 grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2 font-mono text-[10px] text-data-grey/80"
         aria-hidden="true"
       >
         <span />
-        <div className="flex justify-between">
-          {['00', '06', '12', '18', '24'].map((hour) => (
-            <span key={hour}>{hour}</span>
+        <div className="grid" style={{ gridTemplateColumns: `repeat(${BLOCKS}, ${COLUMN_REM}rem)` }}>
+          {Array.from({ length: BLOCKS }, (_, block) => (
+            <span key={block} className="text-center">
+              {hourLabel(block * BLOCK_HOURS)}
+            </span>
           ))}
         </div>
       </div>

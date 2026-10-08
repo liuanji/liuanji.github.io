@@ -144,6 +144,8 @@ class SystemStat:
     cpu_model: str | None = None
     cpu_sockets: int | None = None
     cpu_cores: int | None = None
+    # Share of CPU time spent waiting on disks, over the same span as cpu_percent.
+    iowait_percent: float | None = None
     # Each user's CPU (percent of one core) and resident memory, as
     # {"user", "cpu_percent", "memory_mb"}; None when it could not be measured.
     users: tuple[dict, ...] | None = None
@@ -251,12 +253,15 @@ def _system(lines: list[str]) -> SystemStat | None:
         return None
 
     cpu_percent = None
+    iowait_percent = None
     if len(cpu_readings) == 2:
         before, after = cpu_readings
         total = sum(after) - sum(before)
         idle = sum(after[3:5]) - sum(before[3:5])
         if total > 0:
             cpu_percent = round(max(0.0, min(100.0, (1 - idle / total) * 100)), 1)
+            # The fifth field of the cpu line is iowait.
+            iowait_percent = round(max(0.0, min(100.0, (after[4] - before[4]) / total * 100)), 1)
     total_mb = memory.get("MemTotal")
     available_mb = memory.get("MemAvailable")
     used_mb = round(total_mb - available_mb, 1) if total_mb and available_mb is not None else None
@@ -267,6 +272,7 @@ def _system(lines: list[str]) -> SystemStat | None:
     swap_free = memory.get("SwapFree")
     return SystemStat(
         cpu_percent=cpu_percent,
+        iowait_percent=iowait_percent,
         cpu_count=cpu_count,
         memory_used_mb=used_mb,
         memory_total_mb=round(total_mb, 1) if total_mb else None,

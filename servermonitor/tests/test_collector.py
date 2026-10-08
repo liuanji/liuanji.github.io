@@ -117,6 +117,8 @@ class CollectorParserTest(unittest.TestCase):
         self.assertTrue(result.gpus[0].rows_remap_failed)
         self.assertIsNone(result.gpus[1].clock_events)
         self.assertEqual(result.system.users[0], {"user": "alice", "cpu_percent": 350.5, "memory_mb": 4096.0})
+        # The sample's CPU readings spend no time in iowait.
+        self.assertEqual(result.system.iowait_percent, 0.0)
 
     def test_parses_cpu_load_and_memory(self) -> None:
         output = SAMPLE_OUTPUT + (

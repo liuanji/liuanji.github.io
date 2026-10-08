@@ -220,6 +220,7 @@ class SimulatedHost:
             processes=tuple(processes),
             system=SystemStat(
                 cpu_percent=round(min(100, max(0, cpu_percent)), 1),
+                iowait_percent=round(abs(self.random.gauss(0.4, 0.5)), 1),
                 cpu_count=self.cpu_count,
                 memory_used_mb=round(min(ram_used_mb, self.ram_mb), 1),
                 memory_total_mb=self.ram_mb,

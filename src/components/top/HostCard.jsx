@@ -2,8 +2,8 @@ import { TriangleAlert } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { HISTORY_REFRESH_MS, LEVEL_SERIES, READING_STYLES, RESERVATION_CLASH, SERIES } from './config';
 import { StatusPill } from './controls';
-import { CpuDetails, DetailsPopover, RamDetails } from './DetailBoxes';
-import { GpuDeepDetails, SystemHistory, UsersBreakdown } from './ExpandedBoxes';
+import { DetailsPopover, RamDetails } from './DetailBoxes';
+import { CpuDeepDetails, GpuDeepDetails, SystemHistory, UsersBreakdown } from './ExpandedBoxes';
 import { PeoplePanel, Sparkline, WeekHeatmap, formatDuration, isHeldIdle } from './Insights';
 import { useStatusFile } from './useStatusFile';
 import { ReserveControl, clashingUsers, findReservation, formatLeft } from './Reservations';
@@ -86,19 +86,11 @@ function SystemStrip({ system, host, interactive, timeline }) {
   const cpu = system.cpu_percent;
   const ramKnown = system.memory_used_mb != null && system.memory_total_mb;
   const ram = ramKnown ? ramLevel(system.memory_used_mb, system.memory_total_mb) : null;
-  const meterBox =
-    '-mx-2 -my-1.5 rounded-lg px-2 py-1.5 hover:bg-white data-[state=open]:bg-white';
+  const meterBox = '-mx-2 -my-1.5 rounded-lg px-2 py-1.5 hover:bg-white data-[state=open]:bg-white';
   return (
     <div className="grid gap-x-6 gap-y-3 border-b border-border-light bg-paper/60 px-6 py-3.5 sm:grid-cols-2">
       <Opens
-        details={
-          interactive && cpu != null ? (
-            <CpuDetails host={host} system={system} compact>
-              <SystemHistory timeline={timeline} part="cpu" system={system} />
-              <UsersBreakdown system={system} part="cpu" />
-            </CpuDetails>
-          ) : null
-        }
+        details={interactive && cpu != null ? <CpuDeepDetails host={host} system={system} timeline={timeline} /> : null}
         width="w-[440px]"
         label={`${host} CPU ${cpu == null ? '' : `${Math.round(cpu)}%`}`}
         className={meterBox}
@@ -206,11 +198,7 @@ function ReserveCell({ gpu, host, reservation, reserving, now }) {
 // Every reading gets the same padding so tinted and plain values line up.
 function Reading({ text, level, title }) {
   return (
-    <span
-      title={title}
-      className={`rounded px-1 py-0.5 ${level ? 'font-medium' : ''}`}
-      style={READING_STYLES[level]}
-    >
+    <span title={title} className={`rounded px-1 py-0.5 ${level ? 'font-medium' : ''}`} style={READING_STYLES[level]}>
       {text}
     </span>
   );
@@ -256,7 +244,12 @@ function GpuRow({ gpu, host, interactive, now, reserving, timeline }) {
         <span className="whitespace-nowrap font-mono text-sm text-inkwell">GPU {gpu.index}</span>
         {gpu.problems?.length > 0 && (
           <span title={gpu.problems.join('; ')} className="flex-shrink-0">
-            <TriangleAlert className="h-3.5 w-3.5" style={{ color: READING_STYLES.hot.color }} strokeWidth={2.25} aria-hidden="true" />
+            <TriangleAlert
+              className="h-3.5 w-3.5"
+              style={{ color: READING_STYLES.hot.color }}
+              strokeWidth={2.25}
+              aria-hidden="true"
+            />
             <span className="sr-only">Health: {gpu.problems.join('; ')}</span>
           </span>
         )}
@@ -298,7 +291,11 @@ function GpuRow({ gpu, host, interactive, now, reserving, timeline }) {
         {gpu.users.length ? (
           gpu.users.map((user, index) => (
             <span key={user.username} className="inline-flex items-center gap-1.5 font-mono text-xs text-inkwell">
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: userColor(user.username) }} aria-hidden="true" />
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: userColor(user.username) }}
+                aria-hidden="true"
+              />
               <span style={clash.includes(user.username) ? { color: RESERVATION_CLASH.color } : undefined}>
                 {user.username}
               </span>
@@ -394,12 +391,14 @@ export default function HostCard({ host, now, reserving = null, token }) {
       </header>
       {outdated && (
         <p className="border-b border-border-light bg-paper/60 px-6 py-2.5 text-xs text-data-grey">
-          Last reported {formatAgo(now - host.data_sampled_at)}. The readings below may be out of date and are left
-          out of the totals.
+          Last reported {formatAgo(now - host.data_sampled_at)}. The readings below may be out of date and are left out
+          of the totals.
         </p>
       )}
       <div className={outdated ? 'opacity-50' : undefined}>
-        {host.system && <SystemStrip system={host.system} host={host.name} interactive={interactive} timeline={timeline} />}
+        {host.system && (
+          <SystemStrip system={host.system} host={host.name} interactive={interactive} timeline={timeline} />
+        )}
         {host.gpus.length ? (
           <>
             <div className="hidden border-b border-border-light font-mono text-[11px] uppercase tracking-wider text-data-grey/70 md:flex">
