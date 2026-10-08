@@ -81,6 +81,17 @@ function milestoneFor(hours) {
   return { current, next, progress, reached };
 }
 
+// A bubble's first line: the rank's emblem, then the rank and its hours.
+function RankLine({ milestone }) {
+  const Icon = emblemFor(milestone);
+  return (
+    <span className="flex items-center justify-center gap-1 font-medium" style={{ color: CRUST }}>
+      <Icon className="h-3 w-3 flex-shrink-0" strokeWidth={2.2} style={{ fill: BUTTER }} />
+      {rankLabel(milestone)}
+    </span>
+  );
+}
+
 // A mountain of pastries: a pyramid of croissants, one per rank, baked from
 // the bottom row up as the lab reaches each rank. On hover a baked croissant
 // names its rank, with a little line.
@@ -111,9 +122,7 @@ function PastryMountain({ reached }) {
                   className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md border px-2 py-1 text-center font-tight text-[11px] text-inkwell opacity-0 shadow-sm transition-opacity duration-200 group-hover/pastry:opacity-100"
                   style={{ backgroundColor: '#FFFBF4', borderColor: '#F1DFBD' }}
                 >
-                  <span className="block font-medium" style={{ color: CRUST }}>
-                    {rankLabel(MILESTONES[starts[row] + index])}
-                  </span>
+                  <RankLine milestone={MILESTONES[starts[row] + index]} />
                   {pastryPilePhrase(starts[row] + index)}
                 </span>
               </span>
