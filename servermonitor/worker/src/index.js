@@ -35,22 +35,27 @@ const PRIVATE_FILES = new Set(["roster"]);
 // GPUs are reserved for debugging: at most this long, and this many per person.
 const MAX_RESERVATION_MINUTES = 240;
 const MAX_RESERVATIONS_PER_USER = 2;
+// Reservation times all come from the database's clock (unixepoch(), fixed for
+// the length of a statement), never a Worker's, so instances whose clocks
+// differ cannot disagree about whether a reservation has ended.
 const ACTIVE_RESERVATIONS = `
   SELECT host, gpu, user, starts_at, ends_at FROM reservations
-  WHERE ends_at > ?1 ORDER BY host, gpu
+  WHERE ends_at > unixepoch() ORDER BY host, gpu
 `;
 // Takes a free GPU (or one whose reservation has ended) unless the caller
-// already holds the maximum. One statement, so two people clicking at once
-// cannot both win. A reservation is never extended: its holder releases it
-// and reserves again, like anyone else.
+// already holds the maximum. The check and the write are one statement, and
+// D1 runs statements one at a time, so two people clicking at once cannot
+// both win, nor can one person's simultaneous requests pass the limit. A
+// reservation is never extended: its holder releases it and reserves again.
 const RESERVE = `
   INSERT INTO reservations (host, gpu, user, starts_at, ends_at)
-  SELECT ?1, ?2, ?3, ?4, ?5
-  WHERE (SELECT COUNT(*) FROM reservations WHERE user = ?3 AND ends_at > ?4) < ?6
+  SELECT ?1, ?2, ?3, unixepoch(), unixepoch() + ?4
+  WHERE (SELECT COUNT(*) FROM reservations WHERE user = ?3 AND ends_at > unixepoch()) < ?5
   ON CONFLICT (host, gpu) DO UPDATE SET
     user = excluded.user, starts_at = excluded.starts_at, ends_at = excluded.ends_at
   WHERE reservations.ends_at <= excluded.starts_at
 `;
+const RELEASE = "DELETE FROM reservations WHERE host = ?1 AND gpu = ?2 AND user = ?3";
 const UPSERT = `
   INSERT INTO files (name, body, updated_at) VALUES (?1, ?2, ?3)
   ON CONFLICT (name) DO UPDATE SET body = excluded.body, updated_at = excluded.updated_at
@@ -210,8 +215,7 @@ async function readRoster(env) {
 }
 
 async function activeReservations(env) {
-  const now = Math.floor(Date.now() / 1000);
-  const { results } = await env.DB.prepare(ACTIVE_RESERVATIONS).bind(now).all();
+  const { results } = await env.DB.prepare(ACTIVE_RESERVATIONS).all();
   return results;
 }
 
@@ -237,13 +241,19 @@ async function reserve(request, user, env, cors) {
   if (!(server.users ?? []).includes(user)) {
     return json({ error: "no account on this server" }, 403, cors);
   }
-  const now = Math.floor(Date.now() / 1000);
-  const { meta } = await env.DB.prepare(RESERVE)
-    .bind(host, gpu, user, now, now + minutes * 60, MAX_RESERVATIONS_PER_USER)
-    .run();
-  const reservations = await activeReservations(env);
-  if (!meta.changes) {
+  // The write and the list run as one batch, so the list returned is exactly
+  // the state this write left.
+  const [written, listed] = await env.DB.batch([
+    env.DB.prepare(RESERVE).bind(host, gpu, user, minutes * 60, MAX_RESERVATIONS_PER_USER),
+    env.DB.prepare(ACTIVE_RESERVATIONS),
+  ]);
+  const reservations = listed.results;
+  if (!written.meta.changes) {
     const holder = reservations.find((item) => item.host === host && item.gpu === gpu);
+    // Asking again for a GPU you already hold (a retry, or a second tab) succeeds.
+    if (holder?.user === user) {
+      return json({ reservations }, 200, cors);
+    }
     return holder
       ? json({ error: "already reserved", reservations }, 409, cors)
       : json({ error: "reservation limit reached", reservations }, 409, cors);
@@ -256,10 +266,11 @@ async function release(path, user, env, cors) {
   if (!match) {
     return json({ error: "not found" }, 404, cors);
   }
-  await env.DB.prepare("DELETE FROM reservations WHERE host = ?1 AND gpu = ?2 AND user = ?3")
-    .bind(decodeURIComponent(match[1]), Number(match[2]), user)
-    .run();
-  return json({ reservations: await activeReservations(env) }, 200, cors);
+  const [, listed] = await env.DB.batch([
+    env.DB.prepare(RELEASE).bind(match[1], Number(match[2]), user),
+    env.DB.prepare(ACTIVE_RESERVATIONS),
+  ]);
+  return json({ reservations: listed.results }, 200, cors);
 }
 
 async function sessionSignature(expiresAt, user, env) {

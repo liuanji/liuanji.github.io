@@ -4,7 +4,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { StatTile } from './controls';
 import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, TEMPERATURE_ICON_RANGE } from './config';
 import { formatCpuCount, formatCpuModel, formatMemory, formatMemoryOf, gpuModels, userColor } from './format';
-import { idleGpuPhrase, pressurePhrase } from './easterEggs';
+import { idleGpuPhrase, pressurePhrase, reservedIdlePhrase } from './easterEggs';
+import { ReservationMark, formatLeft } from './Reservations';
 
 // The detail boxes a GPU, CPU or RAM reading opens on wider screens, in both the
 // compact and the full view, and the small hardware glyphs they and the compact
@@ -59,8 +60,11 @@ function heatSeries(amount) {
 }
 
 // The box a GPU tile opens on wider screens: a large ring on the left, the
-// readings and its users on the right.
-export function GpuDetails({ gpu, host }) {
+// readings and its users on the right. A reserved GPU says who holds it and for
+// how long under its status, and while nobody runs on it, the line at the
+// bottom talks about the reservation instead of inviting jobs.
+export function GpuDetails({ gpu, host, reservation = null, me = null, now = 0 }) {
+  const mine = reservation?.user === me;
   const power = gpu.power_limit_w && gpu.power_w != null ? gpu.power_w / gpu.power_limit_w : null;
   return (
     <div className="flex gap-6">
@@ -88,6 +92,15 @@ export function GpuDetails({ gpu, host }) {
           />
           {gpu.busy ? 'In use' : 'Idle'}
         </span>
+        {reservation && (
+          <span className="mt-1.5 flex max-w-[170px] flex-col items-center font-mono text-[11px] text-data-grey">
+            <span className="flex max-w-full items-center gap-1.5">
+              <ReservationMark mine={mine} className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">Reserved by {mine ? 'you' : reservation.user}</span>
+            </span>
+            <span className="text-data-grey/70">{formatLeft(reservation.ends_at - now)} left</span>
+          </span>
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">
@@ -144,7 +157,11 @@ export function GpuDetails({ gpu, host }) {
             ))
           ) : (
             <span className="font-mono text-xs text-data-grey">
-              {gpu.busy ? 'In use; its owner was not reported' : idleGpuPhrase(host, gpu.index)}
+              {gpu.busy
+                ? 'In use; its owner was not reported'
+                : reservation
+                  ? reservedIdlePhrase(host, gpu.index, reservation.user, mine)
+                  : idleGpuPhrase(host, gpu.index)}
             </span>
           )}
         </div>

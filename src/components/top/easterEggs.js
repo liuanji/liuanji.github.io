@@ -220,6 +220,35 @@ const IDLE_GPU = [
   'Warm, empty and waiting',
 ];
 
+// Lines for a reserved GPU nobody is running on yet, in place of the idle
+// ones: the viewer's own, or someone else's, where {user} is who holds it.
+const RESERVED_IDLE = {
+  mine: [
+    'All yours: happy debugging!',
+    'Your oven is preheated',
+    'Reserved and ready for your bugs',
+    'Your tray is waiting',
+    'Saved a warm spot for you',
+    'Your own little test kitchen',
+    'Go squash those bugs',
+    'Your bench is clear and ready',
+    'Ready when your debugger is',
+    'Keeping it warm for you',
+  ],
+  others: [
+    'Saved for {user}’s debugging',
+    '{user} is testing a recipe here',
+    '{user}’s test kitchen for now',
+    'Please let {user} debug in peace',
+    'Held for {user}: try another oven',
+    '{user} called dibs on this one',
+    'This tray is set aside for {user}',
+    '{user} is proofing some code here',
+    'Shh, {user} is debugging',
+    'Kept warm for {user}',
+  ],
+};
+
 // CPU and RAM lines by how hard the part is working: each band starts at its
 // share (0-1) and runs up to the next one.
 const PRESSURE = {
@@ -650,6 +679,12 @@ export function cloudPhrase({ amount, croissants, user = null, who = 'The lab' }
     .replace('{croissants}', croissants.toLocaleString('en-US'))
     .replace('{user}', user)
     .replace('{who}', who);
+}
+
+// holder reserved the GPU; mine says whether that is the viewer.
+export function reservedIdlePhrase(host, index, holder, mine) {
+  const pool = RESERVED_IDLE[mine ? 'mine' : 'others'];
+  return pool[hash(`reserved|${host}|${index}|${holder}`) % pool.length].replace('{user}', holder);
 }
 
 export function idleGpuPhrase(host, index) {

@@ -1,6 +1,6 @@
-import { Bookmark, Lock, Thermometer, Zap } from 'lucide-react';
+import { Thermometer, Zap } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, RESERVATION_MARKS, TEMPERATURE_ICON_RANGE } from './config';
+import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, RESERVATION_CLASH, TEMPERATURE_ICON_RANGE } from './config';
 import { ServerLink, StatusPill } from './controls';
 import {
   ChipGlyph,
@@ -14,7 +14,7 @@ import {
   heatColor,
 } from './DetailBoxes';
 import { formatAgo, formatMemory, formatMemoryOf, hasCurrentData, ramLevel, temperatureLevel, userColor } from './format';
-import { ReserveControl, clashingUsers, findReservation } from './Reservations';
+import { ReservationMark, ReserveControl, clashingUsers, findReservation } from './Reservations';
 
 function describe(gpu, host, reservation) {
   const parts = [
@@ -78,13 +78,25 @@ function UsageRing({ gpu }) {
   );
 }
 
-function UserLabel({ gpu }) {
+// The GPU's users, or with nobody on it, who reserved it, else "idle". Users
+// running on someone else's reservation are named in amber.
+function UserLabel({ gpu, reservation, me, clash }) {
   const [first, ...others] = gpu.users;
+  if (!first && reservation) {
+    return (
+      // A size smaller than the users' names, so "Reserved by" fits with most names.
+      <span className="truncate text-[10px] text-data-grey">
+        Reserved by {reservation.user === me ? 'you' : reservation.user}
+      </span>
+    );
+  }
   if (!first) return <span className="text-data-grey/60">{gpu.busy ? 'in use' : 'idle'}</span>;
   return (
     <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-inkwell">
       <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: userColor(first.username) }} aria-hidden="true" />
-      <span className="truncate">{first.username}</span>
+      <span className="truncate" style={clash ? { color: RESERVATION_CLASH.color } : undefined}>
+        {first.username}
+      </span>
       {others.length > 0 && <span className="flex-shrink-0 text-data-grey">+{others.length}</span>}
     </span>
   );
@@ -105,10 +117,11 @@ function HeatIcons({ temperature, power, className }) {
 // its icon. On phones the icons sit beside the GPU's name, as its ring leaves
 // no room in the corner. On wider screens the tile is a button that opens the
 // GPU's details. With reservations on, the top-left corner reserves the GPU or
-// shows its holder's bookmark, which tells who and for how long. The viewer's
-// own reservations get a lavender bookmark and a faint lavender tint, others'
-// a grey lock; a reserved GPU someone else runs on turns soft amber, with
-// an amber outline when that someone is the viewer.
+// shows its holder's mark, which tells who and for how long. The viewer's own
+// reservations get a lavender bookmark and tint; others' a grey lock and a
+// dashed grey edge. On a reserved GPU someone else runs on, the mark and the
+// runner's name turn amber, and the tile is outlined in amber when the runner
+// is the viewer.
 function GpuRing({ gpu, host, interactive, now, reserving }) {
   const hot = temperatureLevel(gpu.temperature_c) === 'hot';
   const temperature = heat(gpu.temperature_c, TEMPERATURE_ICON_RANGE);
@@ -127,12 +140,16 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
       className={`relative flex h-full w-full min-w-0 flex-col items-center rounded-2xl px-1.5 pb-2.5 pt-3 transition-colors ${
         hot
           ? 'bg-[#B33A3A]/[0.07]'
-          : clash.length
-            ? 'bg-[#E8B14F]/[0.13] hover:bg-[#E8B14F]/[0.18] data-[state=open]:bg-[#E8B14F]/[0.22]'
-            : mine
-              ? 'bg-[#8478D6]/[0.08] hover:bg-[#8478D6]/[0.11] data-[state=open]:bg-[#8478D6]/[0.14]'
+          : mine
+              ? 'bg-[#8478D6]/[0.11] hover:bg-[#8478D6]/[0.14] data-[state=open]:bg-[#8478D6]/[0.17]'
               : 'bg-[#F6F7F9] hover:bg-[#F1F3F6] data-[state=open]:bg-[#ECEFF3]'
-      } ${meClashing ? 'ring-2 ring-inset ring-[#E8B14F]' : ''} ${gpu.busy || reservation ? '' : 'opacity-55'} ${
+      } ${
+        meClashing
+          ? 'ring-2 ring-inset ring-[#E8B14F]'
+          : reservation && !mine
+            ? 'outline-dashed outline-[1.5px] outline-offset-[-1.5px] outline-[#94A3B8]'
+            : ''
+      } ${gpu.busy || reservation ? '' : 'opacity-55'} ${
         interactive ? 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20' : ''
       }`}
     >
@@ -144,12 +161,15 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
         <HeatIcons temperature={temperature} power={power} className="flex sm:hidden" />
       </div>
       <div className="mt-1 flex w-full justify-center font-mono text-[11px]">
-        <UserLabel gpu={gpu} />
+        <UserLabel gpu={gpu} reservation={reservation} me={reserving?.me} clash={clash.length > 0} />
       </div>
     </Tile>
   );
   const withDetails = interactive ? (
-    <DetailsPopover content={<GpuDetails gpu={gpu} host={host} />} width="w-[460px]">
+    <DetailsPopover
+      content={<GpuDetails gpu={gpu} host={host} reservation={reservation} me={reserving?.me} now={now} />}
+      width="w-[460px]"
+    >
       {tile}
     </DetailsPopover>
   ) : (
@@ -364,23 +384,12 @@ export default function CompactHosts({ hosts, now, onOpen, reserving = null }) {
         {reserving && (
           <>
             <LegendItem>
-              <Bookmark
-                className="h-3.5 w-3.5"
-                style={{ color: RESERVATION_MARKS.mine }}
-                fill="currentColor"
-                strokeWidth={2}
-                aria-hidden="true"
-              />
+              <ReservationMark mine />
               Reserved by you
             </LegendItem>
             <LegendItem>
-              <Lock
-                className="h-3.5 w-3.5"
-                style={{ color: RESERVATION_MARKS.others }}
-                strokeWidth={2.25}
-                aria-hidden="true"
-              />
-              Reserved by others (debugging, up to 4 h)
+              <ReservationMark mine={false} />
+              Reserved by others
             </LegendItem>
           </>
         )}

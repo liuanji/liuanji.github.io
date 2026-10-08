@@ -1,7 +1,8 @@
 import { useIsMobile } from '@/hooks/use-mobile';
-import { LEVEL_SERIES, READING_STYLES, SERIES } from './config';
+import { LEVEL_SERIES, READING_STYLES, RESERVATION_CLASH, SERIES } from './config';
 import { StatusPill } from './controls';
 import { CpuDetails, DetailsPopover, GpuDetails, RamDetails } from './DetailBoxes';
+import { ReserveControl, clashingUsers, findReservation, formatLeft } from './Reservations';
 import {
   formatAgo,
   formatCpuCount,
@@ -12,10 +13,14 @@ import {
   powerLevel,
   ramLevel,
   temperatureLevel,
+  userColor,
 } from './format';
 
 const ROW_GRID =
-  'grid grid-cols-2 gap-x-4 gap-y-2 md:grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,1fr)_7.5rem_minmax(0,1.3fr)] md:items-center md:gap-x-6';
+  'grid grid-cols-2 gap-x-4 gap-y-2 md:grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,1fr)_7.5rem_minmax(0,1.2fr)] md:items-center md:gap-x-6';
+// The reservation column sits beside each row's button, as a button cannot hold
+// another; on phones it shrinks to its icon, beside the temperature line.
+const RESERVE_COLUMN = 'w-9 flex-shrink-0 md:w-40';
 
 // In GPU rows the column headers name each meter on wide screens, so the label
 // only shows on narrow ones unless alwaysLabel is set. A warm or hot level
@@ -115,6 +120,67 @@ function SystemStrip({ system, host, interactive }) {
   );
 }
 
+// A GPU row's meter: on wide screens the value sits left of its bar on one
+// line, in a fixed width so the bars line up; on phones it is labelled above.
+function RowMeter({ label, value, max, display, series, valueWidth }) {
+  const percent = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
+  return (
+    <div className="min-w-0">
+      <div className="mb-1 flex items-baseline justify-between gap-2 md:hidden">
+        <span className="text-xs text-data-grey">{label}</span>
+        <span className="whitespace-nowrap font-mono text-xs tabular-nums text-inkwell">{display}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <span
+          className={`hidden flex-shrink-0 whitespace-nowrap text-right font-mono text-xs tabular-nums text-inkwell md:block ${valueWidth}`}
+        >
+          {display}
+        </span>
+        <div
+          className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full"
+          style={{ backgroundColor: series.track }}
+          role="meter"
+          aria-label={label}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(percent)}
+        >
+          <div className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: series.color }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Who holds a GPU and for how long, after its mark; a free GPU shows only the
+// faint mark that reserves it.
+function ReserveCell({ gpu, host, reservation, reserving, now }) {
+  return (
+    <div className={`${RESERVE_COLUMN} flex items-center gap-1.5 pr-3 pt-2.5 md:pr-6 md:pt-0`}>
+      <ReserveControl
+        host={host}
+        gpu={gpu}
+        reservation={reservation}
+        me={reserving.me}
+        held={reserving.held}
+        now={now}
+        onReserve={reserving.reserve}
+        onRelease={reserving.release}
+        className="-ml-1 flex-shrink-0"
+      />
+      {reservation && (
+        <span
+          className="hidden min-w-0 truncate font-mono text-xs text-data-grey md:inline"
+          style={clashingUsers(gpu, reservation).length ? { color: RESERVATION_CLASH.color } : undefined}
+        >
+          {reservation.user === reserving.me ? 'you' : reservation.user}
+          <span className="text-data-grey/60"> · {formatLeft(reservation.ends_at - now)}</span>
+        </span>
+      )}
+    </div>
+  );
+}
+
 // Every reading gets the same padding so tinted and plain values line up.
 function Reading({ text, level, title }) {
   return (
@@ -128,19 +194,30 @@ function Reading({ text, level, title }) {
   );
 }
 
-function GpuRow({ gpu, host, interactive }) {
+// A reserved row follows the tiles: lavender with a lavender edge when it is
+// the viewer's; while someone else runs on it, its mark and holder turn amber,
+// with an amber edge when that someone is the viewer.
+function GpuRow({ gpu, host, interactive, now, reserving }) {
+  const reservation = reserving ? findReservation(reserving.reservations, host, gpu.index, now) : null;
+  const clash = clashingUsers(gpu, reservation);
+  const meClashing = Boolean(reserving) && clash.includes(reserving.me);
+  const mine = Boolean(reservation) && reservation.user === reserving.me;
   const thermal = gpu.temperature_c == null ? '—' : `${Math.round(gpu.temperature_c)}°C`;
   const power = gpu.power_w == null ? '—' : `${Math.round(gpu.power_w)} W`;
   const powerTitle =
     gpu.power_w != null && gpu.power_limit_w
       ? `${Math.round(gpu.power_w)} W of ${Math.round(gpu.power_limit_w)} W limit (${Math.round((gpu.power_w / gpu.power_limit_w) * 100)}%)`
       : undefined;
-  return (
+  const row = (
     <Opens
-      details={interactive ? <GpuDetails gpu={gpu} host={host} /> : null}
+      details={
+        interactive ? (
+          <GpuDetails gpu={gpu} host={host} reservation={reservation} me={reserving?.me} now={now} />
+        ) : null
+      }
       width="w-[460px]"
       label={`${host} GPU ${gpu.index}, ${Math.round(gpu.utilization)}% compute`}
-      className={`${ROW_GRID} px-6 py-3.5 ${interactive ? 'hover:bg-paper data-[state=open]:bg-[#F1F3F6]' : ''}`}
+      className={`${ROW_GRID} py-3 pl-6 ${reserving ? 'pr-2' : 'pr-6'} ${interactive ? 'hover:bg-black/[0.02] data-[state=open]:bg-black/[0.04]' : ''}`}
     >
       <div className="order-1 flex items-center gap-2 md:order-none">
         <span
@@ -150,21 +227,23 @@ function GpuRow({ gpu, host, interactive }) {
         <span className="font-mono text-sm text-inkwell">GPU {gpu.index}</span>
       </div>
       <div className="order-3 md:order-none">
-        <Meter
+        <RowMeter
           label="Compute"
           value={gpu.utilization}
           max={100}
           display={`${Math.round(gpu.utilization)}%`}
           series={SERIES.compute}
+          valueWidth="w-9"
         />
       </div>
       <div className="order-4 md:order-none">
-        <Meter
+        <RowMeter
           label="Memory"
           value={gpu.memory_used_mb}
           max={gpu.memory_total_mb}
           display={formatMemoryOf(gpu.memory_used_mb, gpu.memory_total_mb)}
           series={SERIES.memory}
+          valueWidth="w-[5.5rem]"
         />
       </div>
       {/* The negative margins cancel the readings' padding, so plain values line up as before. */}
@@ -178,9 +257,12 @@ function GpuRow({ gpu, host, interactive }) {
           gpu.users.map((user) => (
             <span
               key={user.username}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border-light bg-paper px-2 py-0.5 font-mono text-xs text-inkwell"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border-light bg-white/70 px-2 py-0.5 font-mono text-xs text-inkwell"
             >
-              {user.username}
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: userColor(user.username) }} aria-hidden="true" />
+              <span style={clash.includes(user.username) ? { color: RESERVATION_CLASH.color } : undefined}>
+                {user.username}
+              </span>
               <span className="text-data-grey">{formatMemory(user.used_memory_mb)}</span>
             </span>
           ))
@@ -190,9 +272,20 @@ function GpuRow({ gpu, host, interactive }) {
       </div>
     </Opens>
   );
+  if (!reserving) return row;
+  return (
+    <div
+      className={`flex items-start md:items-center ${
+        mine ? 'bg-[#8478D6]/[0.06]' : ''
+      } ${meClashing ? 'shadow-[inset_3px_0_0_#E8B14F]' : mine ? 'shadow-[inset_3px_0_0_#8478D6]' : ''}`}
+    >
+      <div className="min-w-0 flex-1">{row}</div>
+      <ReserveCell gpu={gpu} host={host} reservation={reservation} reserving={reserving} now={now} />
+    </div>
+  );
 }
 
-export default function HostCard({ host, now }) {
+export default function HostCard({ host, now, reserving = null }) {
   const busy = host.gpus.filter((gpu) => gpu.busy).length;
   // Detail boxes need room beside the card, so phones go without them.
   const interactive = !useIsMobile();
@@ -224,18 +317,26 @@ export default function HostCard({ host, now }) {
         {host.system && <SystemStrip system={host.system} host={host.name} interactive={interactive} />}
         {host.gpus.length ? (
           <>
-            <div
-              className={`${ROW_GRID} hidden border-b border-border-light px-6 py-2 font-mono text-[11px] uppercase tracking-wider text-data-grey/70 md:grid`}
-            >
-              <span>GPU</span>
-              <span>Compute</span>
-              <span>Memory</span>
-              <span>Temp · Power</span>
-              <span>Users</span>
+            <div className="hidden border-b border-border-light font-mono text-[11px] uppercase tracking-wider text-data-grey/70 md:flex">
+              <div className={`${ROW_GRID} min-w-0 flex-1 py-2 pl-6 ${reserving ? 'pr-2' : 'pr-6'}`}>
+                <span>GPU</span>
+                <span>Compute</span>
+                <span>Memory</span>
+                <span>Temp · Power</span>
+                <span>Users</span>
+              </div>
+              {reserving && <span className={`${RESERVE_COLUMN} py-2`}>Reserved</span>}
             </div>
             <div className="divide-y divide-border-light">
               {host.gpus.map((gpu) => (
-                <GpuRow key={gpu.index} gpu={gpu} host={host.name} interactive={interactive} />
+                <GpuRow
+                  key={gpu.index}
+                  gpu={gpu}
+                  host={host.name}
+                  interactive={interactive}
+                  now={now}
+                  reserving={reserving}
+                />
               ))}
             </div>
           </>

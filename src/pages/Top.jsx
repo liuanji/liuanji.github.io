@@ -302,7 +302,7 @@ export default function Top() {
                 ) : (
                   <div className="space-y-6">
                     {selectedHosts.map((item) => (
-                      <HostCard key={item.name} host={item} now={now} />
+                      <HostCard key={item.name} host={item} now={now} reserving={reserving} />
                     ))}
                   </div>
                 )}

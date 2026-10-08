@@ -114,8 +114,11 @@ export default function gpuStatusPreview() {
         if (!machine.users.includes(user)) {
           return sendJson(response, 403, { error: 'no account on this server', reservations: active() });
         }
-        if (active().some((item) => item.host === host && item.gpu === gpu)) {
-          return sendJson(response, 409, { error: 'already reserved', reservations });
+        const holder = active().find((item) => item.host === host && item.gpu === gpu);
+        if (holder) {
+          return holder.user === user
+            ? sendJson(response, 200, { reservations })
+            : sendJson(response, 409, { error: 'already reserved', reservations });
         }
         if (reservations.filter((item) => item.user === user).length >= MAX_RESERVATIONS_PER_USER) {
           return sendJson(response, 409, { error: 'reservation limit reached', reservations });
