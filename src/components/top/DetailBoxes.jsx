@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { StatTile } from './controls';
 import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, TEMPERATURE_ICON_RANGE } from './config';
 import { formatCpuCount, formatCpuModel, formatMemory, formatMemoryOf, gpuModels, userColor } from './format';
 import { idleGpuPhrase, pressurePhrase } from './easterEggs';
@@ -496,5 +498,24 @@ export function RamDetails({ host, system, level }) {
         <BoxFooter phrase={pressurePhrase('ram', used / total, host)} />
       </div>
     </div>
+  );
+}
+
+// A StatTile that, on wider screens, opens details on a click or a long hover;
+// phones get the plain tile. action finishes the button's label, such as
+// "Show its trend".
+export function BoxTile({ details, width = 'w-[460px]', action, ...tile }) {
+  const interactive = !useIsMobile();
+  if (!interactive || !details) return <StatTile {...tile} className="h-full" />;
+  return (
+    <DetailsPopover content={details} width={width}>
+      <button
+        type="button"
+        aria-label={`${tile.label}: ${tile.value}. ${action}.`}
+        className="group block h-full w-full rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20"
+      >
+        <StatTile {...tile} className="h-full transition-colors group-hover:bg-paper group-data-[state=open]:bg-paper" />
+      </button>
+    </DetailsPopover>
   );
 }

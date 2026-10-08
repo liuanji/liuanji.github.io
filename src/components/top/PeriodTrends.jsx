@@ -1,10 +1,8 @@
 import { useMemo } from 'react';
 import { Gauge, LayoutGrid, MemoryStick, Zap } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { SERIES } from './config';
-import { StatTile } from './controls';
-import { DetailsPopover } from './DetailBoxes';
+import { BoxTile } from './DetailBoxes';
 import { formatAxisTime, formatFullTime, formatPercent, formatPower } from './format';
 
 // Power's axis tops out at the next whole kW above the highest reading.
@@ -181,32 +179,20 @@ function TrendDetails({ metric, rows, history, range, scope, average }) {
 // a long hover, like the other readings.
 export function TrendTile({ metric: key, history, range, scope, label, value, total = null, caption = null }) {
   const metric = TREND_METRICS[key];
-  const interactive = !useIsMobile();
   const rows = useMemo(() => (history ? trendRows(history, metric) : []), [history, metric]);
-  const tile = (
-    <StatTile
+  return (
+    <BoxTile
       label={label}
       value={value}
       total={total}
       caption={caption}
-      className={interactive ? 'h-full transition-colors group-hover:bg-paper group-data-[state=open]:bg-paper' : 'h-full'}
-    />
-  );
-  if (!interactive || !history) return tile;
-  return (
-    <DetailsPopover
-      content={
-        <TrendDetails metric={metric} rows={rows} history={history} range={range} scope={scope} average={value} />
+      icon={metric}
+      action="Show its trend"
+      details={
+        history ? (
+          <TrendDetails metric={metric} rows={rows} history={history} range={range} scope={scope} average={value} />
+        ) : null
       }
-      width="w-[460px]"
-    >
-      <button
-        type="button"
-        aria-label={`${label}: ${value}. Show its trend.`}
-        className="group block w-full rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20"
-      >
-        {tile}
-      </button>
-    </DetailsPopover>
+    />
   );
 }

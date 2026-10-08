@@ -24,8 +24,8 @@ function WeightedHelp() {
   );
 }
 
-// An easter egg pricing GPU-hours as cloud time: one user's while their bar is
-// hovered (or their hours tapped), otherwise everyone's shown here.
+// An easter egg pricing GPU-hours as cloud time: one user's while their row is
+// hovered (or tapped), otherwise everyone's shown here.
 function cloudEstimate(hours, user, who) {
   const amount = hours * CLOUD_SGD_PER_GPU_HOUR;
   return cloudPhrase({ amount: formatSgd(amount), croissants: Math.round(amount / CROISSANT_SGD), user, who });
@@ -77,19 +77,20 @@ export default function UserRanking({ users, rangeTitle, showHosts, who = 'The l
             </thead>
             <tbody className="divide-y divide-border-light border-t border-border-light">
               {users.map((user, index) => (
-                <tr key={user.username} className="transition-colors hover:bg-paper">
+                <tr
+                  key={user.username}
+                  className="cursor-default transition-colors hover:bg-paper"
+                  onPointerEnter={(event) => event.pointerType === 'mouse' && setFocused(user.username)}
+                  onPointerLeave={(event) => event.pointerType === 'mouse' && setFocused(null)}
+                  onClick={() => setFocused((current) => (current === user.username ? null : user.username))}
+                >
                   <td className="py-3 pl-6 font-mono text-xs text-data-grey">
                     <div className="w-6">{index + 1}</div>
                   </td>
                   <td className="py-3 pr-4 font-mono text-sm text-inkwell">
                     <div className="truncate sm:w-40">{user.username}</div>
                   </td>
-                  <td
-                    className="cursor-default py-3 pr-6"
-                    onPointerEnter={(event) => event.pointerType === 'mouse' && setFocused(user.username)}
-                    onPointerLeave={(event) => event.pointerType === 'mouse' && setFocused(null)}
-                    onClick={() => setFocused((current) => (current === user.username ? null : user.username))}
-                  >
+                  <td className="py-3 pr-6">
                     {/* Fixed widths keep every row's track the same length. */}
                     <div className="flex items-center gap-3">
                       <div className="hidden h-2 w-40 flex-shrink-0 sm:block" aria-hidden="true">

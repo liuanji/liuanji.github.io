@@ -36,10 +36,22 @@ export function Switch({ label, checked, onChange }) {
   );
 }
 
-export function StatTile({ label, value, total = null, caption = null, className = '' }) {
+// icon is { Icon, color }: a small tinted badge in the tile's top-right corner.
+export function StatTile({ label, value, total = null, caption = null, icon = null, className = '' }) {
   return (
     <div className={`bg-white rounded-2xl border border-border-light p-5 ${className}`}>
-      <div className="font-mono text-xs text-data-grey">{label}</div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="font-mono text-xs text-data-grey">{label}</div>
+        {icon && (
+          <span
+            className="-mr-1 -mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg"
+            style={{ backgroundColor: `${icon.color}14` }}
+            aria-hidden="true"
+          >
+            <icon.Icon className="h-3.5 w-3.5" style={{ color: icon.color }} strokeWidth={2.25} />
+          </span>
+        )}
+      </div>
       <div className="mt-2 flex items-baseline gap-1.5">
         <span className="font-tight font-semibold text-3xl text-inkwell leading-none">{value}</span>
         {total != null && <span className="font-tight text-base text-data-grey">/ {total}</span>}

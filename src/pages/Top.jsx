@@ -7,6 +7,7 @@ import CompactHosts from '../components/top/CompactHosts';
 import DiskCard from '../components/top/DiskCard';
 import HostCard from '../components/top/HostCard';
 import LoginCard from '../components/top/LoginCard';
+import LiveTiles from '../components/top/LiveBreakdown';
 import { TrendTile } from '../components/top/PeriodTrends';
 import UptimeCard from '../components/top/UptimeCard';
 import UsageChart from '../components/top/UsageChart';
@@ -20,15 +21,13 @@ import {
   OFFLINE_AFTER_SECONDS,
   RANGES,
 } from '../components/top/config';
-import { LiveDot, Notice, SectionLabel, SegmentedControl, StatTile, Switch } from '../components/top/controls';
+import { LiveDot, Notice, SectionLabel, SegmentedControl, Switch } from '../components/top/controls';
 import {
   currentStatus,
   formatAgo,
-  formatMemory,
   formatObserved,
   formatPercent,
   formatPower,
-  summarize,
 } from '../components/top/format';
 import { useSession } from '../components/top/useSession';
 import { useNow, useStatusFile } from '../components/top/useStatusFile';
@@ -63,32 +62,6 @@ function Freshness({ overview, now }) {
       <LiveDot color={state.color} pulse={state.label === 'Live'} />
       <span className="text-inkwell">{state.label}</span>
       <span>· updated {formatAgo(age)}</span>
-    </div>
-  );
-}
-
-function LiveTiles({ hosts, allHosts, now }) {
-  const summary = summarize(hosts, now);
-  const idle = summary.gpusTotal - summary.gpusBusy;
-  return (
-    <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <StatTile
-        label="GPUs in use"
-        value={summary.gpusBusy}
-        total={summary.gpusTotal}
-        caption={allHosts ? `${idle} idle · ${summary.hostsOnline}/${summary.hostsTotal} servers online` : `${idle} idle`}
-      />
-      <StatTile
-        label="GPU compute"
-        value={formatPercent(summary.computeLoad)}
-        caption={`Average across ${summary.gpusTotal} GPUs`}
-      />
-      <StatTile
-        label="GPU memory"
-        value={formatPercent(summary.memoryTotalMb ? (summary.memoryUsedMb / summary.memoryTotalMb) * 100 : 0)}
-        caption={`${formatMemory(summary.memoryUsedMb)} of ${formatMemory(summary.memoryTotalMb)}`}
-      />
-      <StatTile label="GPU power" value={formatPower(summary.powerW)} caption="Current total draw" />
     </div>
   );
 }
