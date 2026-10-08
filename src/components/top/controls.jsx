@@ -108,6 +108,23 @@ export function StatusPill({ status }) {
   );
 }
 
+// A server name that opens the server's own panel; on hover a soft underline
+// draws itself in from the left (a growing background line). Without onOpen it
+// is plain text.
+export function ServerLink({ name, onOpen, className = '' }) {
+  if (!onOpen) return <span className={className}>{name}</span>;
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(name)}
+      aria-label={`Open ${name}'s panel`}
+      className={`rounded-sm bg-[linear-gradient(#CBD5E1,#CBD5E1)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat pb-0.5 text-left transition-[background-size] duration-300 ease-out hover:bg-[length:100%_2px] focus-visible:bg-[length:100%_2px] focus-visible:outline-none ${className}`}
+    >
+      {name}
+    </button>
+  );
+}
+
 export function LiveDot({ color, pulse = false }) {
   return (
     <span className="relative flex h-2 w-2" aria-hidden="true">

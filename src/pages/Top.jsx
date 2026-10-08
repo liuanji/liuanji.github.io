@@ -184,6 +184,17 @@ export default function Top() {
     );
 
   const selectedHosts = host === 'all' ? hosts : hosts.filter((item) => item.name === host);
+  // Clicking a server's name shows its own panel and brings the server
+  // selector, and the panel below it, into view.
+  const openHost =
+    host === 'all' && hosts.length > 1
+      ? (name) => {
+          setParam('host', name, 'all');
+          requestAnimationFrame(() =>
+            document.getElementById('top-servers')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+          );
+        }
+      : undefined;
   const hostOptions = [
     {
       value: 'all',
@@ -274,17 +285,7 @@ export default function Top() {
                 </SectionLabel>
                 <LiveTiles hosts={selectedHosts} allHosts={host === 'all'} now={now} />
                 {host === 'all' && compact ? (
-                  <CompactHosts
-                    hosts={selectedHosts}
-                    now={now}
-                    onOpen={(name) => {
-                      setParam('host', name, 'all');
-                      // Bring the server selector, and the panel below it, into view.
-                      requestAnimationFrame(() =>
-                        document.getElementById('top-servers')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-                      );
-                    }}
-                  />
+                  <CompactHosts hosts={selectedHosts} now={now} onOpen={openHost} />
                 ) : (
                   <div className="space-y-6">
                     {selectedHosts.map((item) => (
@@ -333,7 +334,7 @@ export default function Top() {
                 </div>
                 <div className={`mb-6 transition-opacity duration-300 ${uptime.isPlaceholderData ? 'opacity-50' : ''}`}>
                   {uptime.data ? (
-                    <UptimeCard uptime={uptime.data} hosts={selectedHosts} range={range} />
+                    <UptimeCard uptime={uptime.data} hosts={selectedHosts} range={range} onOpen={openHost} />
                   ) : (
                     <Notice title={uptime.isError ? 'Availability unavailable' : 'Loading availability…'}>
                       {uptime.isError ? 'This period has not been published yet.' : 'Fetching server availability.'}

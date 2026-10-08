@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { HOST_STATUS, UPTIME_STATES } from './config';
+import { ServerLink } from './controls';
 import {
   formatBar,
   formatBarCount,
@@ -62,7 +63,7 @@ function RowSummary({ series, state, barSeconds }) {
 // labels below; a single focusable strip instead of a button per bar. While a
 // legend entry is highlighted, bars in other states fade and the row counts its
 // bars in that state.
-function UptimeRow({ series, status, uptime, rangeAgo, focus }) {
+function UptimeRow({ series, status, uptime, rangeAgo, focus, onOpen }) {
   const [active, setActive] = useState(null);
   const bars = series.checked.length;
   const checked = sum(series.checked);
@@ -92,7 +93,7 @@ function UptimeRow({ series, status, uptime, rangeAgo, focus }) {
             title={statusStyle.label}
             aria-hidden="true"
           />
-          <span className="truncate font-tight font-semibold text-inkwell">{series.name}</span>
+          <ServerLink name={series.name} onOpen={onOpen} className="truncate font-tight font-semibold text-inkwell" />
           <span className="sr-only">{statusStyle.label}</span>
         </div>
         <span className="whitespace-nowrap font-mono text-xs tabular-nums text-data-grey">
@@ -161,7 +162,7 @@ function UptimeRow({ series, status, uptime, rangeAgo, focus }) {
   );
 }
 
-export default function UptimeCard({ uptime, hosts, range }) {
+export default function UptimeCard({ uptime, hosts, range, onOpen }) {
   const statuses = Object.fromEntries(hosts.map((host) => [host.name, host.status]));
   const rows = uptime.hosts.filter((series) => series.name in statuses);
   // Day and week bars follow the servers' midnight; say so to viewers elsewhere.
@@ -221,6 +222,7 @@ export default function UptimeCard({ uptime, hosts, range }) {
             uptime={uptime}
             rangeAgo={range.ago}
             focus={focus}
+            onOpen={onOpen}
           />
         ))}
       </div>

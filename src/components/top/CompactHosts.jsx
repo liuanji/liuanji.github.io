@@ -1,7 +1,7 @@
 import { Thermometer, Zap } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, TEMPERATURE_ICON_RANGE } from './config';
-import { StatusPill } from './controls';
+import { ServerLink, StatusPill } from './controls';
 import {
   ChipGlyph,
   CpuDetails,
@@ -222,17 +222,8 @@ function CompactHost({ host, now, interactive, onOpen }) {
       {/* One line on wider screens; on phones the status moves up beside the
           name, and the summary and CPU/RAM take a line each. */}
       <header className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-2 px-1">
-        {/* The name opens the server's own panel; on hover a soft underline draws
-            itself in from the left (a growing background line). */}
         <h3 className="order-1 font-tight font-semibold text-lg text-inkwell leading-tight">
-          <button
-            type="button"
-            onClick={() => onOpen(host.name)}
-            aria-label={`Open ${host.name}'s panel`}
-            className="rounded-sm bg-[linear-gradient(#CBD5E1,#CBD5E1)] bg-[length:0%_2px] bg-[position:0_100%] bg-no-repeat pb-0.5 transition-[background-size] duration-300 ease-out hover:bg-[length:100%_2px] focus-visible:bg-[length:100%_2px] focus-visible:outline-none"
-          >
-            {host.name}
-          </button>
+          <ServerLink name={host.name} onOpen={onOpen} />
         </h3>
         {host.gpus.length > 0 && (
           <span className="order-3 w-full font-mono text-xs text-data-grey sm:order-2 sm:w-auto">
