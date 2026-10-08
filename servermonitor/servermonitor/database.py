@@ -150,6 +150,12 @@ CREATE TABLE IF NOT EXISTS account_state (
     checked_at INTEGER NOT NULL
 ) WITHOUT ROWID;
 
+-- Each host's latest scratch-usage summary (how much each folder uses), as JSON.
+CREATE TABLE IF NOT EXISTS usage_state (
+    host TEXT PRIMARY KEY,
+    usage TEXT NOT NULL
+) WITHOUT ROWID;
+
 CREATE TABLE IF NOT EXISTS app_metadata (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -375,6 +381,15 @@ class Database:
                     """,
                     (result.host, json.dumps(list(result.accounts)), result.checked_at),
                 )
+        if result.usage is not None:
+            with self.connect() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO usage_state (host, usage) VALUES (?, ?)
+                    ON CONFLICT (host) DO UPDATE SET usage = excluded.usage
+                    """,
+                    (result.host, json.dumps(result.usage)),
+                )
         if not result.success:
             return
         with self.connect() as connection:
@@ -406,6 +421,15 @@ class Database:
                 for row in connection.execute("SELECT host, accounts FROM account_state")
             }
         return {host: stored.get(host, []) for host in hosts}
+
+    def usage(self, hosts: Iterable[str]) -> dict[str, dict[str, Any] | None]:
+        """Each host's latest scratch-usage summary; None for a host without one."""
+        with self.connect() as connection:
+            stored = {
+                row["host"]: json.loads(row["usage"])
+                for row in connection.execute("SELECT host, usage FROM usage_state")
+            }
+        return {host: stored.get(host) for host in hosts}
 
     def disks(self, hosts: Iterable[str]) -> list[dict[str, Any]]:
         """Each host's latest disks, by mount."""

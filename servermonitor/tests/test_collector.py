@@ -56,6 +56,24 @@ class AccountTest(unittest.TestCase):
         self.assertEqual(len(result.disks), 2)
         self.assertEqual(result.accounts, ("alice", "bob"))
 
+    def test_disk_check_reads_the_usage_summary(self) -> None:
+        summary = '{"checked_at": 5, "duration_seconds": 1.0, "mounts": [{"mount": "/scratch1", "errors": 0, "folders": [{"name": "alice", "owner": "alice", "bytes": 42}]}]}'
+        output = DF_OUTPUT + "__SERVERMONITOR_ACCOUNTS__\nalice\n__SERVERMONITOR_USAGE__\n" + summary + "\n"
+        with patch("subprocess.run", return_value=CompletedProcess([], 0, output, "")):
+            result = SSHCollector().collect_disks("brezel")
+
+        self.assertEqual(result.accounts, ("alice",))
+        self.assertEqual(result.usage, {"checked_at": 5, "mounts": {"/scratch1": [{"owner": "alice", "bytes": 42}]}})
+
+    def test_missing_or_broken_usage_summary_is_none(self) -> None:
+        for tail in ("", "{not json", '{"mounts": []}'):
+            output = DF_OUTPUT + "__SERVERMONITOR_ACCOUNTS__\nalice\n__SERVERMONITOR_USAGE__\n" + tail
+            with patch("subprocess.run", return_value=CompletedProcess([], 0, output, "")):
+                result = SSHCollector().collect_disks("brezel")
+            self.assertTrue(result.success)
+            self.assertIsNone(result.usage)
+            self.assertEqual(result.accounts, ("alice",))
+
     def test_accounts_survive_a_host_without_disks(self) -> None:
         with patch("subprocess.run", return_value=CompletedProcess([], 0, "__SERVERMONITOR_ACCOUNTS__\nalice\n", "")):
             result = SSHCollector().collect_disks("brezel")

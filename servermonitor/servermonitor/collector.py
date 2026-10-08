@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import re
 import subprocess
 import time
@@ -17,16 +18,23 @@ APP_MARKER = "__SERVERMONITOR_APPS__"
 USER_MARKER = "__SERVERMONITOR_USERS__"
 SYSTEM_MARKER = "__SERVERMONITOR_SYSTEM__"
 ACCOUNT_MARKER = "__SERVERMONITOR_ACCOUNTS__"
+USAGE_MARKER = "__SERVERMONITOR_USAGE__"
+# Written every 2 hours by root's scratch-usage service (deploy/scratch-usage):
+# how much each top-level folder of the scratch disks uses.
+USAGE_PATH = "/var/lib/scratch-usage/usage.json"
 
 # Every /scratch* mount, in bytes; a host without one reports no disks. timeout
 # stops a hung mount from stalling the check. The same slow check lists the
 # host's login accounts (regular UIDs with a usable shell), the usernames that
-# may sign in to the /top page.
+# may sign in to the /top page, and reads the per-folder usage summary if the
+# host has one.
 DISK_SCRIPT = f"""\
 export LC_ALL=C
 timeout 10 df -P -B1 /scratch* 2>/dev/null || true
 printf '%s\\n' '{ACCOUNT_MARKER}'
 timeout 10 getent passwd 2>/dev/null | awk -F: '$3 >= 1000 && $3 < 60000 && $7 !~ /(nologin|false)$/ {{print $1}}' || true
+printf '%s\\n' '{USAGE_MARKER}'
+cat {USAGE_PATH} 2>/dev/null || true
 """
 # What a username may look like; anything else in getent's output is skipped.
 ACCOUNT_PATTERN = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,31}$")
@@ -121,6 +129,9 @@ class DiskResult:
     error: str | None = None
     # The host's login accounts, sorted; None when they could not be listed.
     accounts: tuple[str, ...] | None = None
+    # The scratch-usage summary: {"checked_at": int, "mounts": {mount: [
+    # {"owner": str, "bytes": int}, ...]}}; None when the host has none.
+    usage: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -309,9 +320,27 @@ def parse_accounts(output: str) -> tuple[str, ...]:
     return tuple(sorted({line.strip() for line in output.splitlines() if ACCOUNT_PATTERN.match(line.strip())}))
 
 
+def parse_usage(output: str) -> dict | None:
+    """The scratch-usage summary, keeping only well-formed folders; None when the
+    host has no summary or it does not parse."""
+    try:
+        data = json.loads(output)
+        mounts = {
+            str(mount["mount"]): [
+                {"owner": str(folder["owner"]), "bytes": int(folder["bytes"])}
+                for folder in mount["folders"]
+            ]
+            for mount in data["mounts"]
+        }
+        return {"checked_at": int(data["checked_at"]), "mounts": mounts}
+    except (ValueError, TypeError, KeyError):
+        return None
+
+
 def _check_disks(host: str, command: list[str], timeout_seconds: int) -> DiskResult:
     checked_at = int(time.time())
     accounts = None
+    usage = None
     try:
         completed = subprocess.run(
             command,
@@ -325,12 +354,18 @@ def _check_disks(host: str, command: list[str], timeout_seconds: int) -> DiskRes
             raise ValueError(
                 completed.stderr.strip() or f"disk check exited with code {completed.returncode}"
             )
-        df_output, marker, account_output = completed.stdout.partition(ACCOUNT_MARKER)
-        accounts = parse_accounts(account_output) if marker else None
-        return DiskResult(host, checked_at, True, parse_df_output(df_output), accounts=accounts)
+        rest, usage_marker, usage_output = completed.stdout.partition(USAGE_MARKER)
+        df_output, account_marker, account_output = rest.partition(ACCOUNT_MARKER)
+        accounts = parse_accounts(account_output) if account_marker else None
+        usage = parse_usage(usage_output) if usage_marker and usage_output.strip() else None
+        return DiskResult(
+            host, checked_at, True, parse_df_output(df_output), accounts=accounts, usage=usage
+        )
     except (OSError, subprocess.TimeoutExpired, ValueError) as exc:
-        # Accounts listed before df failed are still worth keeping.
-        return DiskResult(host, checked_at, False, error=str(exc)[-500:], accounts=accounts)
+        # Accounts and usage read before df failed are still worth keeping.
+        return DiskResult(
+            host, checked_at, False, error=str(exc)[-500:], accounts=accounts, usage=usage
+        )
 
 
 class LocalCollector:

@@ -31,10 +31,10 @@ export const RING_SERIES = {
   memory: { color: '#5BBE98', track: '#5BBE9824' },
 };
 
-const QUIET = { color: '#A3B1C6', track: '#A3B1C624' };
+export const QUIET = { color: '#A3B1C6', track: '#A3B1C624' };
 
 // share null leaves out the bar.
-function Metric({ label, value, share = null, series = null }) {
+export function Metric({ label, value, share = null, series = null }) {
   return (
     <div className="min-w-0">
       <div className="flex items-baseline justify-between gap-2">
@@ -252,7 +252,7 @@ export function DetailsPopover({ content, width, children }) {
 }
 
 // Outline, unlit and contact colours shared by the CPU and RAM glyphs.
-const GLYPH = { outline: '#CBD5E1', unlit: '#E9EEF4', contacts: '#E2C26F' };
+export const GLYPH = { outline: '#CBD5E1', unlit: '#E9EEF4', contacts: '#E2C26F' };
 
 // A tiny CPU chip: a 4 x 4 grid of cores that light up from the bottom row
 // with the load, the last one partly.
@@ -280,8 +280,9 @@ export function ChipGlyph({ share, color, size = 26, animated = false }) {
         const row = cells - 1 - Math.floor(index / cells);
         const column = index % cells;
         const amount = Math.min(1, Math.max(0, lit - index));
-        const x = 6 + column * 2.75;
-        const y = 6 + row * 2.75;
+        // The 10.5-wide grid of cores is centred in the body, which centres on 11.
+        const x = 5.75 + column * 2.75;
+        const y = 5.75 + row * 2.75;
         return (
           <g key={index}>
             <rect x={x} y={y} width="2.25" height="2.25" rx="0.5" fill={GLYPH.unlit} />
@@ -426,7 +427,7 @@ export function StickGlyph({ share, color, width = 44 }) {
 // A box's closing line: any facts on the left and an easter egg at the bottom
 // right, wrapping below them when there is no room beside; with no facts the
 // easter egg has the line to itself.
-function BoxFooter({ phrase, children = null }) {
+export function BoxFooter({ phrase, children = null }) {
   return (
     <div className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-border-light pt-3 font-mono text-[11px] text-data-grey">
       {children && <span>{children}</span>}

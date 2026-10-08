@@ -1,0 +1,22 @@
+[Unit]
+Description=Measure each user's usage of the scratch disks for the GPU dashboard
+Documentation=file:///usr/local/bin/scratch-usage
+RequiresMountsFor=/scratch1 /scratch2
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/scratch-usage /scratch1 /scratch2
+# Low priority, so jobs on the server come first. (On NVMe disks with the
+# "none" scheduler the I/O class has no effect, but it costs nothing.)
+Nice=19
+IOSchedulingClass=idle
+# Creates /var/lib/scratch-usage, readable by everyone, as the only writable
+# place; everything else is read-only to this service.
+StateDirectory=scratch-usage
+StateDirectoryMode=0755
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+NoNewPrivileges=yes
+TimeoutStartSec=90min

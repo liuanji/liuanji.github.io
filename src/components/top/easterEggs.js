@@ -389,6 +389,50 @@ const PRESSURE = {
       ],
     },
   ],
+  // A scratch disk is the bakery's flour store; bands follow DISK_LEVELS.
+  disk: [
+    {
+      from: 0,
+      lines: [
+        'Plenty of room in the flour store',
+        'The storeroom is wide open',
+        'Room for many more batches',
+        'Empty shelves, ready for dough',
+        'A roomy pantry',
+        'Space to spare on {host}',
+      ],
+    },
+    {
+      from: 0.5,
+      lines: [
+        'The storeroom is filling up nicely',
+        'Half the shelves are stocked',
+        'A well-stocked pantry',
+        'Still room for a few sacks of flour',
+        'Busy shelves, but no squeeze yet',
+      ],
+    },
+    {
+      from: 0.85,
+      lines: [
+        'The flour sacks are piling up',
+        'Getting snug in the storeroom',
+        'Time to tidy the pantry',
+        'Old batches could make room',
+        'Shelves nearly full on {host}',
+      ],
+    },
+    {
+      from: 0.95,
+      lines: [
+        'The storeroom door won’t close',
+        'Not a crumb of space left',
+        'Please clear out some old checkpoints',
+        'The pantry is bursting',
+        '{host} needs a bigger storeroom',
+      ],
+    },
+  ],
 };
 
 // Lines for the availability legend: how much of the range was in a state,
@@ -649,10 +693,11 @@ export function barPhrase(state, host, barStart) {
 }
 
 // part is 'cpu' or 'ram'; share is how much of it is in use, from 0 to 1.
-export function pressurePhrase(part, share, host) {
+// key (such as a disk's mount) deals different lines to parts of one host.
+export function pressurePhrase(part, share, host, key = '') {
   const bands = PRESSURE[part];
   const band = bands.filter((candidate) => share >= candidate.from).pop() ?? bands[0];
-  return band.lines[hash(`${part}|${band.from}|${host}`) % band.lines.length].replace('{host}', host);
+  return band.lines[hash(`${part}|${band.from}|${host}|${key}`) % band.lines.length].replace('{host}', host);
 }
 
 // state is one of uptimeState's; count of total bars were in it. "A few" is up
@@ -679,6 +724,25 @@ export function cloudPhrase({ amount, croissants, user = null, who = 'The lab' }
     .replace('{croissants}', croissants.toLocaleString('en-US'))
     .replace('{user}', user)
     .replace('{who}', who);
+}
+
+// The closing line of someone else's reservation box, asking others to leave
+// the GPU alone; {user} is who holds it.
+const RESERVED_PLEASE = [
+  'Please let {user} debug in peace.',
+  '{user} is debugging here; try another oven.',
+  'Shh, {user} is chasing a bug.',
+  'This oven is warming {user}’s test batch.',
+  'Hands off the dough: {user} is kneading it.',
+  '{user} is proofing some code; please bake elsewhere.',
+  'Saved for {user}; plenty of other ovens are free.',
+  'Let {user} squash those bugs undisturbed.',
+  '{user} has this tray for now; thanks for sharing.',
+  'Quiet please, {user} is taste-testing.',
+];
+
+export function reservedPleasePhrase(host, index, holder) {
+  return RESERVED_PLEASE[hash(`please|${host}|${index}|${holder}`) % RESERVED_PLEASE.length].replace('{user}', holder);
 }
 
 // holder reserved the GPU; mine says whether that is the viewer.

@@ -10,6 +10,7 @@ import {
   RESERVATION_MARKS,
   RESERVATION_STEP_MINUTES,
 } from './config';
+import { reservedPleasePhrase } from './easterEggs';
 import { userColor } from './format';
 
 // The live reservation of one GPU, if any.
@@ -203,7 +204,9 @@ function ReservationInfo({ host, gpu, reservation, me, now, onRelease, close }) 
           </ActionButton>
         </div>
       ) : (
-        !meClashing && <p className="mt-3 text-xs text-data-grey">Please let {reservation.user} debug in peace.</p>
+        !meClashing && (
+          <p className="mt-3 text-xs text-data-grey">{reservedPleasePhrase(host, gpu.index, reservation.user)}</p>
+        )
       )}
       {error && (
         <p role="alert" className="mt-3 text-xs" style={{ color: RESERVATION_CLASH.color }}>

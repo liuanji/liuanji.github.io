@@ -47,6 +47,9 @@ DISK_USE = {
     "croissant": (0.08, 0.96),
 }
 SCRATCH_DISK_BYTES = 15_238_728_286_208
+# How much of a disk's use its last per-user count found, where it is not 99%:
+# short on one disk (files written since), over on another (files deleted since).
+USAGE_COUNTED = {("croissant", "/scratch1"): 0.8, ("toast", "/scratch2"): 1.04}
 USERS = ("alice", "bob", "carol", "dave", "erin", "frank", "grace")
 USER_WEIGHTS = (6, 4, 3, 2, 2, 1, 1)
 # Login accounts per host: heidi has accounts but runs nothing, and grace has
@@ -111,7 +114,29 @@ class SimulatedHost:
             DiskStat(mount, size, round(size * share), size - round(size * share))
             for mount, share in zip(("/scratch1", "/scratch2"), DISK_USE[self.name])
         )
-        return DiskResult(self.name, now, True, disks, accounts=tuple(sorted(SIMULATED_ACCOUNTS[self.name])))
+        return DiskResult(
+            self.name,
+            now,
+            True,
+            disks,
+            accounts=tuple(sorted(SIMULATED_ACCOUNTS[self.name])),
+            usage=self.usage(disks, now),
+        )
+
+    def usage(self, disks: tuple[DiskStat, ...], now: int) -> dict:
+        """A scratch-usage summary counted an hour ago: each disk's use split
+        unevenly among the accounts, plus root's lost+found. Some disks are
+        counted a little short or over, as files come and go between counts."""
+        mounts = {}
+        for disk in disks:
+            counted = disk.used_bytes * USAGE_COUNTED.get((self.name, disk.mount), 0.99)
+            weights = [self.random.paretovariate(1.2) for _ in SIMULATED_ACCOUNTS[self.name]]
+            folders = [
+                {"owner": user, "bytes": round(counted * weight / sum(weights))}
+                for user, weight in zip(SIMULATED_ACCOUNTS[self.name], weights)
+            ]
+            mounts[disk.mount] = [*folders, {"owner": "root", "bytes": 16384}]
+        return {"checked_at": now - 3600, "mounts": mounts}
 
     def sample(self, now: int, seconds: int) -> CollectionResult:
         if now >= self.down_until and self.random.random() < 1 - math.exp(-seconds / OUTAGE_EVERY_SECONDS):

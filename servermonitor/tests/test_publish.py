@@ -4,10 +4,10 @@ import unittest
 from dataclasses import replace
 from pathlib import Path
 
-from servermonitor.collector import CollectionResult, SystemStat
+from servermonitor.collector import CollectionResult, DiskResult, DiskStat, SystemStat
 from servermonitor.config import Settings
 from servermonitor.database import Database
-from servermonitor.publish import build_files, uptime_window, write_files
+from servermonitor.publish import build_files, public_disks, uptime_window, write_files
 from tests.test_database import successful_result
 
 
@@ -100,6 +100,29 @@ class PublishTest(unittest.TestCase):
                 "power_w": 240,
             },
         )
+
+    def test_disks_list_users_by_owner_without_system_folders(self) -> None:
+        usage = {
+            "checked_at": 1_700_000_000,
+            "mounts": {
+                "/scratch1": [
+                    {"owner": "alice", "bytes": 300},
+                    {"owner": "bob", "bytes": 500},
+                    {"owner": "alice", "bytes": 400},
+                    {"owner": "root", "bytes": 16},
+                    {"owner": "1234", "bytes": 50},
+                ]
+            },
+        }
+        disks = (DiskStat("/scratch1", 2000, 1300, 700), DiskStat("/scratch2", 2000, 10, 1990))
+        self.database.save_disks(DiskResult("brezel", 1_700_000_100, True, disks, accounts=("alice", "bob"), usage=usage))
+
+        brezel, toast = public_disks(self.settings, self.database)["hosts"]
+        self.assertEqual(brezel["usage_checked_at"], 1_700_000_000)
+        scratch1, scratch2 = brezel["disks"]
+        self.assertEqual(scratch1["users"], [{"user": "alice", "bytes": 700}, {"user": "bob", "bytes": 500}])
+        self.assertIsNone(scratch2["users"])
+        self.assertIsNone(toast["usage_checked_at"])
 
     def test_writes_json_files(self) -> None:
         output = self.directory / "files"

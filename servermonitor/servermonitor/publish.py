@@ -103,8 +103,32 @@ def public_uptime(
     }
 
 
+def disk_users(folders: list[dict[str, Any]], accounts: set[str]) -> list[dict[str, Any]]:
+    """A disk's usage per user, largest first: folders summed by owner, counting
+    only owners who are login accounts, so lost+found and other system folders
+    (owned by root) are left out."""
+    totals: dict[str, int] = {}
+    for folder in folders:
+        if folder["owner"] in accounts:
+            totals[folder["owner"]] = totals.get(folder["owner"], 0) + folder["bytes"]
+    return [
+        {"user": user, "bytes": size}
+        for user, size in sorted(totals.items(), key=lambda item: (-item[1], item[0]))
+    ]
+
+
 def public_disks(settings: Settings, database: Database, now: int | None = None) -> dict[str, Any]:
+    """Each host's disks; with a scratch-usage summary, every disk also lists its
+    users and the host says when they were measured (usage_checked_at)."""
     hosts = database.disks(settings.hosts)
+    accounts = database.accounts(settings.hosts)
+    usage = database.usage(settings.hosts)
+    for host in hosts:
+        summary = usage[host["name"]]
+        host["usage_checked_at"] = summary["checked_at"] if summary else None
+        for disk in host["disks"]:
+            folders = summary["mounts"].get(disk["mount"]) if summary else None
+            disk["users"] = None if folders is None else disk_users(folders, set(accounts[host["name"]]))
     checked = [host["checked_at"] for host in hosts if host["checked_at"] is not None]
     return {
         "generated_at": int(time.time()) if now is None else now,

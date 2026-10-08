@@ -1,0 +1,12 @@
+[Unit]
+Description=Measure scratch disk usage every 2 hours
+
+[Timer]
+# First run 10 minutes after boot, then 2 hours after each run starts. A run
+# still going when the next is due is not started twice.
+OnBootSec=10min
+OnUnitActiveSec=2h
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target
