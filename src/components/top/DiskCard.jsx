@@ -75,7 +75,16 @@ function DriveGlyph({ segments, share, color, width = 112 }) {
           strokeLinecap="round"
         />
       ))}
-      <rect x="4.15" y="1.65" width="54.2" height="18.7" rx="2.5" fill="white" stroke={GLYPH.outline} strokeWidth="1.3" />
+      <rect
+        x="4.15"
+        y="1.65"
+        width="54.2"
+        height="18.7"
+        rx="2.5"
+        fill="white"
+        stroke={GLYPH.outline}
+        strokeWidth="1.3"
+      />
       <circle cx="55" cy="11" r="1.5" fill="none" stroke={GLYPH.outline} strokeWidth="1.1" />
       <rect {...strip} rx="1.6" fill={GLYPH.unlit} />
       <clipPath id={clip}>
@@ -84,7 +93,16 @@ function DriveGlyph({ segments, share, color, width = 112 }) {
       <g clipPath={`url(#${clip})`}>
         {pieces.map((piece) => {
           const pieceWidth = Math.max(0, Math.min(1, piece.share)) * strip.width;
-          const rect = <rect key={piece.key} x={x} y={strip.y} width={Math.max(0, pieceWidth - 0.5)} height={strip.height} fill={piece.color} />;
+          const rect = (
+            <rect
+              key={piece.key}
+              x={x}
+              y={strip.y}
+              width={Math.max(0, pieceWidth - 0.5)}
+              height={strip.height}
+              fill={piece.color}
+            />
+          );
           x += pieceWidth;
           return rect;
         })}
@@ -94,12 +112,11 @@ function DriveGlyph({ segments, share, color, width = 112 }) {
 }
 
 // The box a disk opens on wider screens: the drive and how full it is on the
-// left; on the right its size, used and free space, and its users with what
+// left; on the right its size, used space, and its users with what
 // they hold, in the bar's shades, those under SMALL_USER_BYTES summed as
 // others. Once the disk is full enough for cleanup reminders, it states the
 // allowance and marks who is over it.
 function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAgo }) {
-  const usable = disk.used_bytes + disk.available_bytes;
   const share = diskShare(disk);
   const users = disk.users ?? [];
   const counted = users.reduce((total, user) => total + user.bytes, 0);
@@ -109,9 +126,9 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
   const small = users.filter((user) => user.bytes < SMALL_USER_BYTES);
   const allowance = cleanupAllowance(disk);
   return (
-    <div className="flex gap-6">
-      <div className="flex w-[112px] flex-shrink-0 flex-col items-center justify-center">
-        <DriveGlyph segments={segments} share={share} color={color} />
+    <div className="flex gap-5">
+      <div className="flex w-[96px] flex-shrink-0 flex-col items-center justify-center">
+        <DriveGlyph segments={segments} share={share} color={color} width={96} />
         <span
           className="mt-3 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell"
           style={level ? { color: READING_STYLES[level].color } : undefined}
@@ -126,9 +143,13 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
         <p className="mt-0.5 truncate font-mono text-[11px] text-data-grey">
           {formatBytes(disk.total_bytes)} disk{checkedAgo && ` · checked ${checkedAgo}`}
         </p>
-        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3.5">
-          <Metric label="Used" value={formatBytes(disk.used_bytes)} share={share} series={{ color, track: QUIET.track }} />
-          <Metric label="Free" value={formatBytes(disk.available_bytes)} share={disk.available_bytes / usable} series={QUIET} />
+        <div className="mt-4">
+          <Metric
+            label="Used"
+            value={formatBytes(disk.used_bytes)}
+            share={share}
+            series={{ color, track: QUIET.track }}
+          />
         </div>
         {counted > 0 && (
           <div className="mt-4">
@@ -144,7 +165,11 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
                     key={user.user}
                     className="grid grid-cols-[0.5rem_minmax(0,1fr)_auto_2.25rem] items-center gap-2.5 font-mono text-xs"
                   >
-                    <span className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: swatch(user.user) }} aria-hidden="true" />
+                    <span
+                      className="h-2 w-2 rounded-[2px]"
+                      style={{ backgroundColor: swatch(user.user) }}
+                      aria-hidden="true"
+                    />
                     <span className="truncate text-inkwell">{user.user}</span>
                     <span
                       className={`tabular-nums ${over ? 'font-medium' : 'text-inkwell'}`}
@@ -164,7 +189,9 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
                 <li className="grid grid-cols-[0.5rem_minmax(0,1fr)_auto_2.25rem] items-center gap-2.5 font-mono text-xs text-data-grey">
                   <span className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: othersColor }} aria-hidden="true" />
                   <span className="truncate">{othersLabel(small.length)}</span>
-                  <span className="tabular-nums">{formatBytes(small.reduce((total, user) => total + user.bytes, 0))}</span>
+                  <span className="tabular-nums">
+                    {formatBytes(small.reduce((total, user) => total + user.bytes, 0))}
+                  </span>
                   <span className="text-right tabular-nums">
                     {Math.round((small.reduce((total, user) => total + user.bytes, 0) / counted) * 100)}%
                   </span>
@@ -173,8 +200,7 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
             </ScrollList>
             {allowance != null && (
               <p className="mt-2 font-mono text-[11px] text-data-grey">
-                Allowance at {Math.round(share * 100)}% full:{' '}
-                <span style={{ color: READING_STYLES.warm.color }}>{formatBytes(allowance)}</span> each
+                Allowance: <span style={{ color: READING_STYLES.warm.color }}>{formatBytes(allowance)}</span> each
               </p>
             )}
           </div>
@@ -244,7 +270,10 @@ function DiskRow({ host, disk, interactive, checkedAgo, countedAgo }) {
         </div>
       ) : (
         <div className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: bar.track }} aria-hidden="true">
-          <div className="h-full rounded-full" style={{ width: `${Math.min(100, percent)}%`, backgroundColor: bar.color }} />
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${Math.min(100, percent)}%`, backgroundColor: bar.color }}
+          />
         </div>
       )}
       <div className="mt-1.5 truncate whitespace-nowrap font-mono text-[11px] text-data-grey" aria-hidden="true">
@@ -284,7 +313,7 @@ function DiskRow({ host, disk, interactive, checkedAgo, countedAgo }) {
             countedAgo={countedAgo}
           />
         }
-        width="w-[480px]"
+        width="w-[370px]"
       >
         <button
           type="button"
@@ -366,8 +395,8 @@ export function CleanupBanner({ reminders, onOpen }) {
             </>
           ) : (
             <>
-              {diskName(first)} is {urgency === 'hot' ? 'almost full' : 'getting full'} ({percent(first)}), and your files
-              there take {formatBytes(first.bytes)}.
+              {diskName(first)} is {urgency === 'hot' ? 'almost full' : 'getting full'} ({percent(first)}), and your
+              files there take {formatBytes(first.bytes)}.
             </>
           )
         ) : (
