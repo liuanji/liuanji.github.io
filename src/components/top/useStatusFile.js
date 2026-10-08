@@ -2,15 +2,27 @@ import { useEffect, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { gpuStatusUrl } from '../../data/servers';
 
+// A request still waiting after this long is dropped, so a connection that hung
+// (after sleep or a network change) cannot hold up the refreshes after it.
+const REQUEST_TIMEOUT_MS = 15_000;
+
+function withTimeout(signal) {
+  const timeout = AbortSignal.timeout?.(REQUEST_TIMEOUT_MS);
+  if (!timeout) return signal;
+  return AbortSignal.any ? AbortSignal.any([signal, timeout]) : timeout;
+}
+
 // One JSON file published by servermonitor (see servermonitor/servermonitor/publish.py).
 // While a new host or range loads, the previous file stays on screen as placeholder data.
-// A rejected session fails with error.status 401 and is not retried.
+// A rejected session fails with error.status 401 and is not retried. Polling pauses
+// in a hidden tab, so the file is fetched again as soon as the tab is visible or
+// the network is back, unlike the rest of the site.
 export function useStatusFile(name, refetchInterval, token) {
   return useQuery({
     queryKey: ['gpu-status', name],
     queryFn: async ({ signal }) => {
       const response = await fetch(`${gpuStatusUrl}/files/${name}`, {
-        signal,
+        signal: withTimeout(signal),
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {
@@ -21,6 +33,8 @@ export function useStatusFile(name, refetchInterval, token) {
     enabled: Boolean(gpuStatusUrl && token),
     retry: (failures, error) => error.status !== 401 && failures < 3,
     refetchInterval,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     placeholderData: keepPreviousData,
   });
 }

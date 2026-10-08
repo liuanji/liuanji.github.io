@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import GhostNav from '../components/layout/GhostNav';
@@ -155,6 +156,21 @@ export default function Top() {
     token,
   );
   const disks = useStatusFile('disks', HISTORY_REFRESH_MS, token);
+
+  // A watchdog for the polling: if the overview has gone this long without a
+  // successful fetch while the tab is visible (timers throttled or a fetch lost),
+  // fetch everything again, well before readings turn "Delayed" at 3 minutes.
+  // At most once a minute, so a failing Worker is not asked any harder.
+  const queryClient = useQueryClient();
+  const lastKick = useRef(0);
+  const overdue =
+    token && overview.dataUpdatedAt > 0 && now * 1000 - overview.dataUpdatedAt > LIVE_REFRESH_MS * 1.5;
+  useEffect(() => {
+    if (!overdue || overview.isFetching || document.visibilityState !== 'visible') return;
+    if (Date.now() - lastKick.current < LIVE_REFRESH_MS) return;
+    lastKick.current = Date.now();
+    queryClient.invalidateQueries({ queryKey: ['gpu-status'] });
+  }, [overdue, overview.isFetching, queryClient, now]);
 
   // An expired session, or one from before a password change, is rejected.
   const rejected = [overview, stats, history, uptime, disks].some((query) => query.error?.status === 401);

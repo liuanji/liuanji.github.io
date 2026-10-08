@@ -80,11 +80,16 @@ export function SegmentedControl({ label, options, value, onChange }) {
   );
 }
 
+// An online server's dot breathes like a power LED; other states stay still.
 export function StatusPill({ status }) {
   const { label, color } = HOST_STATUS[status] ?? HOST_STATUS.unseen;
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-border-light bg-white px-2.5 py-0.5 font-mono text-xs text-inkwell">
-      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${status === 'online' ? 'motion-safe:animate-breathe' : ''}`}
+        style={{ backgroundColor: color, color }}
+        aria-hidden="true"
+      />
       {label}
     </span>
   );

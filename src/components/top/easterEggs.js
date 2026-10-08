@@ -300,6 +300,32 @@ const PRESSURE = {
   ],
 };
 
+// Lines for the availability legend: how much of the range was in a state,
+// from none of it, to a few bars, to many.
+const LEGEND = {
+  up: {
+    none: ['Not a single bake came out', 'The ovens stayed cold'],
+    few: ['Only a few good batches', 'Barely kept the lights on'],
+    many: ['Mostly fresh out of the oven', 'Kept the bread coming', 'Reliable as morning toast'],
+    all: ['Every single batch came out perfect', 'Not a crumb out of place', 'Flawless baking all along'],
+  },
+  partial: {
+    none: ['No hiccups at all', 'Smooth as butter', 'Not a single wobble'],
+    few: ['Just a few wobbles', 'A hiccup here and there', 'A couple of sticky moments'],
+    many: ['Quite a few wobbles', 'The dough kept slipping', 'Hiccups all over the place'],
+  },
+  down: {
+    none: ['Nothing got burnt', 'No outages, no crumbs', 'Not one oven went cold'],
+    few: ['A couple of burnt batches', 'The odd oven went cold', 'A few loaves fell flat'],
+    many: ['Rough times in the kitchen', 'Too many burnt batches', 'The ovens kept going cold'],
+  },
+  none: {
+    none: ['The monitor never blinked', 'Watched every single moment', 'Not a moment unrecorded'],
+    few: ['The monitor napped a little', 'A few blank pages in the diary', 'Briefly off duty'],
+    many: ['History starts here: the monitor is new', 'Lots of unrecorded baking', 'The diary is mostly blank'],
+  },
+};
+
 // Fresh on every page load, so each visit deals out different lines, while a bar
 // keeps its line as long as the page stays open.
 const SEED = Math.floor(Math.random() * 2 ** 32);
@@ -323,6 +349,19 @@ export function pressurePhrase(part, share, host) {
   const bands = PRESSURE[part];
   const band = bands.filter((candidate) => share >= candidate.from).pop() ?? bands[0];
   return band.lines[hash(`${part}|${band.from}|${host}`) % band.lines.length].replace('{host}', host);
+}
+
+// state is one of uptimeState's; count of total bars were in it. "A few" is up
+// to a tenth of them, or for up, anything short of most.
+export function legendPhrase(state, count, total) {
+  const pools = LEGEND[state];
+  const share = total ? count / total : 0;
+  let band;
+  if (count === 0) band = 'none';
+  else if (state === 'up') band = count === total ? 'all' : share >= 0.5 ? 'many' : 'few';
+  else band = share <= 0.1 ? 'few' : 'many';
+  const pool = pools[band];
+  return pool[hash(`legend|${state}|${band}`) % pool.length];
 }
 
 export function idleGpuPhrase(host, index) {

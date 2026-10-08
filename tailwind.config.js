@@ -86,12 +86,18 @@ module.exports = {
   				'0%, 100%': { color: 'hsl(40, 30%, 72%)' },
   				'25%, 75%': { color: 'hsl(20, 40.5%, 59%)' },
   				'50%': { color: 'hsl(0, 51%, 46%)' }
+  			},
+  			// A status LED softly brightening and glowing in its own colour.
+  			breathe: {
+  				'0%, 100%': { opacity: '0.45', boxShadow: '0 0 0 0 transparent' },
+  				'50%': { opacity: '1', boxShadow: '0 0 4px 1px currentColor' }
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
-  			heat: 'heat 4s ease-in-out infinite'
+  			heat: 'heat 4s ease-in-out infinite',
+  			breathe: 'breathe 2.4s ease-in-out infinite'
   		}
   	}
   },

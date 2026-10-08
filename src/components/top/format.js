@@ -160,6 +160,18 @@ export function formatBar(start, barSeconds, utcOffset) {
   return `${day.format(from)} – ${day.format(new Date((start + barSeconds - 1) * 1000))}`;
 }
 
+// "3 days", "1 half-hour", "108 monitored days": a count of availability bars.
+export function formatBarCount(count, barSeconds, adjective = '') {
+  const [one, many] = {
+    60: ['minute', 'minutes'],
+    1800: ['half-hour', 'half-hours'],
+    7200: ['two-hour block', 'two-hour blocks'],
+    86400: ['day', 'days'],
+    604800: ['week', 'weeks'],
+  }[barSeconds] ?? ['bar', 'bars'];
+  return `${count} ${adjective ? `${adjective} ` : ''}${count === 1 ? one : many}`;
+}
+
 export function formatBarLength(barSeconds) {
   if (barSeconds < 3600) return barSeconds === 60 ? '1 minute' : `${barSeconds / 60} minutes`;
   if (barSeconds < 86400) return barSeconds === 3600 ? '1 hour' : `${barSeconds / 3600} hours`;
