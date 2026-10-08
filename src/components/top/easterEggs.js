@@ -778,26 +778,28 @@ export function hostDownPhrase(host) {
 }
 
 // Lines for the baked croissants in the milestone box's pastry pile, one per
-// croissant on hover.
+// croissant on hover: baking crossed with machine learning.
 const PASTRY_PILE = [
-  'Golden and extra flaky',
-  'Still warm, careful!',
-  'Baked with love and tensors',
-  'Laminated with 81 layers of butter',
-  'Fresh from brezel’s oven',
-  'Toast says this one is the best',
   'Proofed overnight, like a long training run',
-  'Crunchy outside, fluffy inside',
-  'Somebody took a tiny bite already',
-  'The baker’s favourite',
-  'Perfectly crescent-shaped',
   'Smells like a converged loss',
   'Made from 100% organic gradients',
-  'A little lopsided, still delicious',
-  'Saved for the lab meeting',
-  'Pairs well with a kopi',
-  'Do not tell the others, but this one is the best',
-  'Ready for the morning queue',
+  'Baked with love and tensors',
+  'More layers than a transformer',
+  'Rose nicely, unlike the validation loss',
+  'Warmed up slowly, like a good learning rate',
+  'Fresh out of the oven after 100 epochs',
+  'Kneaded in mini-batches',
+  'Just enough butter, no overfitting',
+  'Pulled out at the best checkpoint',
+  'Flaky, but never like a flaky test',
+  'Batch-normalised for an even bake',
+  'Crunchy outside, fluffy latent space inside',
+  'No dropout: every flake made it',
+  'Sampled at a temperature of 180 °C',
+  'Seed fixed, so every bite is reproducible',
+  'Out of the oven before the deadline',
+  'Pairs well with a kopi and a paper deadline',
+  'Attention is all this croissant needs',
 ];
 
 // Lines are dealt in a fresh order each page load, so no two croissants in the
