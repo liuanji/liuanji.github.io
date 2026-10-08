@@ -1,12 +1,15 @@
 import { useId, useState } from 'react';
+import { HardDrive } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { LEVEL_SERIES, READING_STYLES, SERIES } from './config';
+import { LEVEL_SERIES, READING_STYLES, SERIES, SMALL_USER_BYTES } from './config';
+import { Banner, BannerLink } from './controls';
 import { BoxFooter, DetailsPopover, GLYPH, Metric, QUIET } from './DetailBoxes';
 import { pressurePhrase } from './easterEggs';
-import { diskLevel, diskShare, formatAgo, formatBytes } from './format';
+import { cleanupAllowance, diskLevel, diskShare, formatAgo, formatBytes } from './format';
 
-// Users holding at least this share of what the disk's users use get their
-// own segment, at most MAX_SEGMENTS of them; everyone else shares "Other".
+// Users holding at least this share of what the disk's users use, and at least
+// SMALL_USER_BYTES, get their own segment, at most MAX_SEGMENTS of them;
+// everyone else shares "Others".
 const OWN_SEGMENT_SHARE = 0.05;
 const MAX_SEGMENTS = 5;
 // One hue per bar, the disk's usual one (or its warning hue when nearly full),
@@ -21,26 +24,33 @@ function segmentsFor(disk, color) {
   const users = disk.users ?? [];
   const counted = users.reduce((total, user) => total + user.bytes, 0);
   if (!counted) return [];
-  const own = users.filter((user, index) => index < MAX_SEGMENTS && user.bytes / counted >= OWN_SEGMENT_SHARE);
+  const own = users.filter(
+    (user, index) =>
+      index < MAX_SEGMENTS && user.bytes >= SMALL_USER_BYTES && user.bytes / counted >= OWN_SEGMENT_SHARE,
+  );
   const rest = users.slice(own.length);
-  // A lone small user keeps their name rather than becoming "Other".
-  const shown = rest.length === 1 ? [...own, rest[0]] : own;
+  // A lone leftover user who is not small keeps their name.
+  const shown = rest.length === 1 && rest[0].bytes >= SMALL_USER_BYTES ? [...own, rest[0]] : own;
   const segments = shown.map((user, index) => ({
     key: user.user,
     label: user.user,
     bytes: user.bytes,
     color: `${color}${SHADES[Math.min(index, SHADES.length - 1)]}`,
   }));
-  if (rest.length > 1) {
+  if (shown.length < users.length) {
     segments.push({
       key: 'other',
-      label: `Other · ${rest.length} users`,
+      label: othersLabel(users.length - shown.length),
       bytes: rest.reduce((total, user) => total + user.bytes, 0),
       color: `${color}${OTHER_SHADE}`,
     });
   }
   const share = diskShare(disk);
   return segments.map((segment) => ({ ...segment, share: (share * segment.bytes) / counted }));
+}
+
+function othersLabel(count) {
+  return count === 1 ? '1 other user' : `${count} others`;
 }
 
 // An M.2 drive: gold contacts on the left, a screw notch on the right, and a
@@ -84,16 +94,21 @@ function DriveGlyph({ segments, share, color, width = 112 }) {
 }
 
 // The box a disk opens on wider screens: the drive and how full it is on the
-// left; on the right its size, used and free space, and every user with what
-// they hold, in the bar's shades.
+// left; on the right its size, used and free space, and its users with what
+// they hold, in the bar's shades, those under SMALL_USER_BYTES summed as
+// others. Once the disk is full enough for cleanup reminders, it states the
+// allowance and marks who is over it.
 function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAgo }) {
   const [scrolledToEnd, setScrolledToEnd] = useState(false);
   const usable = disk.used_bytes + disk.available_bytes;
   const share = diskShare(disk);
   const users = disk.users ?? [];
   const counted = users.reduce((total, user) => total + user.bytes, 0);
-  const swatch = (user) =>
-    segments.find((segment) => segment.key === user)?.color ?? segments.find((segment) => segment.key === 'other')?.color;
+  const othersColor = segments.find((segment) => segment.key === 'other')?.color;
+  const swatch = (user) => segments.find((segment) => segment.key === user)?.color ?? othersColor;
+  const listed = users.filter((user) => user.bytes >= SMALL_USER_BYTES);
+  const small = users.filter((user) => user.bytes < SMALL_USER_BYTES);
+  const allowance = cleanupAllowance(disk);
   return (
     <div className="flex gap-6">
       <div className="flex w-[112px] flex-shrink-0 flex-col items-center justify-center">
@@ -130,21 +145,49 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
                 setScrolledToEnd(list.scrollTop + list.clientHeight >= list.scrollHeight - 2);
               }}
               className={`-mr-2 max-h-[6.6rem] space-y-1 overflow-y-auto overscroll-contain pr-2 pb-1 [scrollbar-width:thin] ${
-                users.length > 5 && !scrolledToEnd ? '[mask-image:linear-gradient(to_bottom,black_75%,transparent)]' : ''
+                listed.length + (small.length ? 1 : 0) > 5 && !scrolledToEnd ? '[mask-image:linear-gradient(to_bottom,black_75%,transparent)]' : ''
               }`}
             >
-              {users.map((user) => (
-                <li
-                  key={user.user}
-                  className="grid grid-cols-[0.5rem_minmax(0,1fr)_auto_2.25rem] items-center gap-2.5 font-mono text-xs"
-                >
-                  <span className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: swatch(user.user) }} aria-hidden="true" />
-                  <span className="truncate text-inkwell">{user.user}</span>
-                  <span className="tabular-nums text-inkwell">{formatBytes(user.bytes)}</span>
-                  <span className="text-right tabular-nums text-data-grey">{Math.round((user.bytes / counted) * 100)}%</span>
+              {listed.map((user) => {
+                const over = allowance != null && user.bytes > allowance;
+                return (
+                  <li
+                    key={user.user}
+                    className="grid grid-cols-[0.5rem_minmax(0,1fr)_auto_2.25rem] items-center gap-2.5 font-mono text-xs"
+                  >
+                    <span className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: swatch(user.user) }} aria-hidden="true" />
+                    <span className="truncate text-inkwell">{user.user}</span>
+                    <span
+                      className={`tabular-nums ${over ? 'font-medium' : 'text-inkwell'}`}
+                      style={over ? { color: READING_STYLES.warm.color } : undefined}
+                      title={over ? `Over the ${formatBytes(allowance)} allowance` : undefined}
+                    >
+                      {formatBytes(user.bytes)}
+                      {over && <span className="sr-only"> (over the allowance)</span>}
+                    </span>
+                    <span className="text-right tabular-nums text-data-grey">
+                      {Math.round((user.bytes / counted) * 100)}%
+                    </span>
+                  </li>
+                );
+              })}
+              {small.length > 0 && (
+                <li className="grid grid-cols-[0.5rem_minmax(0,1fr)_auto_2.25rem] items-center gap-2.5 font-mono text-xs text-data-grey">
+                  <span className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: othersColor }} aria-hidden="true" />
+                  <span className="truncate">{othersLabel(small.length)}</span>
+                  <span className="tabular-nums">{formatBytes(small.reduce((total, user) => total + user.bytes, 0))}</span>
+                  <span className="text-right tabular-nums">
+                    {Math.round((small.reduce((total, user) => total + user.bytes, 0) / counted) * 100)}%
+                  </span>
                 </li>
-              ))}
+              )}
             </ul>
+            {allowance != null && (
+              <p className="mt-2 font-mono text-[11px] text-data-grey">
+                Allowance at {Math.round(share * 100)}% full:{' '}
+                <span style={{ color: READING_STYLES.warm.color }}>{formatBytes(allowance)}</span> each
+              </p>
+            )}
           </div>
         )}
         <BoxFooter phrase={pressurePhrase('disk', share, host, disk.mount)} />
@@ -296,5 +339,76 @@ export default function DiskCard({ host, now, stacked }) {
         <p className="text-sm text-data-grey">No disk data from this server yet.</p>
       )}
     </article>
+  );
+}
+
+// The notice at the top of the page while the viewer holds more than the
+// cleanup allowance on some disk (see CLEANUP): which disks, how much they
+// hold there and the allowance. It grows more urgent with the fullest disk's
+// level: the disks' quiet hue and a gentle ask below 85% full, amber and
+// "soon" from there, red and "now" from 95%. Each disk's name opens its
+// server's storage.
+const URGENCY = {
+  calm: { color: SERIES.disk.color, role: 'status' },
+  warm: { color: LEVEL_SERIES.warm.color, role: 'status' },
+  hot: { color: LEVEL_SERIES.hot.color, role: 'alert' },
+};
+export function CleanupBanner({ reminders, onOpen }) {
+  if (!reminders.length) return null;
+  const levels = reminders.map(({ disk }) => diskLevel(disk));
+  const urgency = levels.includes('hot') ? 'hot' : levels.includes('warm') ? 'warm' : 'calm';
+  const { color, role } = URGENCY[urgency];
+  const diskName = ({ host, disk }) => (
+    <BannerLink color={color} onClick={onOpen && (() => onOpen(host))}>
+      {host} · {disk.mount}
+    </BannerLink>
+  );
+  const percent = ({ disk }) => `${Math.round(diskShare(disk) * 100)}%`;
+  const [first] = reminders;
+  const single = reminders.length === 1;
+  const under = single ? ` to get under ${formatBytes(first.allowance)}` : '';
+  return (
+    <Banner icon={HardDrive} color={color} role={role} tinted={urgency === 'hot'}>
+      <p className={`text-inkwell ${urgency === 'hot' ? 'font-medium' : ''}`}>
+        {single ? (
+          urgency === 'calm' ? (
+            <>
+              Your files take {formatBytes(first.bytes)} on {diskName(first)}, which is {percent(first)} full.
+            </>
+          ) : (
+            <>
+              {diskName(first)} is {urgency === 'hot' ? 'almost full' : 'getting full'} ({percent(first)}), and your files
+              there take {formatBytes(first.bytes)}.
+            </>
+          )
+        ) : (
+          <>
+            {urgency === 'hot'
+              ? 'Disks you use are almost full'
+              : urgency === 'warm'
+                ? 'Disks you use are getting full'
+                : 'Your files are over the cleanup allowance on ' + reminders.length + ' disks'}
+            :{' '}
+            {reminders.map((reminder, index) => (
+              <span key={`${reminder.host}${reminder.disk.mount}`}>
+                {index > 0 && ', '}
+                {diskName(reminder)}{' '}
+                <span className="whitespace-nowrap font-normal text-data-grey">
+                  ({formatBytes(reminder.bytes)} yours, {percent(reminder)} full)
+                </span>
+              </span>
+            ))}
+            .
+          </>
+        )}
+      </p>
+      <p className={urgency === 'hot' ? 'text-inkwell/75' : 'text-data-grey'}>
+        {urgency === 'hot'
+          ? `Please clean up now: jobs writing to ${single ? 'this disk' : 'these disks'} may soon fail. Delete old checkpoints and data you no longer need${under}.`
+          : urgency === 'warm'
+            ? `Please clean up soon, deleting old checkpoints and data you no longer need${under}.`
+            : `Please clear out what you no longer need, such as old checkpoints${single ? `; at this fullness each person is asked to stay under ${formatBytes(first.allowance)}` : ''}.`}
+      </p>
+    </Banner>
   );
 }

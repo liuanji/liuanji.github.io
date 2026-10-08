@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import GhostNav from '../components/layout/GhostNav';
 import CompactHosts from '../components/top/CompactHosts';
-import DiskCard from '../components/top/DiskCard';
+import DiskCard, { CleanupBanner } from '../components/top/DiskCard';
 import HostCard from '../components/top/HostCard';
 import LoginCard from '../components/top/LoginCard';
 import LiveTiles from '../components/top/LiveBreakdown';
@@ -23,6 +23,7 @@ import {
 } from '../components/top/config';
 import { LiveDot, Notice, SectionLabel, SegmentedControl, Switch } from '../components/top/controls';
 import {
+  cleanupReminders,
   currentStatus,
   formatAgo,
   formatObserved,
@@ -196,6 +197,13 @@ export default function Top() {
     );
   };
   const openHost = host === 'all' && hosts.length > 1 ? showHost : undefined;
+  // A disk's name shows its server's storage.
+  const showStorage = (name) => {
+    if (hosts.length > 1) setParam('host', name, 'all');
+    requestAnimationFrame(() =>
+      document.getElementById('storage')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    );
+  };
   const hostOptions = [
     {
       value: 'all',
@@ -224,6 +232,8 @@ export default function Top() {
     : null;
   // Checked on every server, whichever is selected.
   const clashes = reservations ? myClashes(hosts, reservations, user, now) : [];
+  // Like clashes, checked on every server's disks.
+  const cleanups = cleanupReminders(disks.data?.hosts ?? [], user);
 
   return (
     <div className="bg-paper min-h-screen page-enter">
@@ -275,7 +285,12 @@ export default function Top() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
             >
-              <ClashBanner clashes={clashes} onOpen={hosts.length > 1 ? showHost : undefined} />
+              {(clashes.length > 0 || cleanups.length > 0) && (
+                <div className="mb-10 space-y-3">
+                  <ClashBanner clashes={clashes} onOpen={hosts.length > 1 ? showHost : undefined} />
+                  <CleanupBanner reminders={cleanups} onOpen={showStorage} />
+                </div>
+              )}
               {hosts.length > 1 && (
                 <div id="top-servers" className="mb-8 scroll-mt-28">
                   <SegmentedControl
@@ -366,7 +381,7 @@ export default function Top() {
                 </div>
               </section>
 
-              <section className="mt-16" aria-labelledby="top-storage">
+              <section id="storage" className="mt-16 scroll-mt-28" aria-labelledby="top-storage">
                 <h2 id="top-storage" className="sr-only">Storage</h2>
                 <SectionLabel>Storage</SectionLabel>
                 {diskHosts.length ? (

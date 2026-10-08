@@ -1,4 +1,5 @@
 import {
+  CLEANUP,
   DELAYED_AFTER_SECONDS,
   DISK_LEVELS,
   POWER_LEVELS,
@@ -85,6 +86,29 @@ export function diskShare(disk) {
 
 export function diskLevel(disk) {
   return level(diskShare(disk), DISK_LEVELS);
+}
+
+// How much one user may hold on a disk before being asked to clean up, in
+// bytes, or null while the disk has room to spare (see CLEANUP).
+export function cleanupAllowance(disk) {
+  const full = diskShare(disk);
+  if (full < CLEANUP.from) return null;
+  const progress = Math.min(1, (full - CLEANUP.from) / (1 - CLEANUP.from));
+  const share = CLEANUP.share - (CLEANUP.share - CLEANUP.floor) * progress;
+  return share * (disk.used_bytes + disk.available_bytes);
+}
+
+// The disks, across every server, where user holds more than the allowance.
+export function cleanupReminders(hosts, user) {
+  return hosts.flatMap((host) =>
+    host.disks.flatMap((disk) => {
+      const allowance = cleanupAllowance(disk);
+      const mine = disk.users?.find((item) => item.user === user);
+      return allowance != null && mine && mine.bytes > allowance
+        ? [{ host: host.name, disk, bytes: mine.bytes, allowance }]
+        : [];
+    }),
+  );
 }
 
 // Binary units, as df -h counts them: "9.4 TB", "604 GB".

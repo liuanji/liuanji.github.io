@@ -62,6 +62,13 @@ export const POWER_ICON_RANGE = { from: 0.7, to: 1 };
 export const RAM_LEVELS = { warm: 0.8, hot: 0.9 };
 // A disk's used share, as df counts it: used / (used + available).
 export const DISK_LEVELS = { warm: 0.85, hot: 0.95 };
+// Users holding less than this on a disk are summed as "others".
+export const SMALL_USER_BYTES = 100 * 1024 ** 3;
+// Cleanup reminders. Below CLEANUP.from full, nobody is asked; from there,
+// anyone holding more than an allowance of the disk is, and the allowance
+// shrinks steadily as the disk fills, from CLEANUP.share of the disk at
+// CLEANUP.from down to CLEANUP.floor when full (e.g. 20% at 85% full, 13% at 95%).
+export const CLEANUP = { from: 0.7, share: 0.3, floor: 0.1 };
 export const READING_STYLES = {
   warm: { color: '#A15C07' },
   hot: { color: '#B33A3A', backgroundColor: '#B33A3A1A' },
