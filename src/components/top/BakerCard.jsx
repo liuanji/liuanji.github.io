@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Component, useState } from 'react';
 import { CalendarCheck, Crown, Globe, Heart, Layers, Leaf, Moon, Sprout, Sun, TreePalm } from 'lucide-react';
 import { DetailsPopover } from './DetailBoxes';
 import { bakerLine, bakerTitle } from './easterEggs';
@@ -316,6 +316,26 @@ function BakerCardContent({ user, profile, rank, range, rangeTitle, share, who }
   );
 }
 
+// Keeps a card that cannot be drawn, say from data the page does not expect
+// yet, from taking the whole page down with it.
+class CardGuard extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { failed: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    if (this.state.failed) {
+      return <p className="text-xs text-data-grey">This baker card could not be shown. Please reload the page.</p>;
+    }
+    return this.props.children;
+  }
+}
+
 // The user's name in the ranking, which opens their baker card on a click or a
 // long hover; on hover a soft underline draws in, like the server names.
 export default function BakerName({ user, profile, rank, range, rangeTitle, share, who }) {
@@ -323,15 +343,17 @@ export default function BakerName({ user, profile, rank, range, rangeTitle, shar
     <DetailsPopover
       width="w-80"
       content={
-        <BakerCardContent
-          user={user}
-          profile={profile}
-          rank={rank}
-          range={range}
-          rangeTitle={rangeTitle}
-          share={share}
-          who={who}
-        />
+        <CardGuard>
+          <BakerCardContent
+            user={user}
+            profile={profile}
+            rank={rank}
+            range={range}
+            rangeTitle={rangeTitle}
+            share={share}
+            who={who}
+          />
+        </CardGuard>
       }
     >
       <button

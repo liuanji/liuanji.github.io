@@ -11,6 +11,7 @@ import LiveTiles from '../components/top/LiveBreakdown';
 import { TrendTile } from '../components/top/PeriodTrends';
 import UptimeCard from '../components/top/UptimeCard';
 import UsageChart from '../components/top/UsageChart';
+import RangeRail from '../components/top/RangeRail';
 import UserRanking from '../components/top/UserRanking';
 import {
   DEFAULT_RANGE,
@@ -195,6 +196,14 @@ export default function Top() {
       { replace: true },
     );
 
+  const chooseRange = (value) => {
+    setSavedRange(value);
+    setParam('range', value, DEFAULT_RANGE.value);
+  };
+  // The time range switch, and its section, for the copy that floats beside it.
+  const rangeSwitch = useRef(null);
+  const historySection = useRef(null);
+
   const selectedHosts = host === 'all' ? hosts : hosts.filter((item) => item.name === host);
   // Clicking a server's name shows its own panel and brings the server
   // selector, and the panel below it, into view.
@@ -336,22 +345,21 @@ export default function Top() {
                 )}
               </section>
 
-              <section aria-labelledby="top-history">
+              <section ref={historySection} aria-labelledby="top-history">
                 <h2 id="top-history" className="sr-only">
                   Over time
                 </h2>
                 <SectionLabel>Over time</SectionLabel>
-                <div className="mb-6">
-                  <SegmentedControl
-                    label="Time range"
-                    options={RANGES}
-                    value={range.value}
-                    onChange={(value) => {
-                      setSavedRange(value);
-                      setParam('range', value, DEFAULT_RANGE.value);
-                    }}
-                  />
+                <div ref={rangeSwitch} className="mb-6">
+                  <SegmentedControl label="Time range" options={RANGES} value={range.value} onChange={chooseRange} />
                 </div>
+                <RangeRail
+                  options={RANGES}
+                  value={range.value}
+                  onChange={chooseRange}
+                  anchor={rangeSwitch}
+                  section={historySection}
+                />
                 <div className={`transition-opacity duration-300 ${stats.isPlaceholderData ? 'opacity-50' : ''}`}>
                   <PeriodTiles
                     period={period}
