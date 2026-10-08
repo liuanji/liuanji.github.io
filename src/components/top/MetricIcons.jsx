@@ -7,20 +7,31 @@ function clamp(share) {
   return Math.min(1, Math.max(0, Number(share) || 0));
 }
 
-// Four slots, each a quarter of the GPUs, filling in reading order; a partly
-// used quarter fills from the bottom up.
+// Four slots, each a quarter of the GPUs: soft tinted squares that turn solid
+// in reading order, a partly used quarter filling from the bottom up.
 function SlotsIcon({ share, color }) {
+  const id = useId();
   const filled = clamp(share) * 4;
+  const size = 8.5;
   return Array.from({ length: 4 }, (_, index) => {
-    const x = 3.5 + (index % 2) * 9.5;
-    const y = 3.5 + Math.floor(index / 2) * 9.5;
+    const x = 2.75 + (index % 2) * (size + 1.5);
+    const y = 2.75 + Math.floor(index / 2) * (size + 1.5);
     const amount = Math.min(1, Math.max(0, filled - index));
-    const height = 7.5 * amount;
     return (
       <g key={index}>
-        <rect x={x} y={y} width="7.5" height="7.5" rx="1.8" fill="none" stroke={color} strokeWidth="1.6" opacity="0.45" />
+        <clipPath id={`${id}-${index}`}>
+          <rect x={x} y={y} width={size} height={size} rx="2" />
+        </clipPath>
+        <rect x={x} y={y} width={size} height={size} rx="2" fill={color} opacity="0.22" />
         {amount > 0 && (
-          <rect x={x} y={y + 7.5 - height} width="7.5" height={height} rx="1.8" fill={color} />
+          <rect
+            x={x}
+            y={y + size * (1 - amount)}
+            width={size}
+            height={size * amount}
+            fill={color}
+            clipPath={`url(#${id}-${index})`}
+          />
         )}
       </g>
     );
