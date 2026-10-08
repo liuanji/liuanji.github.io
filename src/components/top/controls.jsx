@@ -56,7 +56,7 @@ export function StatTile({ label, value, total = null, caption = null, icon = nu
       </div>
       <div className="mt-2 flex items-baseline gap-1.5">
         <span className="font-tight font-semibold text-3xl text-inkwell leading-none">{value}</span>
-        {total != null && <span className="font-tight text-base text-data-grey">/ {total}</span>}
+        {total != null && <span className="font-tight text-base text-data-grey leading-none">/ {total}</span>}
       </div>
       {caption && <div className="text-xs text-data-grey mt-2 leading-snug">{caption}</div>}
     </div>

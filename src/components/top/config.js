@@ -87,6 +87,15 @@ export const LEVEL_SERIES = {
 export const CLOUD_SGD_PER_GPU_HOUR = 2.3;
 export const CROISSANT_SGD = 3;
 
+// The milestone box's bakery basket, one treat per server: rough Singapore
+// prices in 2026 for a butter croissant, a German-style brezel (S$3-5 at
+// bakeries) and a kaya toast (about S$2 at kopitiam chains).
+export const PASTRIES = [
+  { name: 'croissants', sgd: CROISSANT_SGD },
+  { name: 'brezels', sgd: 4 },
+  { name: 'kaya toasts', sgd: 2 },
+];
+
 // Availability bars: soft fills, since every bar also has a text description.
 // A bar is partly down when some of its checked time failed but at least
 // UPTIME_PARTIAL_AT of it was up.
