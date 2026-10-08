@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { StatTile } from './controls';
-import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, TEMPERATURE_ICON_RANGE } from './config';
+import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, SERIES, TEMPERATURE_ICON_RANGE } from './config';
 import { formatCpuCount, formatCpuModel, formatMemory, formatMemoryOf, gpuModels, userColor } from './format';
 import { idleGpuPhrase, pressurePhrase, reservedIdlePhrase } from './easterEggs';
 import { HeldIdleNote, formatDuration } from './Insights';
@@ -32,6 +32,7 @@ export const RING_SERIES = {
   memory: { color: '#5BBE98', track: '#5BBE9824' },
 };
 
+const CACHE_SERIES = { color: '#A6D9C3', track: '#5BBE981A' };
 export const QUIET = { color: '#A3B1C6', track: '#A3B1C624' };
 
 // share null leaves out the bar.
@@ -56,8 +57,22 @@ export function Metric({ label, value, share = null, series = null }) {
 
 // Temperature and power bars stay quiet until their icon would appear, then
 // warm with it.
-function heatSeries(amount) {
-  return amount == null ? QUIET : { color: heatColor(amount), track: QUIET.track };
+// Temperature and power in the GPU boxes, matching their lines in the expanded
+// view's chart: coral for temperature, mauve for power. A bar turns the hot red
+// once its reading is well into its icon range.
+export const TEMPERATURE_COLOR = '#E07A5F';
+export const POWER_COLOR = '#B07AA1';
+
+function readingBar(color, amount) {
+  return amount != null && amount >= 0.5 ? LEVEL_SERIES.hot : { color, track: `${color}24` };
+}
+
+export function temperatureBar(celsius) {
+  return readingBar(TEMPERATURE_COLOR, heat(celsius, TEMPERATURE_ICON_RANGE));
+}
+
+export function powerBar(share) {
+  return readingBar(POWER_COLOR, heat(share, POWER_ICON_RANGE));
 }
 
 // The box a GPU tile opens on wider screens: a large ring on the left, the
@@ -133,7 +148,7 @@ export function GpuDetails({ gpu, host, reservation = null, me = null, now = 0 }
             label="Temperature"
             value={gpu.temperature_c == null ? '—' : `${Math.round(gpu.temperature_c)}°C`}
             share={(gpu.temperature_c ?? 0) / 100}
-            series={heatSeries(heat(gpu.temperature_c, TEMPERATURE_ICON_RANGE))}
+            series={temperatureBar(gpu.temperature_c)}
           />
           <Metric
             label="Power"
@@ -145,7 +160,7 @@ export function GpuDetails({ gpu, host, reservation = null, me = null, now = 0 }
                   : `${Math.round(gpu.power_w)} W`
             }
             share={power ?? 0}
-            series={heatSeries(heat(power, POWER_ICON_RANGE))}
+            series={powerBar(power)}
           />
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-1.5 border-t border-border-light pt-3">
@@ -563,20 +578,24 @@ export function RamDetails({ host, system, level, children = null, compact = fal
       }
       subtitle={`${formatMemory(total)} total`}
     >
+      {/* In use across the top; below it the file cache (files the system keeps
+          in spare RAM and hands back the moment programs need it), in a paler
+          shade of the RAM green, and swap, which lives on disk, in the disk hue. */}
       <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3.5">
-        <Metric label="In use" value={formatMemory(used)} share={used / total} series={inUse} />
-        <Metric label="Available" value={formatMemory(total - used)} share={(total - used) / total} series={QUIET} />
+        <div className="col-span-2">
+          <Metric label="In use" value={formatMemory(used)} share={used / total} series={inUse} />
+        </div>
         <Metric
-          label="Cache"
+          label="File cache"
           value={system.memory_cache_mb == null ? '—' : formatMemory(system.memory_cache_mb)}
           share={system.memory_cache_mb == null ? null : system.memory_cache_mb / total}
-          series={QUIET}
+          series={CACHE_SERIES}
         />
         <Metric
           label="Swap"
           value={swapKnown ? formatMemoryOf(system.swap_used_mb, system.swap_total_mb) : '—'}
           share={swapKnown && system.swap_total_mb ? system.swap_used_mb / system.swap_total_mb : null}
-          series={QUIET}
+          series={SERIES.disk}
         />
       </div>
       {children}

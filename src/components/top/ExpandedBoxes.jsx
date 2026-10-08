@@ -1,6 +1,17 @@
+import { useState } from 'react';
 import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
-import { POWER_ICON_RANGE, RESERVATION_CLASH, SERIES, TEMPERATURE_ICON_RANGE } from './config';
-import { BoxFooter, ChipGlyph, GpuGlyph, Metric, QUIET, RING_SERIES, heat, heatColor } from './DetailBoxes';
+import { RESERVATION_CLASH, SERIES } from './config';
+import {
+  BoxFooter,
+  ChipGlyph,
+  GpuGlyph,
+  Metric,
+  RING_SERIES,
+  POWER_COLOR,
+  TEMPERATURE_COLOR,
+  powerBar,
+  temperatureBar,
+} from './DetailBoxes';
 import { idleGpuPhrase, pressurePhrase, reservedIdlePhrase } from './easterEggs';
 import {
   formatAxisTime,
@@ -20,9 +31,8 @@ const TICK = {
   fontSize: 10,
   fontFamily: 'JetBrains Mono, monospace',
 };
-// Temperature and power share the 0-100 axis: °C as is, power as a percent of the limit.
-const TEMPERATURE_COLOR = '#E07A5F';
-const POWER_COLOR = '#B07AA1';
+
+const THREADS_SERIES = { color: '#A9BCF2', track: '#6F90EA1C' };
 
 function chartPoints(timeline, gpu) {
   const limit = gpu.power_limit_w;
@@ -79,6 +89,11 @@ function MiniChart({
 }) {
   // Times at the inner quarters only, so none is cut off at an edge.
   const ticks = [1, 2, 3].map((step) => start + ((end - start) * step) / 4);
+  // Hovering a key entry brings its line forward and fades the others.
+  const [focus, setFocus] = useState(null);
+  const drawn = focus
+    ? [...lines.filter((line) => line.key !== focus), lines.find((line) => line.key === focus)]
+    : lines;
   return (
     <div>
       <div className="mb-1 flex items-center justify-between gap-3 font-mono text-[11px] text-data-grey">
@@ -89,7 +104,14 @@ function MiniChart({
           {!aside &&
             lines.length > 1 &&
             lines.map((line) => (
-              <span key={line.key} className="flex items-center gap-1.5">
+              <span
+                key={line.key}
+                onMouseEnter={() => setFocus(line.key)}
+                onMouseLeave={() => setFocus(null)}
+                className={`flex cursor-default items-center gap-1.5 transition-opacity ${
+                  focus && focus !== line.key ? 'opacity-40' : ''
+                } ${focus === line.key ? 'text-inkwell' : ''}`}
+              >
                 <span className="h-0.5 w-2.5 rounded-full" style={{ backgroundColor: line.color }} aria-hidden="true" />
                 {line.label}
               </span>
@@ -133,14 +155,15 @@ function MiniChart({
           cursor={{ stroke: '#CBD5E1', strokeWidth: 1 }}
           isAnimationActive={false}
         />
-        {lines.map((line) => (
+        {drawn.map((line) => (
           <Line
             key={line.key}
             yAxisId={line.axis ?? 'left'}
             type="monotone"
             dataKey={line.key}
             stroke={line.color}
-            strokeWidth={1.5}
+            strokeWidth={focus === line.key ? 2.25 : 1.5}
+            strokeOpacity={focus && focus !== line.key ? 0.2 : 1}
             dot={false}
             activeDot={{ r: 3, strokeWidth: 0 }}
             connectNulls={false}
@@ -157,14 +180,6 @@ function MiniChart({
 // health problems).
 export function GpuDeepDetails({ gpu, host, timeline, reservation = null, me = null, now = 0 }) {
   const power = gpu.power_limit_w && gpu.power_w != null ? gpu.power_w / gpu.power_limit_w : null;
-  const temperatureSeries = {
-    color: heatColor(heat(gpu.temperature_c, TEMPERATURE_ICON_RANGE) ?? 0),
-    track: QUIET.track,
-  };
-  const powerSeries = {
-    color: heatColor(heat(power, POWER_ICON_RANGE) ?? 0),
-    track: QUIET.track,
-  };
   const points = timeline ? chartPoints(timeline, gpu) : [];
   const mine = reservation?.user === me;
   const clash = clashingUsers(gpu, reservation);
@@ -210,13 +225,13 @@ export function GpuDeepDetails({ gpu, host, timeline, reservation = null, me = n
             label="Temp"
             value={gpu.temperature_c == null ? '—' : `${Math.round(gpu.temperature_c)}°C`}
             share={(gpu.temperature_c ?? 0) / 100}
-            series={temperatureSeries}
+            series={temperatureBar(gpu.temperature_c)}
           />
           <Metric
             label="Power"
             value={gpu.power_w == null ? '—' : `${Math.round(gpu.power_w)} W`}
             share={power ?? 0}
-            series={powerSeries}
+            series={powerBar(power)}
           />
         </div>
 
@@ -452,6 +467,8 @@ export function CpuDeepDetails({ host, system, timeline }) {
           </p>
         </div>
       </div>
+      {/* Load in the CPU blue, threads in a paler shade of it, and I/O wait, time
+          spent waiting on the disks, in the disk hue. */}
       <div className="mt-4 grid grid-cols-3 gap-x-5">
         <Metric label="Load" value={`${percent}%`} share={percent / 100} series={RING_SERIES.compute} />
         <div title="Share of CPU time spent waiting on the disks; high when jobs are stuck loading data">
@@ -459,7 +476,7 @@ export function CpuDeepDetails({ host, system, timeline }) {
             label="I/O wait"
             value={iowait == null ? '—' : `${iowait}%`}
             share={iowait == null ? 0 : iowait / 100}
-            series={QUIET}
+            series={SERIES.disk}
           />
         </div>
         <div
@@ -473,7 +490,7 @@ export function CpuDeepDetails({ host, system, timeline }) {
             label="Threads"
             value={load && threads ? `${Math.round(load[0])} / ${threads}` : '—'}
             share={load && threads ? load[0] / threads : 0}
-            series={QUIET}
+            series={THREADS_SERIES}
           />
         </div>
       </div>
