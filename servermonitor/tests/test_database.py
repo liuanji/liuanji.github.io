@@ -278,6 +278,8 @@ class DatabaseTest(unittest.TestCase):
         self.assertEqual(recent["active_days"], 1)
         self.assertEqual(recent["hosts"], [{"name": "brezel", "share": 1.0}])
         self.assertEqual(len(recent["week"]), 56)
+        # The last block is the one under way at 03:00, 03:00 to 06:00.
+        self.assertEqual(recent["week_start"] + 56 * 3 * 3600, start + 4 * 3600)
         self.assertAlmostEqual(sum(recent["week"]) * 3 * 3600, 3600, delta=60)
         # Someone who only baked long ago keeps a card, without recent habits.
         with self.database.connect() as connection:

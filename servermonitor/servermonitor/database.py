@@ -896,7 +896,8 @@ class Database:
         when, and over the last days how they bake, in the servers' local time:
         the share at night (0-6 h) and at weekends, their most GPUs at once (an
         hour's average across servers), each server's share, how many days they
-        baked, and their last week as average GPUs per three hours, oldest first."""
+        baked, and their last week as average GPUs per three hours, oldest first,
+        from week_start."""
         block = 3 * 3600
         week_start = ((now + utc_offset) // block + 1) * block - utc_offset - BAKER_WEEK_BLOCKS * block
         with self.connect() as connection:
@@ -961,6 +962,7 @@ class Database:
                         for host, amount in sorted(user["hosts"].items(), key=lambda item: -item[1])
                     ],
                     "week": [round(amount / block, 2) for amount in user["week"]],
+                    "week_start": week_start,
                 }
             profiles[name] = profile
         return profiles
