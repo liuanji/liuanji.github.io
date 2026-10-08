@@ -35,7 +35,15 @@ function cloudEstimate(hours, user, who) {
 
 // lifetime is the lab's all-time GPU time, shown as a milestone badge; bakers
 // holds each user's baker card, opened from their name.
-export default function UserRanking({ users, rangeTitle, showHosts, who = 'The lab', lifetime = null, bakers = null }) {
+export default function UserRanking({
+  users,
+  range,
+  rangeTitle,
+  showHosts,
+  who = 'The lab',
+  lifetime = null,
+  bakers = null,
+}) {
   const maxHours = Math.max(0.001, ...users.map((user) => user.gpu_hours));
   const [focused, setFocused] = useState(null);
   const focusedUser = users.find((user) => user.username === focused);
@@ -103,6 +111,7 @@ export default function UserRanking({ users, rangeTitle, showHosts, who = 'The l
                         user={user}
                         profile={bakers?.[user.username]}
                         rank={index + 1}
+                        range={range}
                         rangeTitle={rangeTitle}
                         share={totalHours > 0 ? user.gpu_hours / totalHours : null}
                         who={who}

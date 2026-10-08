@@ -277,15 +277,21 @@ class DatabaseTest(unittest.TestCase):
         self.assertEqual(recent["peak_gpus"], 1.0)
         self.assertEqual(recent["active_days"], 1)
         self.assertEqual(recent["hosts"], [{"name": "brezel", "share": 1.0}])
-        self.assertEqual(len(recent["week"]), 56)
+        week = alice["series"]["7d"]
+        self.assertEqual((week["step"], len(week["values"])), (3 * 3600, 56))
         # The last block is the one under way at 03:00, 03:00 to 06:00.
-        self.assertEqual(recent["week_start"] + 56 * 3 * 3600, start + 4 * 3600)
-        self.assertAlmostEqual(sum(recent["week"]) * 3 * 3600, 3600, delta=60)
+        self.assertEqual(week["start"] + 56 * 3 * 3600, start + 4 * 3600)
+        self.assertAlmostEqual(sum(week["values"]) * 3 * 3600, 3600, delta=60)
+        # The last hour in five-minute steps: one GPU throughout.
+        hour = alice["series"]["1h"]
+        self.assertEqual((hour["step"], len(hour["values"])), (300, 12))
+        self.assertEqual(hour["values"][-2], 1.0)
+        self.assertEqual(sorted(alice["series"]), ["1h", "24h", "30d", "365d", "7d", "90d"])
         # Someone who only baked long ago keeps a card, without recent habits.
         with self.database.connect() as connection:
             connection.execute("INSERT INTO lifetime_user_time VALUES ('carol', 7200, 1600000000)")
         carol = self.database.baker_profiles(now=start + 3600, utc_offset=0)["carol"]
-        self.assertEqual((carol["lifetime_gpu_hours"], carol["recent"]), (2.0, None))
+        self.assertEqual((carol["lifetime_gpu_hours"], carol["recent"], carol["series"]), (2.0, None, None))
 
     def test_observed_time_survives_collection_interval_change(self) -> None:
         start = 1_700_000_000

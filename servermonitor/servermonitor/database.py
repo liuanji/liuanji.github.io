@@ -32,10 +32,18 @@ SCHEMA_VERSION = "2"
 # longer windows and are kept for the configured rollup retention.
 MINUTE_WINDOW_SECONDS = 48 * 3600
 MINUTE_RETENTION_SECONDS = MINUTE_WINDOW_SECONDS + 3600
-# Baker cards describe the last BAKER_DAYS of each user's GPU time, and their
-# last week in three-hour blocks.
+# Baker cards describe the last BAKER_DAYS of each user's GPU time, and chart
+# it over each period the page offers: (period, step in seconds, steps).
 BAKER_DAYS = 90
-BAKER_WEEK_BLOCKS = 7 * 8
+BAKER_SERIES = (
+    # Five minutes, since one late collection can credit a single minute twice.
+    ("1h", 300, 12),
+    ("24h", 3600, 24),
+    ("7d", 3 * 3600, 56),
+    ("30d", 86400, 30),
+    ("90d", 86400, 90),
+    ("365d", 7 * 86400, 52),
+)
 
 
 @dataclass(frozen=True)
@@ -896,10 +904,9 @@ class Database:
         when, and over the last days how they bake, in the servers' local time:
         the share at night (0-6 h) and at weekends, their most GPUs at once (an
         hour's average across servers), each server's share, how many days they
-        baked, and their last week as average GPUs per three hours, oldest first,
-        from week_start."""
-        block = 3 * 3600
-        week_start = ((now + utc_offset) // block + 1) * block - utc_offset - BAKER_WEEK_BLOCKS * block
+        baked; and for every period, their average GPUs in use per step (see
+        baker_series)."""
+        series = self.baker_series(now, utc_offset)
         with self.connect() as connection:
             lifetimes = {
                 row["username"]: row
@@ -923,7 +930,6 @@ class Database:
                     "hours": defaultdict(float),
                     "hosts": defaultdict(float),
                     "days": set(),
-                    "week": [0.0] * BAKER_WEEK_BLOCKS,
                 },
             )
             seconds, bucket = row["seconds"], int(row["bucket"])
@@ -937,8 +943,6 @@ class Database:
             user["hours"][bucket] += seconds
             user["hosts"][row["host"]] += seconds
             user["days"].add(local // 86400)
-            if bucket >= week_start:
-                user["week"][min(BAKER_WEEK_BLOCKS - 1, (bucket - week_start) // block)] += seconds
         profiles: dict[str, dict[str, Any]] = {}
         for name in set(lifetimes) | set(recent):
             lifetime = lifetimes.get(name)
@@ -946,6 +950,7 @@ class Database:
                 "lifetime_gpu_hours": round(lifetime["gpu_seconds"] / 3600, 1) if lifetime else None,
                 "since": int(lifetime["first_at"]) if lifetime else None,
                 "recent": None,
+                "series": series.get(name),
             }
             user = recent.get(name)
             if user and user["total"] > 0:
@@ -961,11 +966,61 @@ class Database:
                         {"name": host, "share": round(amount / total, 3)}
                         for host, amount in sorted(user["hosts"].items(), key=lambda item: -item[1])
                     ],
-                    "week": [round(amount / block, 2) for amount in user["week"]],
-                    "week_start": week_start,
                 }
             profiles[name] = profile
         return profiles
+
+    def baker_series(self, now: int, utc_offset: int) -> dict[str, dict[str, dict[str, Any]]]:
+        """Each user's average GPUs in use per step over every period of
+        BAKER_SERIES, across all servers, oldest first from start. Steps are
+        whole five minutes, hours, three hours or days in the servers' local time
+        (weeks end at a local midnight), the last one under way at now; the last
+        hour comes from the minute sums, the rest from the hourly ones."""
+        spans: dict[str, tuple[int, int, int]] = {}
+        for name, step, count in BAKER_SERIES:
+            unit = min(step, 86400)
+            end = ((now + utc_offset) // unit + 1) * unit - utc_offset
+            spans[name] = (end - count * step, step, count)
+        earliest = min(start for start, _, _ in spans.values())
+        with self.connect() as connection:
+            hourly = connection.execute(
+                """
+                SELECT bucket, username, SUM(active_gpu_seconds) AS seconds FROM user_hour
+                WHERE bucket >= ? AND username != ? GROUP BY bucket, username HAVING seconds > 0
+                """,
+                (earliest, UNKNOWN_USER),
+            ).fetchall()
+            minutely = connection.execute(
+                """
+                SELECT bucket, username, SUM(active_gpu_seconds) AS seconds FROM user_minute
+                WHERE bucket >= ? AND username != ? GROUP BY bucket, username HAVING seconds > 0
+                """,
+                (spans["1h"][0], UNKNOWN_USER),
+            ).fetchall()
+        sums: dict[str, dict[str, list[float]]] = {}
+        for name, (start, step, count) in spans.items():
+            for row in minutely if step < 3600 else hourly:
+                index = (int(row["bucket"]) - start) // step
+                if 0 <= index < count:
+                    user = sums.setdefault(row["username"], {})
+                    user.setdefault(name, [0.0] * count)[index] += row["seconds"]
+        def average(name: str, index: int, amount: float) -> float:
+            # The step under way is averaged over the time it has run so far.
+            start, step, count = spans[name]
+            elapsed = now - (start + index * step) if index == count - 1 else step
+            return round(amount / max(60, min(step, elapsed)), 2)
+
+        return {
+            username: {
+                name: {
+                    "start": spans[name][0],
+                    "step": spans[name][1],
+                    "values": [average(name, index, amount) for index, amount in enumerate(amounts)],
+                }
+                for name, amounts in periods.items()
+            }
+            for username, periods in sums.items()
+        }
 
     def week_pattern(self, host: str, now: int, days: int, utc_offset: int) -> list[list[float | None]]:
         """The host's share of GPUs in use by weekday (Monday first) and hour,

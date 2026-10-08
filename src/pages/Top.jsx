@@ -400,6 +400,7 @@ export default function Top() {
                 <div className={`transition-opacity duration-300 ${stats.isPlaceholderData ? 'opacity-50' : ''}`}>
                   <UserRanking
                     users={stats.data?.users[range.value] ?? []}
+                    range={range.value}
                     rangeTitle={range.title}
                     showHosts={host === 'all' && hosts.length > 1}
                     who={host === 'all' ? 'The lab' : host}
