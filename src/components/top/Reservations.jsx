@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bookmark, BookmarkPlus, Lock } from 'lucide-react';
+import { Bookmark, BookmarkPlus, CircleAlert, Lock } from 'lucide-react';
 import * as SliderPrimitive from '@radix-ui/react-slider';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -267,5 +267,65 @@ export function ReserveControl({ host, gpu, reservation, me, held, now, onReserv
         )}
       </PopoverContent>
     </Popover>
+  );
+}
+
+// GPUs the viewer is running on that someone else has reserved, across every
+// server, so the page can say so wherever the viewer is looking.
+export function myClashes(hosts, reservations, me, now) {
+  return hosts.flatMap((host) =>
+    host.gpus
+      .map((gpu) => ({ host: host.name, gpu, reservation: findReservation(reservations, host.name, gpu.index, now) }))
+      .filter(({ gpu, reservation }) => reservation && clashingUsers(gpu, reservation).includes(me)),
+  );
+}
+
+// The notice at the top of the page while the viewer has jobs on GPUs someone
+// else reserved: a white card with an amber edge, naming each GPU, who holds it
+// and until when. Each server's name opens that server's panel.
+export function ClashBanner({ clashes, onOpen }) {
+  if (!clashes.length) return null;
+  return (
+    <div
+      role="alert"
+      className="mb-10 flex gap-3 rounded-2xl border border-border-light bg-white px-5 py-4"
+      style={{ boxShadow: `inset 4px 0 0 ${RESERVATION_CLASH.edge}` }}
+    >
+      <CircleAlert className="mt-0.5 h-5 w-5 flex-shrink-0" style={{ color: RESERVATION_CLASH.mark }} aria-hidden="true" />
+      <div className="min-w-0 text-sm leading-relaxed text-inkwell">
+        <p className="font-medium">
+          {clashes.length > 1
+            ? `You have jobs on ${clashes.length} GPUs that others reserved for debugging`
+            : 'You have jobs on a GPU someone else reserved for debugging'}
+        </p>
+        <ul className="mt-1 space-y-0.5 text-data-grey">
+          {clashes.map(({ host, gpu, reservation }) => (
+            <li key={`${host}/${gpu.index}`}>
+              {onOpen ? (
+                <button
+                  type="button"
+                  onClick={() => onOpen(host)}
+                  className="font-medium text-inkwell underline decoration-border-light underline-offset-4 transition-colors hover:decoration-inkwell/40"
+                >
+                  {host} · GPU {gpu.index}
+                </button>
+              ) : (
+                <span className="font-medium text-inkwell">
+                  {host} · GPU {gpu.index}
+                </span>
+              )}
+              , reserved by {reservation.user} until {formatClock(reservation.ends_at)}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-1.5 text-data-grey">
+          Please move your jobs to a free GPU, or check with{' '}
+          {new Set(clashes.map(({ reservation }) => reservation.user)).size > 1
+            ? 'whoever reserved each one'
+            : clashes[0].reservation.user}{' '}
+          first.
+        </p>
+      </div>
+    </div>
   );
 }

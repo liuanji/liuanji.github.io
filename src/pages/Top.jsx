@@ -29,6 +29,7 @@ import {
   formatPercent,
   formatPower,
 } from '../components/top/format';
+import { ClashBanner, myClashes } from '../components/top/Reservations';
 import { useReservations } from '../components/top/useReservations';
 import { useSession } from '../components/top/useSession';
 import { useNow, useStatusFile } from '../components/top/useStatusFile';
@@ -188,15 +189,13 @@ export default function Top() {
   const selectedHosts = host === 'all' ? hosts : hosts.filter((item) => item.name === host);
   // Clicking a server's name shows its own panel and brings the server
   // selector, and the panel below it, into view.
-  const openHost =
-    host === 'all' && hosts.length > 1
-      ? (name) => {
-          setParam('host', name, 'all');
-          requestAnimationFrame(() =>
-            document.getElementById('top-servers')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
-          );
-        }
-      : undefined;
+  const showHost = (name) => {
+    setParam('host', name, 'all');
+    requestAnimationFrame(() =>
+      document.getElementById('top-servers')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    );
+  };
+  const openHost = host === 'all' && hosts.length > 1 ? showHost : undefined;
   const hostOptions = [
     {
       value: 'all',
@@ -223,6 +222,8 @@ export default function Top() {
         release,
       }
     : null;
+  // Checked on every server, whichever is selected.
+  const clashes = reservations ? myClashes(hosts, reservations, user, now) : [];
 
   return (
     <div className="bg-paper min-h-screen page-enter">
@@ -274,6 +275,7 @@ export default function Top() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
             >
+              <ClashBanner clashes={clashes} onOpen={hosts.length > 1 ? showHost : undefined} />
               {hosts.length > 1 && (
                 <div id="top-servers" className="mb-12 scroll-mt-28">
                   <SegmentedControl
