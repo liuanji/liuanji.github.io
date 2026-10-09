@@ -182,7 +182,8 @@ module.exports = {
   				'100%': { opacity: '0', transform: 'scale(2.4)' }
   			},
   			// A server's packing counter: a new round's pastries popping onto the pile,
-  			// the full box's lid going on, the box taken away and an empty one coming.
+  			// the full box's lid going on, the box taken away (fading as it slides a
+  			// little, so it stays inside the scene) and an empty one set down.
   			'pile-pop': {
   				'0%': { opacity: '0', transform: 'scale(0.3)' },
   				'70%': { opacity: '1', transform: 'scale(1.08)' },
@@ -194,11 +195,11 @@ module.exports = {
   			},
   			'box-leave': {
   				'0%, 35%': { opacity: '1', transform: 'translateX(0)' },
-  				'100%': { opacity: '0', transform: 'translateX(40px)' }
+  				'100%': { opacity: '0', transform: 'translateX(14px)' }
   			},
   			'box-enter': {
-  				'0%': { opacity: '0', transform: 'translateX(-24px)' },
-  				'100%': { opacity: '1', transform: 'translateX(0)' }
+  				'0%': { opacity: '0', transform: 'translateY(-8px)' },
+  				'100%': { opacity: '1', transform: 'translateY(0)' }
   			},
   			steam: {
   				'0%': { opacity: '0', transform: 'translateY(4px)' },
