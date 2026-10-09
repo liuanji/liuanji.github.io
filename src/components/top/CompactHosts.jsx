@@ -399,14 +399,52 @@ function TemperatureScale() {
   );
 }
 
-function HeatScale({ Icon }) {
+// The power key, drawn in steps like the temperature one: as it warms through
+// the heat colours the bolt fills in and three sparkles twinkle in round it one
+// by one, the biggest first, then it all fades back to an empty bolt. With
+// reduced motion it holds the empty bolt at the middle colour.
+const KEY_SPARKLES = [
+  [20.8, 3.2, 3.6],
+  [3.4, 20.6, 2.6],
+  [21.2, 19.6, 1.9],
+];
+
+// A four-point sparkle centred on (x, y), drawn like the croissant's.
+function sparklePath(x, y, r) {
+  const k = r * 0.12;
+  return `M${x} ${y - r}Q${x + k} ${y - k} ${x + r} ${y}Q${x + k} ${y + k} ${x} ${y + r}Q${x - k} ${y + k} ${x - r} ${y}Q${x - k} ${y - k} ${x} ${y - r}Z`;
+}
+
+function PowerScale() {
   return (
-    <Icon
-      className="h-3.5 w-3.5 motion-safe:animate-heat"
+    <svg
+      viewBox="0 0 24 24"
+      className="h-3.5 w-3.5 overflow-visible motion-safe:animate-heat"
       style={{ color: heatColor(0.5) }}
-      strokeWidth={2.25}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
-    />
+    >
+      {KEY_SPARKLES.map(([x, y, r], index) => (
+        <path
+          key={index}
+          d={sparklePath(x, y, r)}
+          fill="currentColor"
+          stroke="none"
+          className="opacity-0 motion-safe:animate-key-sparkle"
+          style={{ transformBox: 'fill-box', transformOrigin: 'center', animationDelay: `${(index - 1) * 0.14}s` }}
+        />
+      ))}
+      <path
+        d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"
+        fill="currentColor"
+        fillOpacity="0"
+        className="motion-safe:animate-key-fill"
+      />
+    </svg>
   );
 }
 
@@ -470,7 +508,7 @@ export default function CompactHosts({ hosts, now, onOpen, reserving = null }) {
           {TEMPERATURE_ICON_RANGE.from}–{TEMPERATURE_ICON_RANGE.to}°C
         </LegendItem>
         <LegendItem>
-          <HeatScale Icon={Zap} />
+          <PowerScale />
           70–100% of power limit
         </LegendItem>
         {reserving && (

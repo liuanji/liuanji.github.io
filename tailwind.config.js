@@ -97,6 +97,17 @@ module.exports = {
   				'0%, 22%, 78%, 100%': { transform: 'translateX(0)' },
   				'42%, 58%': { transform: 'translateX(6px)' }
   			},
+  			// The power key heating up: the bolt fills in and three sparkles twinkle in
+  			// round it one by one at the peak, then all reverses.
+  			'key-fill': {
+  				'0%, 100%': { fillOpacity: '0' },
+  				'25%, 75%': { fillOpacity: '0.2' },
+  				'46%, 54%': { fillOpacity: '1' }
+  			},
+  			'key-sparkle': {
+  				'0%, 32%, 68%, 100%': { opacity: '0', transform: 'scale(0) rotate(-60deg)' },
+  				'46%, 54%': { opacity: '1', transform: 'scale(1) rotate(0)' }
+  			},
   			'key-ray': {
   				'0%, 34%, 66%, 100%': { opacity: '0', transform: 'scale(0.3)' },
   				'46%, 54%': { opacity: '1', transform: 'scale(1)' }
@@ -139,6 +150,8 @@ module.exports = {
   			'key-mercury': 'key-mercury 4s ease-in-out infinite',
   			'key-slide': 'key-slide 4s ease-in-out infinite',
   			'key-ray': 'key-ray 4s ease-in-out infinite',
+  			'key-fill': 'key-fill 4s ease-in-out infinite',
+  			'key-sparkle': 'key-sparkle 4s ease-in-out infinite',
   			breathe: 'breathe 2.4s ease-in-out infinite',
   			glow: 'glow 3.2s ease-in-out infinite',
   			alarm: 'alarm 1.6s ease-out infinite',
