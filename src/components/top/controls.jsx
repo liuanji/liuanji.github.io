@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { HOST_STATUS } from './config';
 import { hostDownPhrase } from './easterEggs';
 import { formatAgo } from './format';
@@ -187,15 +187,23 @@ export function ScrollList({ count, visible = 5, rowRem, className = '', childre
 // A notice at the top of the page: a quiet white card with a border and an
 // icon in a soft circle, both in color (a hex hue), and the message beside them.
 // tinted washes the card faintly in the colour too, for the most urgent notices.
+// Inside the notes card the notices drop their own frame, so they read as one card.
+export const PlainBanners = createContext(false);
+
 export function Banner({ icon: Icon, color, iconColor = color, role = 'status', tinted = false, children }) {
+  const plain = useContext(PlainBanners);
   return (
     <div
       role={role}
-      className="flex items-start gap-3.5 rounded-2xl border bg-white px-4 py-3.5"
-      style={{
-        borderColor: `${color}73`,
-        backgroundImage: tinted ? `linear-gradient(${color}0D, ${color}0D)` : undefined,
-      }}
+      className={`flex items-start gap-3.5 ${plain ? 'py-3' : 'rounded-2xl border bg-white px-4 py-3.5'}`}
+      style={
+        plain
+          ? undefined
+          : {
+              borderColor: `${color}73`,
+              backgroundImage: tinted ? `linear-gradient(${color}0D, ${color}0D)` : undefined,
+            }
+      }
     >
       <span
         className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
@@ -215,6 +223,7 @@ export function BannerLink({ color, onClick, children }) {
   return (
     <button
       type="button"
+      data-banner-link
       onClick={onClick}
       className="font-medium text-inkwell underline decoration-1 underline-offset-[3px] transition-colors"
       style={{ textDecorationColor: `${color}80` }}

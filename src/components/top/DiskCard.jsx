@@ -371,10 +371,19 @@ const URGENCY = {
   warm: { color: LEVEL_SERIES.warm.color, role: 'status' },
   hot: { color: LEVEL_SERIES.hot.color, role: 'alert' },
 };
+function cleanupUrgency(reminders) {
+  const levels = reminders.map(({ disk }) => diskLevel(disk));
+  return levels.includes('hot') ? 'hot' : levels.includes('warm') ? 'warm' : 'calm';
+}
+
+// The cleanup notice's colour, for the reminder pill that stands in for it.
+export function cleanupColor(reminders) {
+  return URGENCY[cleanupUrgency(reminders)].color;
+}
+
 export function CleanupBanner({ reminders, onOpen }) {
   if (!reminders.length) return null;
-  const levels = reminders.map(({ disk }) => diskLevel(disk));
-  const urgency = levels.includes('hot') ? 'hot' : levels.includes('warm') ? 'warm' : 'calm';
+  const urgency = cleanupUrgency(reminders);
   const { color, role } = URGENCY[urgency];
   const diskName = ({ host, disk }) => (
     <BannerLink color={color} onClick={onOpen && (() => onOpen(host))}>

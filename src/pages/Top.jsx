@@ -4,13 +4,14 @@ import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import GhostNav from '../components/layout/GhostNav';
 import CompactHosts from '../components/top/CompactHosts';
-import DiskCard, { CleanupBanner } from '../components/top/DiskCard';
+import DiskCard, { CleanupBanner, cleanupColor } from '../components/top/DiskCard';
 import HostCard from '../components/top/HostCard';
 import LoginCard from '../components/top/LoginCard';
 import LiveTiles from '../components/top/LiveBreakdown';
 import { TrendTile } from '../components/top/PeriodTrends';
 import UptimeCard from '../components/top/UptimeCard';
 import UsageChart from '../components/top/UsageChart';
+import NotesPill from '../components/top/NotesPill';
 import RangeRail from '../components/top/RangeRail';
 import UserRanking from '../components/top/UserRanking';
 import {
@@ -21,6 +22,8 @@ import {
   LIVE_REFRESH_MS,
   OFFLINE_AFTER_SECONDS,
   RANGES,
+  RESERVATION_CLASH,
+  SERIES,
 } from '../components/top/config';
 import { LiveDot, Notice, SectionLabel, SegmentedControl, Switch } from '../components/top/controls';
 import {
@@ -202,6 +205,8 @@ export default function Top() {
   };
   // The time range switch, and its section, for the copy that floats beside it.
   const rangeSwitch = useRef(null);
+  // The notices at the top, which a small pill stands in for once they scroll away.
+  const notices = useRef(null);
   const historySection = useRef(null);
 
   const selectedHosts = host === 'all' ? hosts : hosts.filter((item) => item.name === host);
@@ -252,6 +257,12 @@ export default function Top() {
   // Like clashes, checked on every server's disks.
   const cleanups = cleanupReminders(disks.data?.hosts ?? [], user);
   const heldIdle = myHeldIdle(hosts, user);
+  // The same notices, for the pill that stands in for them once they scroll away.
+  const notes = [
+    clashes.length && { key: 'clash', color: RESERVATION_CLASH.color, label: 'On a GPU someone reserved' },
+    heldIdle.length && { key: 'idle', color: SERIES.compute.color, label: 'A GPU of yours is resting' },
+    cleanups.length && { key: 'cleanup', color: cleanupColor(cleanups), label: 'Scratch space to tidy' },
+  ].filter(Boolean);
 
   return (
     <div className="bg-paper min-h-screen page-enter">
@@ -303,13 +314,18 @@ export default function Top() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
             >
-              {(clashes.length > 0 || cleanups.length > 0 || heldIdle.length > 0) && (
-                <div className="mb-10 space-y-3">
+              {notes.length > 0 && (
+                <div ref={notices} className="mb-10 scroll-mt-28 space-y-3">
                   <ClashBanner clashes={clashes} onOpen={hosts.length > 1 ? showHost : undefined} />
                   <IdleBanner items={heldIdle} onOpen={hosts.length > 1 ? showHost : undefined} />
                   <CleanupBanner reminders={cleanups} onOpen={showStorage} />
                 </div>
               )}
+              <NotesPill notes={notes} anchor={notices}>
+                <ClashBanner clashes={clashes} onOpen={hosts.length > 1 ? showHost : undefined} />
+                <IdleBanner items={heldIdle} onOpen={hosts.length > 1 ? showHost : undefined} />
+                <CleanupBanner reminders={cleanups} onOpen={showStorage} />
+              </NotesPill>
               {hosts.length > 1 && (
                 <div id="top-servers" className="mb-8 scroll-mt-28">
                   <SegmentedControl
