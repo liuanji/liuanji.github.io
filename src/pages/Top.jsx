@@ -237,6 +237,16 @@ export default function Top() {
     })),
   ];
   const period = stats.data?.periods.find((item) => item.range === range.value);
+  // The lab's pace over the range being viewed, for when the servers pay for
+  // themselves: GPU hours a day over the hours actually observed in the range.
+  // A single server's stats only count its own hours, so then the milestone
+  // box keeps to the lab's last month instead.
+  const observedHours = Math.min(range.hours, Number(period?.observed_hours) || 0);
+  const rangeGpuHours = (stats.data?.users[range.value] ?? []).reduce((total, user) => total + user.gpu_hours, 0);
+  const pace =
+    host === 'all' && observedHours > 0
+      ? { gpuHoursPerDay: (rangeGpuHours / observedHours) * 24, title: range.title }
+      : null;
   const selectedNames = new Set(selectedHosts.map((item) => item.name));
   const diskHosts = (disks.data?.hosts ?? []).filter((item) => selectedNames.has(item.name));
   // Only a Worker that supports reservations lists them in the overview.
@@ -431,6 +441,7 @@ export default function Top() {
                     showHosts={host === 'all' && hosts.length > 1}
                     who={host === 'all' ? 'The lab' : host}
                     lifetime={stats.data?.lifetime}
+                    pace={pace}
                     bakers={stats.data?.bakers}
                   />
                 </div>

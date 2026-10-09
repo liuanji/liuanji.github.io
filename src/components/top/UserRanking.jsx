@@ -36,7 +36,8 @@ function cloudEstimate(hours, user, who) {
   return cloudPhrase({ amount: formatSgd(amount), croissants: Math.round(amount / CROISSANT_SGD), user, who });
 }
 
-// lifetime is the lab's all-time GPU time, shown as a milestone badge; bakers
+// lifetime is the lab's all-time GPU time, shown as a milestone badge, and pace
+// its GPU hours a day over the range being viewed, for the badge's forecast; bakers
 // holds each user's baker card, opened from their name.
 export default function UserRanking({
   users,
@@ -45,6 +46,7 @@ export default function UserRanking({
   showHosts,
   who = 'The lab',
   lifetime = null,
+  pace = null,
   bakers = null,
 }) {
   const maxHours = Math.max(0.001, ...users.map((user) => user.gpu_hours));
@@ -71,7 +73,7 @@ export default function UserRanking({
             {estimate && <span className="italic text-data-grey/80"> · {estimate}</span>}
           </p>
         </div>
-        <MilestoneBadge lifetime={lifetime} />
+        <MilestoneBadge lifetime={lifetime} pace={pace} />
       </div>
       {users.length ? (
         <div className="overflow-x-auto">

@@ -148,14 +148,18 @@ function PastryMountain({ reached }) {
 // the rank reached and the total beside it. Its box shows the bakery rank reached, the total since the
 // first record and per GPU model, what it would have cost in the cloud, and
 // the pastry pile, one croissant per rank reached.
-export default function MilestoneBadge({ lifetime }) {
+// pace is the lab's { gpuHoursPerDay, title } over the range being viewed;
+// without it the forecast keeps to the last month's pace.
+export default function MilestoneBadge({ lifetime, pace = null }) {
   if (!lifetime?.gpu_hours) return null;
   const hours = lifetime.gpu_hours;
   const { current, next, progress, reached } = milestoneFor(hours);
   const value = hours * CLOUD_SGD_PER_GPU_HOUR;
   // The share of the servers' price paid back, and the day the rest would be at the recent pace.
   const paid = value / BAKERY_SGD;
-  const perDay = (lifetime.gpu_hours_per_day ?? 0) * CLOUD_SGD_PER_GPU_HOUR;
+  const gpuHoursPerDay = pace?.gpuHoursPerDay ?? lifetime.gpu_hours_per_day ?? 0;
+  const paceOf = pace ? pace.title.replace(/^Last/, 'the last') : 'the last month';
+  const perDay = gpuHoursPerDay * CLOUD_SGD_PER_GPU_HOUR;
   const paidOn = perDay > 0 && paid < 1 ? new Date(Date.now() + ((BAKERY_SGD - value) / perDay) * 86400000) : null;
   return (
     <Popover>
@@ -260,12 +264,12 @@ export default function MilestoneBadge({ lifetime }) {
                 'The servers have paid for themselves; every bake from here is a bonus.'
               ) : paidOn ? (
                 <>
-                  At the last month’s pace of about {Math.round(lifetime.gpu_hours_per_day).toLocaleString('en-US')} GPU
-                  hours a day, brezel, croissant and toast pay for themselves around{' '}
+                  At the pace of {paceOf}, about {Math.round(gpuHoursPerDay).toLocaleString('en-US')} GPU hours a day,
+                  brezel, croissant and toast pay for themselves around{' '}
                   <span className="text-inkwell">{monthYear.format(paidOn)}</span>.
                 </>
               ) : (
-                'A forecast appears after a day of baking.'
+                'No baking in this period yet, so no forecast.'
               )}
             </p>
           </div>
