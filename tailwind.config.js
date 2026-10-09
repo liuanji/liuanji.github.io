@@ -130,6 +130,30 @@ module.exports = {
   				'35%': { transform: 'scale(0.15)' },
   				'70%': { transform: 'scale(1.2)' }
   			},
+  			// The bakery card's oven: its window glowing, the loaf rising, steam curling
+  			// up, the closed sign swinging and the dozing oven's z's floating off.
+  			'oven-glow': {
+  				'0%, 100%': { opacity: '0.45' },
+  				'50%': { opacity: '0.85' }
+  			},
+  			'dough-rise': {
+  				'0%, 100%': { transform: 'scaleY(0.8)' },
+  				'50%': { transform: 'scaleY(1.05)' }
+  			},
+  			steam: {
+  				'0%': { opacity: '0', transform: 'translateY(4px)' },
+  				'35%': { opacity: '0.9' },
+  				'100%': { opacity: '0', transform: 'translateY(-10px)' }
+  			},
+  			'sign-swing': {
+  				'0%, 100%': { transform: 'rotate(-7deg)' },
+  				'50%': { transform: 'rotate(7deg)' }
+  			},
+  			snooze: {
+  				'0%': { opacity: '0', transform: 'translate(0, 4px)' },
+  				'30%': { opacity: '1' },
+  				'100%': { opacity: '0', transform: 'translate(6px, -12px)' }
+  			},
   			twinkle: {
   				'0%, 60%, 100%': { opacity: '0', transform: 'scale(0) rotate(0deg)' },
   				'25%': { opacity: '1', transform: 'scale(1) rotate(45deg)' }
@@ -168,6 +192,11 @@ module.exports = {
   			alarm: 'alarm 1.6s ease-out infinite',
   			'sparkle-in': 'sparkle-in 0.56s ease-in-out both',
   			'sparkle-blink': 'sparkle-blink 0.6s ease-in-out',
+  			'oven-glow': 'oven-glow 2.4s ease-in-out infinite',
+  			'dough-rise': 'dough-rise 3.2s ease-in-out infinite',
+  			steam: 'steam 2.1s ease-out infinite',
+  			'sign-swing': 'sign-swing 2.8s ease-in-out infinite',
+  			snooze: 'snooze 2.7s ease-out infinite',
   			twinkle: 'twinkle 2.6s ease-in-out infinite',
   			blink: 'blink 2.3s linear infinite',
   			hop: 'hop 0.45s ease-out 1 both'

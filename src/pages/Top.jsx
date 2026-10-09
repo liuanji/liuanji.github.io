@@ -4,7 +4,9 @@ import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import GhostNav from '../components/layout/GhostNav';
 import CompactHosts from '../components/top/CompactHosts';
+import { BakeryCard } from '../components/top/BakeryStatus';
 import { ClosedBanner } from '../components/top/ClosedBakery';
+import { DetailsPopover } from '../components/top/DetailBoxes';
 import DiskCard, { CleanupBanner, cleanupColor, cleanupIsUrgent } from '../components/top/DiskCard';
 import HostCard from '../components/top/HostCard';
 import LoginCard from '../components/top/LoginCard';
@@ -63,16 +65,28 @@ function Freshness({ overview, now }) {
     );
   }
   const age = now - overview.data.generated_at;
-  const state =
-    age < DELAYED_AFTER_SECONDS
-      ? { label: 'Live', color: HOST_STATUS.online.color }
-      : age < OFFLINE_AFTER_SECONDS
-        ? { label: 'Delayed', color: HOST_STATUS.stale.color }
-        : { label: 'Bakery closed', color: HOST_STATUS.closed.color };
+  const key = age < DELAYED_AFTER_SECONDS ? 'live' : age < OFFLINE_AFTER_SECONDS ? 'delayed' : 'closed';
+  const state = {
+    live: { label: 'Live', color: HOST_STATUS.online.color },
+    delayed: { label: 'Delayed', color: HOST_STATUS.stale.color },
+    closed: { label: 'Bakery closed', color: HOST_STATUS.closed.color },
+  }[key];
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-data-grey">
-      <LiveDot color={state.color} pulse={state.label === 'Live'} />
-      <span className="text-inkwell">{state.label}</span>
+      {/* The dot and its word open a little bakery scene for the state. */}
+      <DetailsPopover
+        content={<BakeryCard state={key} generatedAt={overview.data.generated_at} now={now} />}
+        width="w-[340px]"
+      >
+        <button
+          type="button"
+          aria-label={`${state.label}. Show the bakery.`}
+          className="-mx-1.5 -my-1 flex items-center gap-2 rounded-lg px-1.5 py-1 transition-colors hover:bg-[#F1F3F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20 data-[state=open]:bg-[#ECEFF3]"
+        >
+          <LiveDot color={state.color} pulse={key === 'live'} />
+          <span className="text-inkwell">{state.label}</span>
+        </button>
+      </DetailsPopover>
       <span>· updated {formatAgo(age)}</span>
     </div>
   );

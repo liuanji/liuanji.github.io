@@ -252,6 +252,31 @@ const CLOSED_BAKERY = [
   'restocking the flour and the RAM',
 ];
 
+// The card behind the page's "Live" dot: a line for each state of the bakery,
+// a fresh one each time the card opens.
+const BAKERY_STATE_LINES = {
+  live: [
+    'Fresh readings come out of the oven every minute.',
+    'The ovens are warm and the gradients are rising.',
+    'A new batch of readings every minute, still warm.',
+    'Kneaded, proofed and baked, fresh every minute.',
+    'The night shift never sleeps: a fresh batch every minute.',
+    'Every reading hand-shaped and baked to order.',
+  ],
+  delayed: [
+    'The dough is taking its time to rise.',
+    'The oven timer ran over a little.',
+    'Someone opened the oven door to peek.',
+    'This batch needed a few more minutes of proofing.',
+  ],
+};
+
+export function bakeryStateLine(state) {
+  if (state === 'closed') return `The chefs are ${closedBakeryPhrase()}.`;
+  const lines = BAKERY_STATE_LINES[state];
+  return lines[Math.floor(Math.random() * lines.length)];
+}
+
 export function closedBakeryPhrase() {
   return CLOSED_BAKERY[hash('closed') % CLOSED_BAKERY.length];
 }

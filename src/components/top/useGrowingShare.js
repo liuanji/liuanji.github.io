@@ -8,7 +8,13 @@ const WAIT_MS = 150;
 // appears (a box opening) and eases to each new reading after, settling at
 // once for viewers who prefer reduced motion.
 export function useGrowingShare(share, grow = true) {
-  const target = Math.min(1, Math.max(0, Number(share) || 0));
+  return useEasedValue(Math.min(1, Math.max(0, Number(share) || 0)), grow);
+}
+
+// The same for any number, such as a count or watts: up from 0 when it first
+// appears, then easing to each new value.
+export function useEasedValue(value, grow = true) {
+  const target = Number(value) || 0;
   const [shown, setShown] = useState(grow ? 0 : target);
   const current = useRef(shown);
   useEffect(() => {
@@ -23,9 +29,9 @@ export function useGrowingShare(share, grow = true) {
       const progress = Math.min(1, Math.max(0, (now - start) / GROW_MS));
       // Ease in and out, so the start of the rise shows too.
       const eased = progress < 0.5 ? 4 * progress ** 3 : 1 - (-2 * progress + 2) ** 3 / 2;
-      const value = from + (target - from) * eased;
-      current.current = value;
-      setShown(value);
+      const next = from + (target - from) * eased;
+      current.current = next;
+      setShown(next);
       if (progress < 1) frame = requestAnimationFrame(step);
     });
     return () => cancelAnimationFrame(frame);

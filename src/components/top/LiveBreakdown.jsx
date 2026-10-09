@@ -1,4 +1,5 @@
 import { HOST_STATUS } from './config';
+import { useEasedValue } from './useGrowingShare';
 import { BoxTile } from './DetailBoxes';
 import { formatMemory, formatMemoryOf, formatPercent, formatPower, hasCurrentData, summarize } from './format';
 import { MetricIcon } from './MetricIcons';
@@ -155,10 +156,18 @@ export default function LiveTiles({ hosts, allHosts, now }) {
   const waitingCaption = hosts.every((host) => host.status === 'closed')
     ? 'Back when the bakery reopens'
     : 'Waiting for fresh readings';
+  // The big figures count up from 0 when the page loads and on to each new
+  // reading on a refresh, as the icons beside them do.
+  const shown = {
+    busy: useEasedValue(summary.gpusBusy),
+    compute: useEasedValue(summary.computeLoad),
+    memory: useEasedValue(memoryShare),
+    power: useEasedValue(summary.powerW),
+  };
   const tiles = [
     {
       key: 'busy',
-      value: summary.gpusBusy,
+      value: Math.round(shown.busy),
       total: summary.gpusTotal,
       caption: allHosts ? `${idle} idle · ${summary.hostsOnline}/${summary.hostsTotal} servers online` : `${idle} idle`,
       summary: `${summary.gpusBusy} of ${summary.gpusTotal} GPUs in use`,
@@ -166,21 +175,21 @@ export default function LiveTiles({ hosts, allHosts, now }) {
     },
     {
       key: 'compute',
-      value: formatPercent(summary.computeLoad),
+      value: formatPercent(shown.compute),
       caption: `Average across ${summary.gpusTotal} GPUs`,
       summary: `${formatPercent(summary.computeLoad)} average across ${summary.gpusTotal} GPUs`,
       share: summary.computeLoad / 100,
     },
     {
       key: 'memory',
-      value: formatPercent(memoryShare),
+      value: formatPercent(shown.memory),
       caption: `${formatMemory(summary.memoryUsedMb)} of ${formatMemory(summary.memoryTotalMb)}`,
       summary: `${formatMemory(summary.memoryUsedMb)} of ${formatMemory(summary.memoryTotalMb)} in use`,
       share: memoryShare / 100,
     },
     {
       key: 'power',
-      value: formatPower(summary.powerW),
+      value: formatPower(shown.power),
       caption: 'Current total draw',
       summary: `${formatPower(summary.powerW)} drawn in total`,
       share: powerLimit ? summary.powerW / powerLimit : 0,
@@ -197,7 +206,7 @@ export default function LiveTiles({ hosts, allHosts, now }) {
           caption={waiting ? waitingCaption : tile.caption}
           icon={{
             color: TREND_METRICS[tile.key].color,
-            glyph: <MetricIcon metricKey={tile.key} share={tile.share} color={TREND_METRICS[tile.key].color} />,
+            glyph: <MetricIcon metricKey={tile.key} share={tile.share} color={TREND_METRICS[tile.key].color} grow />,
           }}
           width="w-[440px]"
           action={hosts.length === 1 ? 'Show each GPU' : 'Show each server'}
