@@ -440,15 +440,15 @@ export function BakeryCard({ state, generatedAt, now }) {
         {state !== 'closed' && (
           <>
             <dt className="text-data-grey">In the oven</dt>
-            <dd className="text-right text-inkwell">
-              {pastry.name}{' '}
+            <dd className="whitespace-nowrap text-right text-inkwell">
+              {pastry.the.replace(/^the /, '')}{' '}
               <span className="text-data-grey">
                 ·{' '}
                 {doneness.value <= 0
                   ? 'raw'
                   : doneness.value < 1
                     ? `baking ${Math.round(doneness.value * 100)}%`
-                    : 'freshly baked'}
+                    : 'baked'}
               </span>
             </dd>
           </>
