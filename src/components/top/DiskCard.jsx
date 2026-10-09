@@ -198,7 +198,7 @@ function DriveGlyph({ segments, share, color, width = 112, grow = false }) {
 
 // How full the disk has been over the range being viewed: a small area chart
 // of its share in use, with the 80% mark where cleanup notes move to the top
-// of the page, and a line saying how it changed.
+// of the page, and a line saying how it changed, to a tenth of a percent.
 function DiskOverTime({ series, range, color }) {
   const gradient = `disk${useId().replace(/:/g, '')}`;
   const points = (series?.values ?? []).map((value, index) => ({
@@ -220,14 +220,14 @@ function DiskOverTime({ series, range, color }) {
   return (
     <div>
       <p className="mb-1 text-xs text-data-grey">
-        {Math.abs(change) < 0.5 ? (
+        {Math.abs(change) < 0.05 ? (
           <>
-            Steady at <span className="text-inkwell">{Math.round(last.share)}%</span>
+            Steady at <span className="text-inkwell">{last.share.toFixed(1)}%</span>
           </>
         ) : (
           <>
-            From <span className="text-inkwell">{Math.round(first.share)}%</span> to{' '}
-            <span className="text-inkwell">{Math.round(last.share)}%</span>
+            From <span className="text-inkwell">{first.share.toFixed(1)}%</span> to{' '}
+            <span className="text-inkwell">{last.share.toFixed(1)}%</span>
             {change > 0 ? ', filling up' : ', freeing up'}
           </>
         )}
@@ -271,7 +271,7 @@ function DiskOverTime({ series, range, color }) {
                 active && payload?.[0]?.value != null ? (
                   <div className="rounded-lg border border-border-light bg-white/95 px-2.5 py-1.5 text-xs shadow-sm">
                     <div className="font-mono text-[11px] text-data-grey">{formatFullTime(label)}</div>
-                    <div className="text-inkwell">{Math.round(payload[0].value)}% full</div>
+                    <div className="text-inkwell">{payload[0].value.toFixed(1)}% full</div>
                   </div>
                 ) : null
               }
@@ -329,7 +329,7 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
           className="font-tight text-lg font-semibold leading-none tabular-nums text-inkwell"
           style={level ? { color: READING_STYLES[level].color } : undefined}
         >
-          {Math.round(share * 100)}%
+          {(share * 100).toFixed(1)}%
         </span>
       </div>
       <div>
@@ -415,7 +415,8 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
 // a button that opens the disk's box, like a GPU tile.
 function DiskRow({ host, disk, interactive, checkedAgo, countedAgo, range }) {
   const [active, setActive] = useState(null);
-  const percent = Math.round(diskShare(disk) * 100);
+  // To a tenth of a percent, so small changes show.
+  const percent = (diskShare(disk) * 100).toFixed(1);
   const level = diskLevel(disk);
   const bar = LEVEL_SERIES[level] ?? SERIES.disk;
   const segments = segmentsFor(disk, bar.color);
@@ -471,7 +472,7 @@ function DiskRow({ host, disk, interactive, checkedAgo, countedAgo, range }) {
         <div className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: bar.track }} aria-hidden="true">
           <div
             className="h-full rounded-full"
-            style={{ width: `${Math.min(100, percent)}%`, backgroundColor: bar.color }}
+            style={{ width: `${Math.min(100, Number(percent))}%`, backgroundColor: bar.color }}
           />
         </div>
       )}
