@@ -120,15 +120,15 @@ module.exports = {
   			// /top's all-clear croissant: a sparkle growing, turning and fading, and a
   			// little hop when the mouse arrives.
   			// A full tile bolt's sparkles: twisting in once as the power key's do, then
-  			// each now and then blinking, a quick shrink and spring back in the same colour.
+  			// blinking now and then, a quick shrink and spring back in the same colour.
   			'sparkle-in': {
   				'0%': { opacity: '0', transform: 'scale(0) rotate(-60deg)' },
   				'100%': { opacity: '1', transform: 'scale(1) rotate(0)' }
   			},
-  			'sparkle-again': {
-  				'0%, 72%, 100%': { transform: 'scale(1)' },
-  				'80%': { transform: 'scale(0.15)' },
-  				'88%': { transform: 'scale(1.2)' }
+  			'sparkle-blink': {
+  				'0%, 100%': { transform: 'scale(1)' },
+  				'35%': { transform: 'scale(0.15)' },
+  				'70%': { transform: 'scale(1.2)' }
   			},
   			twinkle: {
   				'0%, 60%, 100%': { opacity: '0', transform: 'scale(0) rotate(0deg)' },
@@ -166,7 +166,8 @@ module.exports = {
   			breathe: 'breathe 2.4s ease-in-out infinite',
   			glow: 'glow 3.2s ease-in-out infinite',
   			alarm: 'alarm 1.6s ease-out infinite',
-  			'tile-sparkle': 'sparkle-in 0.56s ease-in-out both, sparkle-again 4s ease-in-out infinite',
+  			'sparkle-in': 'sparkle-in 0.56s ease-in-out both',
+  			'sparkle-blink': 'sparkle-blink 0.6s ease-in-out',
   			twinkle: 'twinkle 2.6s ease-in-out infinite',
   			blink: 'blink 2.3s linear infinite',
   			hop: 'hop 0.45s ease-out 1 both'

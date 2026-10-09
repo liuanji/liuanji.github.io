@@ -184,28 +184,50 @@ function TileThermometer({ amount }) {
 
 // Moving as the power key does: the bolt fills in as its colour deepens, and
 // once full its sparkles twinkle in one by one, the biggest first. After that
-// each blinks now and then, in turn, keeping the bolt's colour.
+// each blinks at random, keeping the bolt's colour.
 function TileBolt({ amount, charge }) {
   const fill = useGrowingShare(charge);
   return (
     <svg {...ICON_PROPS} style={heatStyle(amount)}>
-      {charge >= 1 &&
-        KEY_SPARKLES.map(([x, y, r], index) => (
-          <path
-            key={index}
-            d={sparklePath(x, y, r)}
-            fill="currentColor"
-            stroke="none"
-            className="motion-safe:animate-tile-sparkle"
-            style={{
-              transformBox: 'fill-box',
-              transformOrigin: 'center',
-              animationDelay: `${0.9 + index * 0.14}s, ${1.5 + index * 1.3}s`,
-            }}
-          />
-        ))}
+      {charge >= 1 && KEY_SPARKLES.map((sparkle, index) => <TileSparkle key={index} sparkle={sparkle} index={index} />)}
       <path d={BOLT} fill="currentColor" fillOpacity={fill} />
     </svg>
+  );
+}
+
+// Each sparkle waits a random while, BLINK_WAIT_MS, before every blink, so no
+// two keep step. A new key restarts the blink's animation.
+const BLINK_WAIT_MS = [1500, 6000];
+
+function TileSparkle({ sparkle: [x, y, r], index }) {
+  const [blinks, setBlinks] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
+    let timer;
+    const wait = () => {
+      timer = setTimeout(
+        () => {
+          setBlinks((count) => count + 1);
+          wait();
+        },
+        BLINK_WAIT_MS[0] + Math.random() * (BLINK_WAIT_MS[1] - BLINK_WAIT_MS[0]),
+      );
+    };
+    wait();
+    return () => clearTimeout(timer);
+  }, []);
+  const box = { transformBox: 'fill-box', transformOrigin: 'center' };
+  return (
+    <g className="motion-safe:animate-sparkle-in" style={{ ...box, animationDelay: `${0.9 + index * 0.14}s` }}>
+      <path
+        key={blinks}
+        d={sparklePath(x, y, r)}
+        fill="currentColor"
+        stroke="none"
+        className={blinks ? 'motion-safe:animate-sparkle-blink' : undefined}
+        style={box}
+      />
+    </g>
   );
 }
 
@@ -332,12 +354,15 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
 // a button that opens the part's box, like a GPU tile.
 function HeaderMeter({ label, Glyph, share, title, series, level = null, details = null }) {
   const clamped = Math.min(1, Math.max(0, share));
-  const percent = Math.round(clamped * 100);
+  // Like the rings, the meter and its number rise from 0 when the page loads
+  // and glide to each new reading on a refresh.
+  const shown = useGrowingShare(clamped);
+  const percent = Math.round(shown * 100);
   const inner = (
     <>
       <span aria-hidden="true">{label}</span>
       {/* Alive like the boxes' own: the CPU's cores and the RAM's chips pulse with the load. */}
-      <Glyph share={clamped} color={(LEVEL_SERIES[level] ?? series).color} animated />
+      <Glyph share={shown} pace={clamped} color={(LEVEL_SERIES[level] ?? series).color} animated />
       <span
         className={`w-8 text-left tabular-nums ${level ? 'font-medium' : 'text-inkwell'}`}
         style={level ? { color: READING_STYLES[level].color } : undefined}

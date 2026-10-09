@@ -149,6 +149,12 @@ export default function LiveTiles({ hosts, allHosts, now }) {
   const powerLimit = hosts
     .filter((host) => hasCurrentData(host, now))
     .reduce((total, host) => total + sumOf(host.gpus, 'power_limit_w'), 0);
+  // With no current readings at all there are no totals to show, only when
+  // they will be back.
+  const waiting = hosts.length > 0 && !hosts.some((host) => hasCurrentData(host, now));
+  const waitingCaption = hosts.every((host) => host.status === 'closed')
+    ? 'Back when the bakery reopens'
+    : 'Waiting for fresh readings';
   const tiles = [
     {
       key: 'busy',
@@ -186,9 +192,9 @@ export default function LiveTiles({ hosts, allHosts, now }) {
         <BoxTile
           key={tile.key}
           label={TREND_METRICS[tile.key].label}
-          value={tile.value}
-          total={tile.total ?? null}
-          caption={tile.caption}
+          value={waiting ? '—' : tile.value}
+          total={waiting ? null : (tile.total ?? null)}
+          caption={waiting ? waitingCaption : tile.caption}
           icon={{
             color: TREND_METRICS[tile.key].color,
             glyph: <MetricIcon metricKey={tile.key} share={tile.share} color={TREND_METRICS[tile.key].color} />,

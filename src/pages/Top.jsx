@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import GhostNav from '../components/layout/GhostNav';
 import CompactHosts from '../components/top/CompactHosts';
+import { ClosedBanner } from '../components/top/ClosedBakery';
 import DiskCard, { CleanupBanner, cleanupColor, cleanupIsUrgent } from '../components/top/DiskCard';
 import HostCard from '../components/top/HostCard';
 import LoginCard from '../components/top/LoginCard';
@@ -30,6 +31,7 @@ import { LiveDot, Notice, SectionLabel, SegmentedControl, Switch } from '../comp
 import {
   cleanupReminders,
   currentStatus,
+  hasCurrentData,
   formatAgo,
   formatObserved,
   formatPercent,
@@ -66,7 +68,7 @@ function Freshness({ overview, now }) {
       ? { label: 'Live', color: HOST_STATUS.online.color }
       : age < OFFLINE_AFTER_SECONDS
         ? { label: 'Delayed', color: HOST_STATUS.stale.color }
-        : { label: 'Offline', color: HOST_STATUS.error.color };
+        : { label: 'Bakery closed', color: HOST_STATUS.closed.color };
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-data-grey">
       <LiveDot color={state.color} pulse={state.label === 'Live'} />
@@ -140,7 +142,16 @@ export default function Top() {
   // The range a link names wins; otherwise the one last picked in this browser.
   const [savedRange, setSavedRange] = useStoredChoice('gpu-status-range');
   const overview = useStatusFile('overview', LIVE_REFRESH_MS, token);
-  const hosts = (overview.data?.hosts ?? []).map((item) => ({ ...item, status: currentStatus(item, now) }));
+  // With the whole overview long out of date the monitor itself has gone quiet
+  // (the jump machine down or rebooting), so the servers' state is unknown: the
+  // bakery is closed for now, rather than the servers down.
+  const closed = Boolean(overview.data) && now - overview.data.generated_at > OFFLINE_AFTER_SECONDS;
+  const hosts = (overview.data?.hosts ?? []).map((item) => ({
+    ...item,
+    status: closed ? 'closed' : currentStatus(item, now),
+  }));
+  // Notes about what is running now come only from current readings.
+  const currentHosts = hosts.filter((item) => hasCurrentData(item, now));
 
   // Trust ?host= before the overview arrives so its files load in parallel.
   const requestedHost = params.get('host') ?? 'all';
@@ -263,14 +274,20 @@ export default function Top() {
       }
     : null;
   // Checked on every server, whichever is selected.
-  const clashes = reservations ? myClashes(hosts, reservations, user, now) : [];
+  const clashes = reservations ? myClashes(currentHosts, reservations, user, now) : [];
   // Like clashes, checked on every server's disks.
   const cleanups = cleanupReminders(disks.data?.hosts ?? [], user);
-  const heldIdle = myHeldIdle(hosts, user);
+  const heldIdle = myHeldIdle(currentHosts, user);
   // GPUs of the viewer's running over OVERHEAT_C: urgent, so on top and in the pill.
-  const overheated = myOverheated(hosts, user);
+  const overheated = myOverheated(currentHosts, user);
   // The viewer's notices, for the pill in the corner.
   const notes = [
+    closed && {
+      key: 'closed',
+      color: HOST_STATUS.closed.color,
+      label: 'The bakery is closed for now',
+      urgent: true,
+    },
     overheated.length && {
       key: 'heat',
       color: LEVEL_SERIES.hot.color,
@@ -337,14 +354,23 @@ export default function Top() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
             >
-              {/* Notices live in the pill in the corner; only urgent ones (a GPU running hot, a nearly full disk) also get a banner here. */}
-              {(overheated.length > 0 || cleanupIsUrgent(cleanups)) && (
+              {/* Notices live in the pill in the corner; only urgent ones (the bakery closed, a GPU running hot, a nearly full disk) also get a banner here. */}
+              {(closed || overheated.length > 0 || cleanupIsUrgent(cleanups)) && (
                 <div className="mb-10 space-y-3">
-                  <OverheatBanner items={overheated} onOpen={hosts.length > 1 ? showHost : undefined} />
-                  {cleanupIsUrgent(cleanups) && <CleanupBanner reminders={cleanups} onOpen={showStorage} />}
+                  {/* While the bakery is closed its note has the top to itself; the
+                      others wait in the pill. */}
+                  {closed ? (
+                    <ClosedBanner since={overview.data.generated_at} now={now} />
+                  ) : (
+                    <>
+                      <OverheatBanner items={overheated} onOpen={hosts.length > 1 ? showHost : undefined} />
+                      {cleanupIsUrgent(cleanups) && <CleanupBanner reminders={cleanups} onOpen={showStorage} />}
+                    </>
+                  )}
                 </div>
               )}
               <NotesPill notes={notes} me={user}>
+                {closed && <ClosedBanner since={overview.data.generated_at} now={now} />}
                 <OverheatBanner items={overheated} onOpen={hosts.length > 1 ? showHost : undefined} />
                 <ClashBanner clashes={clashes} onOpen={hosts.length > 1 ? showHost : undefined} />
                 <IdleBanner items={heldIdle} onOpen={hosts.length > 1 ? showHost : undefined} />

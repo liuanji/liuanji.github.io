@@ -461,7 +461,7 @@ export function CpuDeepDetails({ host, system, timeline }) {
   return (
     <div>
       <div className="flex items-center gap-3">
-        <ChipGlyph share={percent / 100} color={RING_SERIES.compute.color} size={44} animated />
+        <ChipGlyph share={percent / 100} color={RING_SERIES.compute.color} size={44} animated grow />
         <div className="min-w-0 flex-1">
           <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">
             {host} <span className="text-data-grey/60">·</span> CPU

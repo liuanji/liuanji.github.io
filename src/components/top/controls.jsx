@@ -291,12 +291,34 @@ export function DownNotice({ host, now }) {
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
       <div className="rounded-xl border border-border-light bg-white/90 px-5 py-3 text-center shadow-sm backdrop-blur-[1px]">
-        <p className="font-tight text-sm font-medium text-inkwell">{hostDownPhrase(host.name)}</p>
-        <p className="mt-0.5 font-mono text-[11px] text-data-grey">
-          {host.data_sampled_at
-            ? `Last reported ${formatAgo(now - host.data_sampled_at)}; these readings are out of date`
-            : 'No readings yet'}
-        </p>
+        {host.status === 'closed' || host.status === 'stale' ? (
+          // Late or missing readings say nothing about the server itself, only
+          // that the monitor has not sent fresh ones: a late batch, or the
+          // whole bakery closed for now.
+          <>
+            <p className="font-tight text-sm font-medium text-inkwell">
+              {host.status === 'closed'
+                ? `${host.name}'s counter is closed for now`
+                : `${host.name}'s next batch is running late`}
+            </p>
+            <p className="mt-0.5 font-mono text-[11px] text-data-grey">
+              {host.data_sampled_at
+                ? host.status === 'closed'
+                  ? `Last fresh batch ${formatAgo(now - host.data_sampled_at)}`
+                  : `Last reported ${formatAgo(now - host.data_sampled_at)}; fresh readings should be along soon`
+                : 'No readings yet'}
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="font-tight text-sm font-medium text-inkwell">{hostDownPhrase(host.name)}</p>
+            <p className="mt-0.5 font-mono text-[11px] text-data-grey">
+              {host.data_sampled_at
+                ? `Last reported ${formatAgo(now - host.data_sampled_at)}; these readings are out of date`
+                : 'No readings yet'}
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

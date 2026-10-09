@@ -45,6 +45,9 @@ export const HOST_STATUS = {
   stale: { label: 'Delayed', color: '#FAB219' },
   error: { label: 'Unreachable', color: '#D03B3B' },
   unseen: { label: 'Waiting for data', color: '#94A3B8' },
+  // The monitor itself has gone quiet for a while (the jump machine down or
+  // rebooting), so nothing is known about the server: closed, rather than down.
+  closed: { label: 'Closed for now', color: '#C58A3A' },
 };
 
 // GPU readings worth a glance: warm, then hot. Temperature in °C, power as a

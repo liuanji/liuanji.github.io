@@ -237,6 +237,25 @@ const HOST_DOWN = [
   'Nobody is answering the door at {host}',
 ];
 
+// What the chefs are up to while the whole bakery is closed (the monitor has
+// gone quiet), after "The bakery is temporarily closed, and the chefs are".
+const CLOSED_BAKERY = [
+  'restarting the ovens from the last checkpoint',
+  'proofing a fresh batch of gradients',
+  "retuning the ovens' hyperparameters",
+  'reviving the sourdough starter',
+  'sweeping up stray tensors',
+  'recalibrating the thermometers',
+  'warming the ovens back up',
+  'checking the yeast for overfitting',
+  'rolling out a fresh layer of dough',
+  'restocking the flour and the RAM',
+];
+
+export function closedBakeryPhrase() {
+  return CLOSED_BAKERY[hash('closed') % CLOSED_BAKERY.length];
+}
+
 // Lines for a reserved GPU nobody is running on yet, in place of the idle
 // ones: the viewer's own, or someone else's, where {user} is who holds it.
 const RESERVED_IDLE = {

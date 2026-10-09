@@ -36,8 +36,10 @@ export const RING_SERIES = {
 const CACHE_SERIES = { color: '#A6D9C3', track: '#5BBE981A' };
 export const QUIET = { color: '#A3B1C6', track: '#A3B1C624' };
 
-// share null leaves out the bar.
+// share null leaves out the bar. The bar grows from 0 when it appears (a box
+// opening) and glides to each new reading on a refresh.
 export function Metric({ label, value, share = null, series = null }) {
+  const shown = useGrowingShare(share ?? 0);
   return (
     <div className="min-w-0">
       <div className="flex items-baseline justify-between gap-2">
@@ -47,8 +49,8 @@ export function Metric({ label, value, share = null, series = null }) {
       {share != null && (
         <div className="mt-1.5 h-1 overflow-hidden rounded-full" style={{ backgroundColor: series.track }}>
           <div
-            className="h-full rounded-full"
-            style={{ width: `${Math.min(100, Math.max(0, share * 100))}%`, backgroundColor: series.color }}
+            className="h-full rounded-full transition-colors duration-700"
+            style={{ width: `${shown * 100}%`, backgroundColor: series.color }}
           />
         </div>
       )}
@@ -100,7 +102,8 @@ export function GpuDetails({ gpu, host, reservation = null, me = null, now = 0 }
           ].map(([name, color, share]) => (
             <span key={name} className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
-              {Math.round(share * 100)}%<span className="sr-only"> {name}</span>
+              <GrowingPercent share={share} />
+              <span className="sr-only"> {name}</span>
             </span>
           ))}
         </span>
@@ -208,6 +211,12 @@ export function GpuDetails({ gpu, host, reservation = null, me = null, now = 0 }
   );
 }
 
+// A box's large figure, counting up from 0 as the box opens and on to each new
+// reading, in step with its picture.
+function GrowingPercent({ share }) {
+  return <>{Math.round(useGrowingShare(share) * 100)}%</>;
+}
+
 // Resting the mouse on a tile, GPU or reading this long opens its details too.
 const HOVER_OPEN_MS = 2000;
 // How long a hover-opened box waits for the mouse to reach it before closing.
@@ -289,12 +298,16 @@ export const GLYPH = { outline: '#CBD5E1', unlit: '#E9EEF4', contacts: '#E2C26F'
 // With animated set, the lit cores pulse out of step with each other, faster
 // the higher the load; idle chips and viewers who prefer reduced motion get a
 // still chip.
-export function ChipGlyph({ share, color, size = 26, animated = false }) {
+// pace, when given, is the reading the pulse keeps time to while share eases
+// towards it, so the pulse runs steady through the change. With grow set the
+// glyph eases there itself: up from 0 as it appears, then to each new reading.
+export function ChipGlyph({ share, color, size = 26, animated = false, pace = share, grow = false }) {
+  const growing = useGrowingShare(share, grow);
   const cells = 4;
-  const lit = share * cells * cells;
+  const lit = (grow ? growing : share) * cells * cells;
   const pins = [7.5, 11, 14.5];
   // Seconds per pulse: 2.8 at the lightest load down to 1 at full load.
-  const pulse = animated && share >= 0.02 ? 2.8 - 1.8 * share : null;
+  const pulse = animated && pace >= 0.02 ? 2.8 - 1.8 * pace : null;
   return (
     <svg width={size} height={size} viewBox="0 0 22 22" aria-hidden="true">
       {pins.map((at) => (
@@ -344,13 +357,14 @@ export function GpuGlyph({ compute, memory, width = 116 }) {
   const fan = { x: 14.5, y: 13, radius: 8.4 };
   const circumference = 2 * Math.PI * fan.radius;
   const load = Math.min(1, Math.max(0, compute));
-  // The compute ring sweeps up from 0 when the box appears.
+  // The compute ring sweeps up from 0 when the box appears, and on to each new reading.
   const arc = useGrowingShare(load) * circumference;
   // Seconds per turn: 3.2 at the lightest load down to 0.6 at full load.
   const spin = load >= 0.02 ? 3.2 - 2.6 * load : null;
   const chips = 8;
   const used = Math.min(1, Math.max(0, memory));
-  const filled = used * chips;
+  // The chips fill up from empty with it, and both glide to each new reading.
+  const filled = useGrowingShare(used) * chips;
   // The memory chips pulse in a wave in reading order, like the RAM stick's:
   // seconds per wave, 3.2 when nearly empty down to 1.4 when full.
   const wave = used >= 0.02 ? 3.2 - 1.8 * used : null;
@@ -439,11 +453,13 @@ export function GpuGlyph({ compute, memory, width = 116 }) {
 // With animated set, the lit memory chips pulse in a wave from left to right,
 // like data written along the stick, quicker the fuller it is; an empty stick
 // and viewers who prefer reduced motion get a still one.
-export function StickGlyph({ share, color, width = 44, animated = false }) {
+// pace and grow as for ChipGlyph.
+export function StickGlyph({ share, color, width = 44, animated = false, pace = share, grow = false }) {
+  const growing = useGrowingShare(share, grow);
   const chips = 6;
-  const filled = share * chips;
+  const filled = (grow ? growing : share) * chips;
   // Seconds per wave: 3.2 when nearly empty down to 1.4 when full.
-  const wave = animated && share >= 0.02 ? 3.2 - 1.8 * share : null;
+  const wave = animated && pace >= 0.02 ? 3.2 - 1.8 * pace : null;
   return (
     // The viewBox centres the stick's body; the contacts hang below it, so the
     // body lines up with the text beside it.
@@ -546,18 +562,19 @@ function PartBox({ compact, large, small, title, subtitle, children }) {
 export function CpuDetails({ host, system, children = null, compact = false }) {
   const percent = Math.round(system.cpu_percent ?? 0);
   const load = system.load_averages;
+  const shown = useGrowingShare(percent / 100);
   return (
     <PartBox
       compact={compact}
       large={
         <div className="flex w-[104px] flex-shrink-0 flex-col items-center justify-center">
-          <ChipGlyph share={percent / 100} color={RING_SERIES.compute.color} size={92} animated />
+          <ChipGlyph share={shown} pace={percent / 100} color={RING_SERIES.compute.color} size={92} animated />
           <span className="mt-1 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell">
-            {percent}%
+            {Math.round(shown * 100)}%
           </span>
         </div>
       }
-      small={<ChipGlyph share={percent / 100} color={RING_SERIES.compute.color} size={44} animated />}
+      small={<ChipGlyph share={shown} pace={percent / 100} color={RING_SERIES.compute.color} size={44} animated />}
       title={
         <>
           {host} <span className="text-data-grey/60">·</span> CPU
@@ -596,7 +613,7 @@ export function CpuDetails({ host, system, children = null, compact = false }) {
 export function RamDetails({ host, system, level, children = null, compact = false }) {
   const total = system.memory_total_mb;
   const used = system.memory_used_mb;
-  const percent = Math.round((used / total) * 100);
+  const shown = useGrowingShare(used / total);
   const inUse = LEVEL_SERIES[level] ?? RING_SERIES.memory;
   const swapKnown = system.swap_total_mb != null && system.swap_used_mb != null;
   return (
@@ -604,16 +621,16 @@ export function RamDetails({ host, system, level, children = null, compact = fal
       compact={compact}
       large={
         <div className="flex w-[112px] flex-shrink-0 flex-col items-center justify-center">
-          <StickGlyph share={used / total} color={inUse.color} width={112} animated />
+          <StickGlyph share={shown} pace={used / total} color={inUse.color} width={112} animated />
           <span
             className="mt-3 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell"
             style={level ? { color: READING_STYLES[level].color } : undefined}
           >
-            {percent}%
+            {Math.round(shown * 100)}%
           </span>
         </div>
       }
-      small={<StickGlyph share={used / total} color={inUse.color} width={60} animated />}
+      small={<StickGlyph share={shown} pace={used / total} color={inUse.color} width={60} animated />}
       title={
         <>
           {host} <span className="text-data-grey/60">·</span> RAM
