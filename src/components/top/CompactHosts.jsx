@@ -23,6 +23,7 @@ import {
 } from './DetailBoxes';
 import { formatMemory, formatMemoryOf, hasCurrentData, ramLevel, temperatureLevel, userColor } from './format';
 import { ReservationMark, ReserveControl, clashingUsers, findReservation } from './Reservations';
+import { useGrowingShare } from './useGrowingShare';
 
 function describe(gpu, host, reservation) {
   const parts = [
@@ -69,20 +70,19 @@ function Arc({ radius, width, share, series }) {
   );
 }
 
+// The rings sweep, and the number counts, up from 0 when the page loads and to
+// each new reading on a refresh.
 function UsageRing({ gpu }) {
+  const compute = useGrowingShare(gpu.utilization / 100);
+  const memory = useGrowingShare(gpu.memory_total_mb ? gpu.memory_used_mb / gpu.memory_total_mb : 0);
   return (
     <div className="relative flex-shrink-0" style={{ width: RING.size, height: RING.size }}>
       <svg width={RING.size} height={RING.size} viewBox={`0 0 ${RING.size} ${RING.size}`} aria-hidden="true">
-        <Arc radius={RING.outer} width={RING.outerWidth} share={gpu.utilization / 100} series={RING_SERIES.compute} />
-        <Arc
-          radius={RING.inner}
-          width={RING.innerWidth}
-          share={gpu.memory_total_mb ? gpu.memory_used_mb / gpu.memory_total_mb : 0}
-          series={RING_SERIES.memory}
-        />
+        <Arc radius={RING.outer} width={RING.outerWidth} share={compute} series={RING_SERIES.compute} />
+        <Arc radius={RING.inner} width={RING.innerWidth} share={memory} series={RING_SERIES.memory} />
       </svg>
       <span className="absolute inset-0 flex items-center justify-center font-tight text-[13px] font-semibold tabular-nums text-inkwell">
-        {Math.round(gpu.utilization)}%
+        {Math.round(compute * 100)}%
       </span>
     </div>
   );
@@ -484,25 +484,46 @@ function SparkleBolt({ className, style }) {
   );
 }
 
-function RingKey({ series, outer }) {
+// The ring keys, drawn like a tile's rings: the ring a key names sweeps
+// clockwise from the top over its faint track, its reading drifting the way a
+// busy GPU's does, compute in quicker swings, memory slower and steadier. With
+// reduced motion each holds a reading part of the way round.
+const KEY_RINGS = {
+  outer: { radius: 5.5, rest: 0.62, animation: 'motion-safe:animate-key-compute' },
+  inner: { radius: 2.5, rest: 0.45, animation: 'motion-safe:animate-key-memory' },
+};
+
+function KeyRing({ ring, series, lit }) {
+  const { radius, rest, animation } = KEY_RINGS[ring];
+  const circumference = 2 * Math.PI * radius;
+  return (
+    <>
+      <circle cx="7" cy="7" r={radius} fill="none" stroke={series.track} strokeWidth="2" />
+      {lit && (
+        <circle
+          cx="7"
+          cy="7"
+          r={radius}
+          fill="none"
+          stroke={series.color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={circumference * rest}
+          transform="rotate(-90 7 7)"
+          className={animation}
+          style={{ '--ring': `${circumference}px` }}
+        />
+      )}
+    </>
+  );
+}
+
+function RingKey({ outer }) {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-      <circle
-        cx="7"
-        cy="7"
-        r="5.5"
-        fill="none"
-        stroke={outer ? series.color : RING_SERIES.compute.track}
-        strokeWidth="2"
-      />
-      <circle
-        cx="7"
-        cy="7"
-        r="2.5"
-        fill="none"
-        stroke={outer ? RING_SERIES.memory.track : series.color}
-        strokeWidth="2"
-      />
+      <KeyRing ring="outer" series={RING_SERIES.compute} lit={outer} />
+      <KeyRing ring="inner" series={RING_SERIES.memory} lit={!outer} />
     </svg>
   );
 }
@@ -532,11 +553,11 @@ export default function CompactHosts({ hosts, now, onOpen, reserving = null }) {
       </div>
       <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 font-mono text-[11px] text-data-grey">
         <LegendItem>
-          <RingKey series={RING_SERIES.compute} outer />
+          <RingKey outer />
           Outer ring: compute
         </LegendItem>
         <LegendItem>
-          <RingKey series={RING_SERIES.memory} />
+          <RingKey />
           Inner ring: memory
         </LegendItem>
         <LegendItem>
