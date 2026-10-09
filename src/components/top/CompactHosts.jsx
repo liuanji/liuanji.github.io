@@ -1,6 +1,13 @@
 import { Thermometer, ThermometerSun, Zap } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, RESERVATION_CLASH, TEMPERATURE_ICON_RANGE } from './config';
+import {
+  LEVEL_SERIES,
+  POWER_ICON_RANGE,
+  POWER_SPARKLE_SHARE,
+  READING_STYLES,
+  RESERVATION_CLASH,
+  TEMPERATURE_ICON_RANGE,
+} from './config';
 import { DownNotice, ServerLink, StatusPill } from './controls';
 import { isOverheated } from './Overheat';
 import {
@@ -109,14 +116,21 @@ function UserLabel({ gpu, reservation, me, clash }) {
   );
 }
 
-function HeatIcons({ temperature, power, className }) {
+// surging: the GPU draws POWER_SPARKLE_SHARE or more of its power limit, when
+// its bolt fills in and sparkles, the power key's end state.
+function HeatIcons({ temperature, power, surging, className }) {
   if (temperature == null && power == null) return null;
   return (
     <span className={`items-center gap-0.5 ${className}`} aria-hidden="true">
       {temperature != null && (
         <Thermometer className="h-3.5 w-3.5" style={{ color: heatColor(temperature) }} strokeWidth={2.25} />
       )}
-      {power != null && <Zap className="h-3.5 w-3.5" style={{ color: heatColor(power) }} strokeWidth={2.25} />}
+      {power != null &&
+        (surging ? (
+          <SparkleBolt className="h-3.5 w-3.5" style={{ color: heatColor(power) }} />
+        ) : (
+          <Zap className="h-3.5 w-3.5" style={{ color: heatColor(power) }} strokeWidth={2.25} />
+        ))}
     </span>
   );
 }
@@ -136,7 +150,9 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
   const overheated = isOverheated(gpu);
   const hot = overheated || temperatureLevel(gpu.temperature_c) === 'hot';
   const temperature = heat(gpu.temperature_c, TEMPERATURE_ICON_RANGE);
-  const power = heat(gpu.power_limit_w ? gpu.power_w / gpu.power_limit_w : null, POWER_ICON_RANGE);
+  const powerShare = gpu.power_limit_w && gpu.power_w != null ? gpu.power_w / gpu.power_limit_w : null;
+  const power = heat(powerShare, POWER_ICON_RANGE);
+  const surging = powerShare != null && powerShare >= POWER_SPARKLE_SHARE;
   const reservation = reserving ? findReservation(reserving.reservations, host, gpu.index, now) : null;
   const clash = clashingUsers(gpu, reservation);
   const meClashing = Boolean(reserving) && clash.includes(reserving.me);
@@ -181,6 +197,7 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
         <HeatIcons
           temperature={temperature}
           power={power}
+          surging={surging}
           className="absolute right-1.5 top-1.5 hidden flex-col sm:flex"
         />
       )}
@@ -194,7 +211,7 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
         ) : (
           <span className="hidden text-data-grey/60 sm:inline">· {formatMemory(gpu.memory_used_mb)}</span>
         )}
-        <HeatIcons temperature={temperature} power={power} className="flex sm:hidden" />
+        <HeatIcons temperature={temperature} power={power} surging={surging} className="flex sm:hidden" />
       </div>
       <div className="mt-1 flex w-full justify-center font-mono text-[11px]">
         <UserLabel gpu={gpu} reservation={reservation} me={reserving?.me} clash={clash.length > 0} />
@@ -403,6 +420,7 @@ function TemperatureScale() {
 // the heat colours the bolt fills in and three sparkles twinkle in round it one
 // by one, the biggest first, then it all fades back to an empty bolt. With
 // reduced motion it holds the empty bolt at the middle colour.
+const BOLT = 'M13 2 3 14h9l-1 8 10-12h-9l1-8z';
 const KEY_SPARKLES = [
   [20.8, 3.2, 3.6],
   [3.4, 20.6, 2.6],
@@ -438,12 +456,30 @@ function PowerScale() {
           style={{ transformBox: 'fill-box', transformOrigin: 'center', animationDelay: `${(index - 1) * 0.14}s` }}
         />
       ))}
-      <path
-        d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"
-        fill="currentColor"
-        fillOpacity="0"
-        className="motion-safe:animate-key-fill"
-      />
+      <path d={BOLT} fill="currentColor" fillOpacity="0" className="motion-safe:animate-key-fill" />
+    </svg>
+  );
+}
+
+// The power key's end state, still: a filled bolt with its three sparkles, for
+// a GPU drawing POWER_SPARKLE_SHARE or more of its power limit.
+function SparkleBolt({ className, style }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={`overflow-visible ${className}`}
+      style={style}
+      fill="currentColor"
+      stroke="currentColor"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {KEY_SPARKLES.map(([x, y, r], index) => (
+        <path key={index} d={sparklePath(x, y, r)} stroke="none" />
+      ))}
+      <path d={BOLT} />
     </svg>
   );
 }
