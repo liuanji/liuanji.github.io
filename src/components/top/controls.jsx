@@ -124,10 +124,13 @@ export function SegmentedControl({ label, options, value, onChange }) {
 }
 
 // An online server's dot breathes like a power LED; other states stay still.
-export function StatusPill({ status }) {
+// className can tint its background, as when it opens something.
+export function StatusPill({ status, className = 'bg-white' }) {
   const { label, color } = HOST_STATUS[status] ?? HOST_STATUS.unseen;
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-border-light bg-white px-2.5 py-0.5 font-mono text-xs text-inkwell">
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border border-border-light px-2.5 py-0.5 font-mono text-xs text-inkwell transition-colors ${className}`}
+    >
       <span
         className={`h-1.5 w-1.5 rounded-full ${status === 'online' ? 'motion-safe:animate-breathe' : ''}`}
         style={{ backgroundColor: color, color }}

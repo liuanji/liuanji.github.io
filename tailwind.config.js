@@ -181,18 +181,24 @@ module.exports = {
   				'0%': { opacity: '0.7', transform: 'scale(1)' },
   				'100%': { opacity: '0', transform: 'scale(2.4)' }
   			},
-  			// A server's packing counter: a pastry hopping from the pile into the box,
-  			// and the pile's top one restocked once it has gone.
-  			'pack-fly': {
-  				'0%': { opacity: '1', transform: 'translate(0, 0)' },
-  				'30%': { transform: 'translate(30px, -20px)' },
-  				'58%': { transform: 'translate(60px, -6px)' },
-  				'72%': { opacity: '1', transform: 'translate(60px, 10px)' },
-  				'76%, 100%': { opacity: '0', transform: 'translate(60px, 10px)' }
-  			},
-  			'pile-restock': {
-  				'0%, 80%': { opacity: '0', transform: 'scale(0.4)' },
+  			// A server's packing counter: a new round's pastries popping onto the pile,
+  			// the full box's lid going on, the box taken away and an empty one coming.
+  			'pile-pop': {
+  				'0%': { opacity: '0', transform: 'scale(0.3)' },
+  				'70%': { opacity: '1', transform: 'scale(1.08)' },
   				'100%': { opacity: '1', transform: 'scale(1)' }
+  			},
+  			'box-lid': {
+  				'0%': { opacity: '0', transform: 'translateY(-8px)' },
+  				'100%': { opacity: '1', transform: 'translateY(0)' }
+  			},
+  			'box-leave': {
+  				'0%, 35%': { opacity: '1', transform: 'translateX(0)' },
+  				'100%': { opacity: '0', transform: 'translateX(40px)' }
+  			},
+  			'box-enter': {
+  				'0%': { opacity: '0', transform: 'translateX(-24px)' },
+  				'100%': { opacity: '1', transform: 'translateX(0)' }
   			},
   			steam: {
   				'0%': { opacity: '0', transform: 'translateY(4px)' },
@@ -255,8 +261,10 @@ module.exports = {
   			'pastry-in': 'pastry-in 0.6s ease-out both',
   			'power-breathe': 'power-breathe 1.8s ease-in-out infinite',
   			'power-nudge': 'power-nudge 0.7s ease-out 2',
-  			'pack-fly': 'pack-fly 3s ease-in-out infinite',
-  			'pile-restock': 'pile-restock 3s ease-out infinite',
+  			'pile-pop': 'pile-pop 0.45s ease-out both',
+  			'box-lid': 'box-lid 0.35s ease-out both',
+  			'box-leave': 'box-leave 1.3s ease-in both',
+  			'box-enter': 'box-enter 0.5s ease-out both',
   			steam: 'steam 2.1s ease-out infinite',
   			'sign-swing': 'sign-swing 2.8s ease-in-out infinite',
   			snooze: 'snooze 2.7s ease-out infinite',

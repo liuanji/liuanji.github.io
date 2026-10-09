@@ -15,19 +15,19 @@ const SCENE = {
     title: 'Welcome to the Tractable Bakery',
     glow: '#F4B860',
     light: HOST_STATUS.online.color,
-    panel: '#FFF7EA',
+    panel: '#F7F5F2',
   },
   delayed: {
     title: 'The bakery is running a little late',
     glow: '#F2CF94',
     light: HOST_STATUS.stale.color,
-    panel: '#FFF8EB',
+    panel: '#F7F5F2',
   },
   closed: {
     title: 'The bakery is closed for now',
     glow: '#EEF1F5',
     light: GLYPH.outline,
-    panel: '#F6F4F0',
+    panel: '#F7F5F2',
   },
 };
 const POWER_OFF = '#EDA748';
