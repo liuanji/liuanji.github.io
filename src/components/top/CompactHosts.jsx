@@ -1,4 +1,5 @@
-import { Thermometer, ThermometerSun, Zap } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ThermometerSun } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   LEVEL_SERIES,
@@ -116,22 +117,67 @@ function UserLabel({ gpu, reservation, me, clash }) {
   );
 }
 
-// surging: the GPU draws POWER_SPARKLE_SHARE or more of its power limit, when
-// its bolt fills in and sparkles, the power key's end state.
-function HeatIcons({ temperature, power, surging, className }) {
+// A tile's thermometer and bolt, each showing its reading: temperature is how
+// high the mercury stands, power how full the bolt is, full at
+// POWER_SPARKLE_SHARE of the power limit, when it sparkles too. Like the rings,
+// both rise from empty when the page loads and glide to each new reading.
+function HeatIcons({ temperature, power, charge, className }) {
   if (temperature == null && power == null) return null;
   return (
     <span className={`items-center gap-0.5 ${className}`} aria-hidden="true">
-      {temperature != null && (
-        <Thermometer className="h-3.5 w-3.5" style={{ color: heatColor(temperature) }} strokeWidth={2.25} />
-      )}
-      {power != null &&
-        (surging ? (
-          <SparkleBolt className="h-3.5 w-3.5" style={{ color: heatColor(power) }} />
-        ) : (
-          <Zap className="h-3.5 w-3.5" style={{ color: heatColor(power) }} strokeWidth={2.25} />
-        ))}
+      {temperature != null && <TileThermometer amount={temperature} />}
+      {power != null && <TileBolt amount={power} charge={charge} />}
     </span>
+  );
+}
+
+const ICON_PROPS = {
+  viewBox: '0 0 24 24',
+  className: 'h-3.5 w-3.5 overflow-visible',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: '2.25',
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': 'true',
+};
+const heatStyle = (amount) => ({ color: heatColor(amount), transition: 'color 900ms ease-in-out' });
+
+// Even at the bottom of its range the mercury shows a little, so it reads as a reading.
+function TileThermometer({ amount }) {
+  const level = useGrowingShare(0.25 + 0.75 * amount);
+  return (
+    <svg {...ICON_PROPS} style={heatStyle(amount)}>
+      <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
+      {level > 0.02 && <path d={`M12 17V${17 - 9 * level}`} />}
+    </svg>
+  );
+}
+
+// Moving as the power key does: the bolt fills in as its colour deepens, and
+// once full its sparkles twinkle in one by one, the biggest first, then now and
+// then twinkle out and back.
+function TileBolt({ amount, charge }) {
+  const fill = useGrowingShare(charge);
+  return (
+    <svg {...ICON_PROPS} style={heatStyle(amount)}>
+      {charge >= 1 &&
+        KEY_SPARKLES.map(([x, y, r], index) => (
+          <path
+            key={index}
+            d={sparklePath(x, y, r)}
+            fill="currentColor"
+            stroke="none"
+            className="motion-safe:animate-tile-sparkle"
+            style={{
+              transformBox: 'fill-box',
+              transformOrigin: 'center',
+              animationDelay: `${0.9 + index * 0.14}s, ${1.5 + index * 0.14}s`,
+            }}
+          />
+        ))}
+      <path d={BOLT} fill="currentColor" fillOpacity={fill} />
+    </svg>
   );
 }
 
@@ -152,7 +198,11 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
   const temperature = heat(gpu.temperature_c, TEMPERATURE_ICON_RANGE);
   const powerShare = gpu.power_limit_w && gpu.power_w != null ? gpu.power_w / gpu.power_limit_w : null;
   const power = heat(powerShare, POWER_ICON_RANGE);
-  const surging = powerShare != null && powerShare >= POWER_SPARKLE_SHARE;
+  // How full the bolt is: empty where its range starts, full at POWER_SPARKLE_SHARE.
+  const charge =
+    powerShare == null
+      ? null
+      : Math.min(1, Math.max(0, (powerShare - POWER_ICON_RANGE.from) / (POWER_SPARKLE_SHARE - POWER_ICON_RANGE.from)));
   const reservation = reserving ? findReservation(reserving.reservations, host, gpu.index, now) : null;
   const clash = clashingUsers(gpu, reservation);
   const meClashing = Boolean(reserving) && clash.includes(reserving.me);
@@ -197,7 +247,7 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
         <HeatIcons
           temperature={temperature}
           power={power}
-          surging={surging}
+          charge={charge}
           className="absolute right-1.5 top-1.5 hidden flex-col sm:flex"
         />
       )}
@@ -211,7 +261,7 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
         ) : (
           <span className="hidden text-data-grey/60 sm:inline">· {formatMemory(gpu.memory_used_mb)}</span>
         )}
-        <HeatIcons temperature={temperature} power={power} surging={surging} className="flex sm:hidden" />
+        <HeatIcons temperature={temperature} power={power} charge={charge} className="flex sm:hidden" />
       </div>
       <div className="mt-1 flex w-full justify-center font-mono text-[11px]">
         <UserLabel gpu={gpu} reservation={reservation} me={reserving?.me} clash={clash.length > 0} />
@@ -461,58 +511,57 @@ function PowerScale() {
   );
 }
 
-// The power key's end state, still: a filled bolt with its three sparkles, for
-// a GPU drawing POWER_SPARKLE_SHARE or more of its power limit.
-function SparkleBolt({ className, style }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={`overflow-visible ${className}`}
-      style={style}
-      fill="currentColor"
-      stroke="currentColor"
-      strokeWidth="2.25"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {KEY_SPARKLES.map(([x, y, r], index) => (
-        <path key={index} d={sparklePath(x, y, r)} stroke="none" />
-      ))}
-      <path d={BOLT} />
-    </svg>
-  );
-}
-
 // The ring keys, drawn like a tile's rings: the ring a key names sweeps
-// clockwise from the top over its faint track, its reading drifting the way a
-// busy GPU's does, compute in quicker swings, memory slower and steadier. With
-// reduced motion each holds a reading part of the way round.
+// clockwise from the top over its faint track, swinging to a new random
+// reading every so often the way a busy GPU's does: compute in quicker, wider
+// swings, memory slower and steadier. With reduced motion each holds its first
+// reading. Shares are of the full ring; waits are between swings, in ms.
 const KEY_RINGS = {
-  outer: { radius: 5.5, rest: 0.62, animation: 'motion-safe:animate-key-compute' },
-  inner: { radius: 2.5, rest: 0.45, animation: 'motion-safe:animate-key-memory' },
+  outer: { radius: 5.5, rest: 0.4, low: 0.25, high: 1, step: 0.15, swingMs: 1100, waitMs: [600, 1600] },
+  inner: { radius: 2.5, rest: 0.55, low: 0.45, high: 0.85, step: 0.08, swingMs: 1800, waitMs: [1200, 2800] },
 };
 
+function useSwingingShare({ rest, low, high, step, swingMs, waitMs }, swinging) {
+  const [share, setShare] = useState(rest);
+  useEffect(() => {
+    if (!swinging || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const between = (from, to) => from + Math.random() * (to - from);
+    let timer;
+    const swing = () => {
+      // A new reading at least a step away from the last, so every swing shows.
+      setShare((last) => {
+        let next = last;
+        while (Math.abs(next - last) < step) next = between(low, high);
+        return next;
+      });
+      timer = setTimeout(swing, swingMs + between(...waitMs));
+    };
+    timer = setTimeout(swing, between(...waitMs));
+    return () => clearTimeout(timer);
+  }, [rest, low, high, step, swingMs, waitMs, swinging]);
+  return share;
+}
+
 function KeyRing({ ring, series, lit }) {
-  const { radius, rest, animation } = KEY_RINGS[ring];
-  const circumference = 2 * Math.PI * radius;
+  const settings = KEY_RINGS[ring];
+  const share = useSwingingShare(settings, lit);
+  const circumference = 2 * Math.PI * settings.radius;
   return (
     <>
-      <circle cx="7" cy="7" r={radius} fill="none" stroke={series.track} strokeWidth="2" />
+      <circle cx="7" cy="7" r={settings.radius} fill="none" stroke={series.track} strokeWidth="2" />
       {lit && (
         <circle
           cx="7"
           cy="7"
-          r={radius}
+          r={settings.radius}
           fill="none"
           stroke={series.color}
           strokeWidth="2"
           strokeLinecap="round"
           strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={circumference * rest}
+          strokeDashoffset={circumference * (1 - share)}
           transform="rotate(-90 7 7)"
-          className={animation}
-          style={{ '--ring': `${circumference}px` }}
+          style={{ transition: `stroke-dashoffset ${settings.swingMs}ms ease-in-out` }}
         />
       )}
     </>

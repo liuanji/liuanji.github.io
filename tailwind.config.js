@@ -108,19 +108,6 @@ module.exports = {
   				'0%, 32%, 68%, 100%': { opacity: '0', transform: 'scale(0) rotate(-60deg)' },
   				'46%, 54%': { opacity: '1', transform: 'scale(1) rotate(0)' }
   			},
-  			// The ring keys' readings drifting like a busy GPU's: compute in quick
-  			// swings, memory slower and steadier (the share shown is 1 minus the factor).
-  			'key-compute': {
-  				'0%, 100%': { strokeDashoffset: 'calc(var(--ring) * 0.62)' },
-  				'30%': { strokeDashoffset: 'calc(var(--ring) * 0.1)' },
-  				'55%': { strokeDashoffset: 'calc(var(--ring) * 0.42)' },
-  				'78%': { strokeDashoffset: 'calc(var(--ring) * 0.04)' }
-  			},
-  			'key-memory': {
-  				'0%, 100%': { strokeDashoffset: 'calc(var(--ring) * 0.45)' },
-  				'45%': { strokeDashoffset: 'calc(var(--ring) * 0.2)' },
-  				'75%': { strokeDashoffset: 'calc(var(--ring) * 0.28)' }
-  			},
   			'key-ray': {
   				'0%, 34%, 66%, 100%': { opacity: '0', transform: 'scale(0.3)' },
   				'46%, 54%': { opacity: '1', transform: 'scale(1)' }
@@ -132,6 +119,16 @@ module.exports = {
   			},
   			// /top's all-clear croissant: a sparkle growing, turning and fading, and a
   			// little hop when the mouse arrives.
+  			// A full tile bolt's sparkles, moving as the power key's do: twisting in
+  			// once, then every few seconds twisting out and back.
+  			'sparkle-in': {
+  				'0%': { opacity: '0', transform: 'scale(0) rotate(-60deg)' },
+  				'100%': { opacity: '1', transform: 'scale(1) rotate(0)' }
+  			},
+  			'sparkle-again': {
+  				'0%, 60%, 100%': { opacity: '1', transform: 'scale(1) rotate(0)' },
+  				'80%': { opacity: '0.3', transform: 'scale(0.3) rotate(-60deg)' }
+  			},
   			twinkle: {
   				'0%, 60%, 100%': { opacity: '0', transform: 'scale(0) rotate(0deg)' },
   				'25%': { opacity: '1', transform: 'scale(1) rotate(45deg)' }
@@ -165,11 +162,10 @@ module.exports = {
   			'key-ray': 'key-ray 4s ease-in-out infinite',
   			'key-fill': 'key-fill 4s ease-in-out infinite',
   			'key-sparkle': 'key-sparkle 4s ease-in-out infinite',
-  			'key-compute': 'key-compute 4s ease-in-out infinite',
-  			'key-memory': 'key-memory 6s ease-in-out infinite',
   			breathe: 'breathe 2.4s ease-in-out infinite',
   			glow: 'glow 3.2s ease-in-out infinite',
   			alarm: 'alarm 1.6s ease-out infinite',
+  			'tile-sparkle': 'sparkle-in 0.56s ease-in-out both, sparkle-again 4s ease-in-out infinite',
   			twinkle: 'twinkle 2.6s ease-in-out infinite',
   			blink: 'blink 2.3s linear infinite',
   			hop: 'hop 0.45s ease-out 1 both'
