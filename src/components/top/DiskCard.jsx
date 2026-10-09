@@ -329,7 +329,7 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
           className="font-tight text-lg font-semibold leading-none tabular-nums text-inkwell"
           style={level ? { color: READING_STYLES[level].color } : undefined}
         >
-          {(share * 100).toFixed(1)}%
+          {Math.round(share * 100)}%
         </span>
       </div>
       <div>
@@ -415,8 +415,7 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
 // a button that opens the disk's box, like a GPU tile.
 function DiskRow({ host, disk, interactive, checkedAgo, countedAgo, range }) {
   const [active, setActive] = useState(null);
-  // To a tenth of a percent, so small changes show.
-  const percent = (diskShare(disk) * 100).toFixed(1);
+  const percent = Math.round(diskShare(disk) * 100);
   const level = diskLevel(disk);
   const bar = LEVEL_SERIES[level] ?? SERIES.disk;
   const segments = segmentsFor(disk, bar.color);
@@ -472,7 +471,7 @@ function DiskRow({ host, disk, interactive, checkedAgo, countedAgo, range }) {
         <div className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: bar.track }} aria-hidden="true">
           <div
             className="h-full rounded-full"
-            style={{ width: `${Math.min(100, Number(percent))}%`, backgroundColor: bar.color }}
+            style={{ width: `${Math.min(100, percent)}%`, backgroundColor: bar.color }}
           />
         </div>
       )}
