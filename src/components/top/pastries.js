@@ -1,7 +1,8 @@
 // The pastries the bakery card's oven bakes, a different one each batch. Each
 // sits on the oven's tray (its bottom at y = 83, centred on x = 80, in the
 // oven scene's 160 x 112 box) and is a list of SVG shapes: a tag and its
-// attributes, in React's spelling. shadow is the half-width of the soft shadow
+// attributes, in React's spelling. name and the are how the card's lines
+// name it (plural ones take "are"). shadow is the half-width of the soft shadow
 // it casts on the tray; transform, if any, applies to the whole pastry.
 // Each also has a raw phase, before the oven bakes it: its colours swapped for
 // the paler ones in RAW_COLORS, and its toppings (marked topping: icing,
@@ -22,19 +23,20 @@ const ROPE = { fill: 'none', stroke: '#C47E3E', strokeWidth: 3.2, strokeLinecap:
 
 // Baked colours and their raw dough.
 export const RAW_COLORS = {
-  [GOLD]: '#F4E7C8',
-  [CRUST]: '#DECA9E',
-  '#C47E3E': '#EEDDBB',
-  '#8C5022': '#D3BD93',
-  '#F6E2B3': '#FBF4E2',
-  '#BF8638': '#E4D2AA',
-  '#E2C48A': '#ECDFC4',
-  '#A87A35': '#E6D2AC',
+  [GOLD]: '#FBF4E4',
+  [CRUST]: '#E8DCC2',
+  '#C47E3E': '#F6EBD6',
+  '#8C5022': '#DCCBA8',
+  '#F6E2B3': '#FDF9EF',
+  '#BF8638': '#E9DDC2',
+  '#E2C48A': '#F0E6D2',
+  '#A87A35': '#EADCC0',
 };
 
 export const PASTRIES = [
   {
     name: 'a fresh loaf',
+    the: 'the loaf',
     shadow: 17,
     shapes: [
       { tag: 'path', d: 'M64 83c0-12 7-18 16-18s16 6 16 18z', ...BAKED },
@@ -43,6 +45,7 @@ export const PASTRIES = [
   },
   {
     name: 'a croissant',
+    the: 'the croissant',
     shadow: 21,
     shapes: [
       { tag: 'ellipse', cx: 60.8, cy: 80.4, rx: 4, ry: 2.6, transform: 'rotate(-35 60.8 80.4)', ...BAKED },
@@ -56,6 +59,7 @@ export const PASTRIES = [
   },
   {
     name: 'a brezel',
+    the: 'the brezel',
     shadow: 19,
     shapes: [
       {
@@ -83,6 +87,7 @@ export const PASTRIES = [
   },
   {
     name: 'toast',
+    the: 'the toast',
     shadow: 13,
     shapes: [
       {
@@ -124,6 +129,8 @@ export const PASTRIES = [
   },
   {
     name: 'cookies',
+    the: 'the cookies',
+    plural: true,
     shadow: 22,
     shapes: [
       { tag: 'path', d: 'M59 83c0-6 4-9 10-9s10 3 10 9z', ...BAKED },
@@ -136,6 +143,7 @@ export const PASTRIES = [
   },
   {
     name: 'a blueberry muffin',
+    the: 'the muffin',
     shadow: 12,
     shapes: [
       {
@@ -155,6 +163,7 @@ export const PASTRIES = [
   },
   {
     name: 'a baguette',
+    the: 'the baguette',
     shadow: 25,
     shapes: [
       { tag: 'path', d: 'M56 83c0-5 8-8 24-8s24 3 24 8z', ...BAKED },
@@ -163,6 +172,7 @@ export const PASTRIES = [
   },
   {
     name: 'a doughnut',
+    the: 'the doughnut',
     shadow: 14,
     shapes: [
       { tag: 'ellipse', cx: 80, cy: 76.5, rx: 13.5, ry: 6.6, ...BAKED },

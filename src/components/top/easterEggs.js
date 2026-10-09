@@ -271,6 +271,47 @@ const BAKERY_STATE_LINES = {
   ],
 };
 
+// While the bakery is live, the card's line follows the pastry in the oven
+// and how far it has got: {A} and {The} name it, {is} agrees with it.
+const PASTRY_STAGE_LINES = {
+  raw: [
+    '{A} {is} waiting for the oven. The readings, at least, bake themselves every minute.',
+    '{A} {is} proofed and ready to bake. Fresh readings, meanwhile, arrive every minute.',
+    'Raw dough on the tray, warm readings on the page: a fresh batch every minute.',
+  ],
+  baking: [
+    '{The} {is} turning golden, and fresh readings rise every minute.',
+    'Something smells good: {the} {is} in the oven, and new readings bake every minute.',
+    '{The} {is} rising nicely, like the readings, fresh every minute.',
+  ],
+  paused: [
+    '{The} {is} half-baked, like some of our experiments. Readings keep coming every minute.',
+    '{The} {is} waiting for the oven to warm up again. The readings never stop: one batch a minute.',
+  ],
+  bakedOn: [
+    '{A}, baked to perfection. The readings come out every minute too.',
+    '{The} {is} golden. Like the readings, best served fresh every minute.',
+    '{A}, done to a turn, and a fresh batch of readings every minute.',
+  ],
+  bakedOff: [
+    '{A} {is} warm and ready to come out. New readings come out every minute too.',
+    '{The} {is} cooling on the tray, while fresh readings land every minute.',
+    '{A}, fresh out of the oven, like the readings every minute.',
+  ],
+};
+
+export function pastryLine(stage, pastry, avoid = null) {
+  const capital = (text) => text[0].toUpperCase() + text.slice(1);
+  const fill = (line) =>
+    line
+      .replaceAll('{A}', capital(pastry.name))
+      .replaceAll('{The}', capital(pastry.the))
+      .replaceAll('{the}', pastry.the)
+      .replaceAll('{is}', pastry.plural ? 'are' : 'is');
+  const lines = PASTRY_STAGE_LINES[stage].map(fill).filter((line) => line !== avoid);
+  return lines[Math.floor(Math.random() * lines.length)];
+}
+
 // avoid, the line shown last, is not picked again straight away.
 export function bakeryStateLine(state, avoid = null) {
   const lines =
