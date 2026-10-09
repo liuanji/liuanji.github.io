@@ -157,17 +157,22 @@ def disk_users(folders: list[dict[str, Any]], accounts: set[str]) -> list[dict[s
 
 
 def public_disks(settings: Settings, database: Database, now: int | None = None) -> dict[str, Any]:
-    """Each host's disks; with a scratch-usage summary, every disk also lists its
-    users and the host says when they were measured (usage_checked_at)."""
+    """Each host's disks, each with its share in use over every period; with a
+    scratch-usage summary, every disk also lists its users and the host says
+    when they were measured (usage_checked_at)."""
     hosts = database.disks(settings.hosts)
     accounts = database.accounts(settings.hosts)
     usage = database.usage(settings.hosts)
+    moment = int(time.time()) if now is None else now
+    history = database.disk_history(moment, time.localtime(moment).tm_gmtoff)
     for host in hosts:
         summary = usage[host["name"]]
         host["usage_checked_at"] = summary["checked_at"] if summary else None
         for disk in host["disks"]:
             folders = summary["mounts"].get(disk["mount"]) if summary else None
             disk["users"] = None if folders is None else disk_users(folders, set(accounts[host["name"]]))
+            # Its share in use over each period, for the box's over-time view.
+            disk["history"] = history.get(host["name"], {}).get(disk["mount"], {})
     checked = [host["checked_at"] for host in hosts if host["checked_at"] is not None]
     return {
         "generated_at": int(time.time()) if now is None else now,

@@ -169,6 +169,23 @@ class DatabaseTest(unittest.TestCase):
         users = self.database.user_summary(1_699_999_000, 1_700_000_090)
         self.assertEqual([user["username"] for user in users], ["alice"])
 
+    def test_disk_history_averages_each_disks_share_per_step_and_is_trimmed(self) -> None:
+        def check(checked_at: int, used: int) -> DiskResult:
+            return DiskResult("brezel", checked_at, True, (DiskStat("/scratch2", 1000, used, 1000 - used),))
+
+        # Two checks in one half hour (40% and 60%), then one an hour later (80%).
+        start = 1_700_000_000 - 1_700_000_000 % 1800
+        for offset, used in ((60, 400), (900, 600), (3660, 800)):
+            self.database.save_disks(check(start + offset, used))
+        history = self.database.disk_history(now=start + 3700, utc_offset=0)["brezel"]["/scratch2"]
+        day = history["24h"]
+        self.assertEqual((day["step"], len(day["values"])), (1800, 48))
+        self.assertEqual(day["values"][-3:], [0.5, None, 0.8])
+        self.assertEqual(sorted(history), ["1h", "24h", "30d", "365d", "7d", "90d"])
+        # Checks older than the retention go.
+        self.database.cleanup(rollup_retention_days=1, now=start + 3 * 86400)
+        self.assertEqual(self.database.disk_history(now=start + 3 * 86400, utc_offset=0), {})
+
     def test_disks_keep_only_the_latest_successful_check(self) -> None:
         def check(checked_at: int, used: int, success: bool = True) -> DiskResult:
             disks = (DiskStat("/scratch2", 1000, used, 1000 - used), DiskStat("/scratch1", 100, 10, 90))

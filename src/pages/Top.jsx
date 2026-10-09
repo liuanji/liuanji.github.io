@@ -455,7 +455,7 @@ export default function Top() {
                 {diskHosts.length ? (
                   <div className={`grid gap-6 ${diskHosts.length > 1 ? 'lg:grid-cols-3' : ''}`}>
                     {diskHosts.map((item) => (
-                      <DiskCard key={item.name} host={item} now={now} stacked={diskHosts.length > 1} />
+                      <DiskCard key={item.name} host={item} now={now} stacked={diskHosts.length > 1} range={range} />
                     ))}
                   </div>
                 ) : (

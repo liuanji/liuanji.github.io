@@ -32,6 +32,17 @@ SCHEMA_VERSION = "2"
 # longer windows and are kept for the configured rollup retention.
 MINUTE_WINDOW_SECONDS = 48 * 3600
 MINUTE_RETENTION_SECONDS = MINUTE_WINDOW_SECONDS + 3600
+# A disk's use over each period the page offers: (period, step in seconds,
+# steps). Disks are checked every half hour, so no step is shorter.
+DISK_SERIES = (
+    ("1h", 1800, 2),
+    ("24h", 1800, 48),
+    ("7d", 3 * 3600, 56),
+    ("30d", 86400, 30),
+    ("90d", 86400, 90),
+    ("365d", 7 * 86400, 52),
+)
+
 # The lab's pace, for when its GPU time will have paid for the servers, is
 # taken over the last PACE_DAYS.
 PACE_DAYS = 30
@@ -204,6 +215,17 @@ CREATE TABLE IF NOT EXISTS disk_state (
     available_bytes INTEGER NOT NULL,
     checked_at INTEGER NOT NULL,
     PRIMARY KEY (host, mount)
+) WITHOUT ROWID;
+
+-- Every successful disk check, for each disk's use over time; kept as long
+-- as the hourly sums.
+CREATE TABLE IF NOT EXISTS disk_history (
+    host TEXT NOT NULL,
+    mount TEXT NOT NULL,
+    checked_at INTEGER NOT NULL,
+    used_bytes INTEGER NOT NULL,
+    available_bytes INTEGER NOT NULL,
+    PRIMARY KEY (host, mount, checked_at)
 ) WITHOUT ROWID;
 
 -- Each host's login accounts from the latest check that could list them, as a
@@ -669,6 +691,57 @@ class Database:
                     for disk in result.disks
                 ],
             )
+            connection.executemany(
+                """
+                INSERT OR IGNORE INTO disk_history (host, mount, checked_at, used_bytes, available_bytes)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                [
+                    (result.host, disk.mount, result.checked_at, disk.used_bytes, disk.available_bytes)
+                    for disk in result.disks
+                ],
+            )
+
+    def disk_history(self, now: int, utc_offset: int) -> dict[str, dict[str, dict[str, dict[str, Any]]]]:
+        """Each disk's share in use over every period of DISK_SERIES: per host and
+        mount, the average share in each step, oldest first from start, None for
+        a step without a check. Steps fall on the servers' local time, the last
+        one under way at now."""
+        spans: dict[str, tuple[int, int, int]] = {}
+        for name, step, count in DISK_SERIES:
+            unit = min(step, 86400)
+            end = ((now + utc_offset) // unit + 1) * unit - utc_offset
+            spans[name] = (end - count * step, step, count)
+        earliest = min(start for start, _, _ in spans.values())
+        with self.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT host, mount, checked_at, used_bytes, available_bytes FROM disk_history
+                WHERE checked_at >= ?
+                """,
+                (earliest,),
+            ).fetchall()
+        sums: dict[tuple[str, str, str], list[list[float]]] = {}
+        for row in rows:
+            usable = row["used_bytes"] + row["available_bytes"]
+            if not usable:
+                continue
+            share = row["used_bytes"] / usable
+            for name, (start, step, count) in spans.items():
+                index = (int(row["checked_at"]) - start) // step
+                if 0 <= index < count:
+                    steps = sums.setdefault((row["host"], row["mount"], name), [[0.0, 0] for _ in range(count)])
+                    steps[index][0] += share
+                    steps[index][1] += 1
+        history: dict[str, dict[str, dict[str, dict[str, Any]]]] = {}
+        for (host, mount, name), steps in sums.items():
+            start, step, _ = spans[name]
+            history.setdefault(host, {}).setdefault(mount, {})[name] = {
+                "start": start,
+                "step": step,
+                "values": [round(total / count, 4) if count else None for total, count in steps],
+            }
+        return history
 
     def accounts(self, hosts: Iterable[str]) -> dict[str, list[str]]:
         """Each host's latest login accounts; empty for a host never listed."""
@@ -1399,6 +1472,9 @@ class Database:
             ):
                 for table in (tier.gpu_table, tier.user_table, tier.check_table, tier.system_table):
                     connection.execute(f"DELETE FROM {table} WHERE bucket < ?", (before,))
+            connection.execute(
+                "DELETE FROM disk_history WHERE checked_at < ?", (now - rollup_retention_days * 86400,)
+            )
 
     def _migrate_legacy(self, connection: sqlite3.Connection, legacy: set[str]) -> None:
         """Convert a version-1 database, which kept every raw sample, to sums."""

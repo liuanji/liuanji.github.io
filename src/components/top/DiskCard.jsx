@@ -1,11 +1,21 @@
 import { useId, useState } from 'react';
+import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { HardDrive } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LEVEL_SERIES, READING_STYLES, SERIES, SMALL_USER_BYTES } from './config';
 import { Banner, BannerLink, ScrollList } from './controls';
 import { BoxFooter, DetailsPopover, GLYPH, Metric, QUIET } from './DetailBoxes';
 import { pressurePhrase } from './easterEggs';
-import { cleanupAllowance, diskLevel, diskShare, formatAgo, formatBytes } from './format';
+import {
+  cleanupAllowance,
+  diskLevel,
+  diskShare,
+  formatAgo,
+  formatAxisTime,
+  formatBytes,
+  formatFullTime,
+} from './format';
+import { useGrowingShare } from './useGrowingShare';
 
 // Users holding at least this share of what the disk's users use, and at least
 // SMALL_USER_BYTES, get their own segment, at most MAX_SEGMENTS of them;
@@ -14,8 +24,8 @@ const OWN_SEGMENT_SHARE = 0.05;
 const MAX_SEGMENTS = 5;
 // One hue per bar, the disk's usual one (or its warning hue when nearly full),
 // lighter for each smaller user and lightest for "Other"; hex alpha suffixes.
-const SHADES = ['FF', 'D9', 'B8', '99', '80'];
-const OTHER_SHADE = '4D';
+const SHADES = ['FF', 'E0', 'C2', 'A3', '85'];
+const OTHER_SHADE = '5C';
 
 // A user's share of the counted space: whole percents, but a small share keeps
 // a decimal ("0.4%") and a sliver says so ("< 0.1%") rather than "0%".
@@ -61,11 +71,73 @@ function othersLabel(count) {
   return count === 1 ? '1 other user' : `${count} others`;
 }
 
+// The used part's colour by how full the disk is: the disks' blue, amber from
+// 80% (where its cleanup note joins the top of the page) and red from 95%.
+export function fullnessColor(share) {
+  if (share >= 0.95) return LEVEL_SERIES.hot.color;
+  if (share >= 0.8) return '#D08C1F';
+  return SERIES.disk.color;
+}
+
+// The drive's strip as cells, lit up to shown (0-1), the last partly. Once
+// settled at the reading, the lit cells pulse out of step, as the CPU chip's
+// cores do: 2.8 s a pulse when nearly empty down to 1.2 s when full.
+const DRIVE_CELLS = 10;
+
+function DriveCells({ strip, shown, settled, share, color }) {
+  const lit = shown * DRIVE_CELLS;
+  const gap = 0.6;
+  const width = (strip.width - gap * (DRIVE_CELLS - 1)) / DRIVE_CELLS;
+  const pulse = settled && share >= 0.02 ? 2.8 - 1.6 * share : null;
+  return Array.from({ length: DRIVE_CELLS }, (_, index) => {
+    const x = strip.x + index * (width + gap);
+    const amount = Math.min(1, Math.max(0, lit - index));
+    return (
+      <g key={index}>
+        <rect x={x} y={strip.y} width={width} height={strip.height} rx="0.8" fill={GLYPH.unlit} />
+        {amount > 0 && (
+          // The group pulses, so a partly lit cell keeps its own dimmer opacity.
+          <g
+            className={pulse ? 'motion-safe:animate-pulse' : undefined}
+            style={
+              pulse
+                ? {
+                    animationDuration: `${pulse}s`,
+                    animationDelay: `-${(((index * 7) % DRIVE_CELLS) / DRIVE_CELLS) * pulse}s`,
+                  }
+                : undefined
+            }
+          >
+            <rect
+              x={x}
+              y={strip.y}
+              width={width}
+              height={strip.height}
+              rx="0.8"
+              fill={color}
+              opacity={0.3 + 0.7 * amount}
+            />
+          </g>
+        )}
+      </g>
+    );
+  });
+}
+
 // An M.2 drive: gold contacts on the left, a screw notch on the right, and a
 // storage strip filled with the disk's segments (or one fill without users).
-function DriveGlyph({ segments, share, color, width = 112 }) {
+// With grow set the strip is a row of cells like the CPU chip's cores: they
+// fill from empty when it appears, then the lit ones pulse out of step with
+// each other, faster the fuller the disk, while a small activity light blinks.
+// Viewers who prefer reduced motion get a still drive.
+function DriveGlyph({ segments, share, color, width = 112, grow = false }) {
   const strip = { x: 9, y: 7, width: 43, height: 8 };
-  const pieces = segments.length ? segments : [{ key: 'used', share, color }];
+  const shown = useGrowingShare(share, grow);
+  const scale = share > 0 ? shown / share : 0;
+  const pieces = (segments.length ? segments : [{ key: 'used', share, color }]).map((piece) => ({
+    ...piece,
+    share: piece.share * scale,
+  }));
   // useId's colons do not belong in url(#…), so they are dropped.
   const clip = `drive${useId().replace(/:/g, '')}`;
   let x = strip.x;
@@ -94,28 +166,131 @@ function DriveGlyph({ segments, share, color, width = 112 }) {
         strokeWidth="1.3"
       />
       <circle cx="55" cy="11" r="1.5" fill="none" stroke={GLYPH.outline} strokeWidth="1.1" />
-      <rect {...strip} rx="1.6" fill={GLYPH.unlit} />
+      {grow && <circle cx="55" cy="5" r="0.9" fill={color} className="opacity-25 motion-safe:animate-blink" />}
+      {!grow && <rect {...strip} rx="1.6" fill={GLYPH.unlit} />}
       <clipPath id={clip}>
         <rect {...strip} rx="1.6" />
       </clipPath>
-      <g clipPath={`url(#${clip})`}>
-        {pieces.map((piece) => {
-          const pieceWidth = Math.max(0, Math.min(1, piece.share)) * strip.width;
-          const rect = (
-            <rect
-              key={piece.key}
-              x={x}
-              y={strip.y}
-              width={Math.max(0, pieceWidth - 0.5)}
-              height={strip.height}
-              fill={piece.color}
-            />
-          );
-          x += pieceWidth;
-          return rect;
-        })}
-      </g>
+      {grow ? (
+        <DriveCells strip={strip} shown={shown} settled={Math.abs(shown - share) < 0.002} share={share} color={color} />
+      ) : (
+        <g clipPath={`url(#${clip})`}>
+          {pieces.map((piece) => {
+            const pieceWidth = Math.max(0, Math.min(1, piece.share)) * strip.width;
+            const rect = (
+              <rect
+                key={piece.key}
+                x={x}
+                y={strip.y}
+                width={Math.max(0, pieceWidth - 0.5)}
+                height={strip.height}
+                fill={piece.color}
+              />
+            );
+            x += pieceWidth;
+            return rect;
+          })}
+        </g>
+      )}
     </svg>
+  );
+}
+
+// How full the disk has been over the range being viewed: a small area chart
+// of its share in use, with the 80% mark where cleanup notes move to the top
+// of the page, and a line saying how it changed.
+function DiskOverTime({ series, range, color }) {
+  const gradient = `disk${useId().replace(/:/g, '')}`;
+  const points = (series?.values ?? []).map((value, index) => ({
+    timestamp: series.start + index * series.step,
+    share: value == null ? null : value * 100,
+  }));
+  const readings = points.filter((point) => point.share != null);
+  if (readings.length < 2) {
+    return (
+      <p className="py-6 text-center font-mono text-[11px] text-data-grey">
+        Not enough checks in this period yet; disks are checked every half hour.
+      </p>
+    );
+  }
+  const first = readings[0];
+  const last = readings.at(-1);
+  const change = last.share - first.share;
+  const ticks = [points[0].timestamp, points.at(-1).timestamp];
+  return (
+    <div>
+      <p className="mb-1 text-xs text-data-grey">
+        {Math.abs(change) < 0.5 ? (
+          <>
+            Steady at <span className="text-inkwell">{Math.round(last.share)}%</span>
+          </>
+        ) : (
+          <>
+            From <span className="text-inkwell">{Math.round(first.share)}%</span> to{' '}
+            <span className="text-inkwell">{Math.round(last.share)}%</span>
+            {change > 0 ? ', filling up' : ', freeing up'}
+          </>
+        )}
+      </p>
+      <div className="h-[120px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={points} margin={{ top: 6, right: 18, bottom: 0, left: 0 }}>
+            <defs>
+              <linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity={0.22} />
+                <stop offset="100%" stopColor={color} stopOpacity={0.03} />
+              </linearGradient>
+            </defs>
+            <XAxis
+              dataKey="timestamp"
+              type="number"
+              domain={ticks}
+              ticks={ticks}
+              tickFormatter={(time) => formatAxisTime(time, range)}
+              axisLine={{ stroke: '#EEF2F6' }}
+              tickLine={false}
+              tick={{ fill: '#94A3B8', fontSize: 10, fontFamily: 'JetBrains Mono, monospace' }}
+              tickMargin={6}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              domain={[0, 100]}
+              ticks={[0, 80, 100]}
+              interval={0}
+              tickFormatter={(tick) => `${tick}%`}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: '#94A3B8', fontSize: 10, fontFamily: 'JetBrains Mono, monospace' }}
+              width={34}
+            />
+            <ReferenceLine y={80} stroke="#E2E8F0" strokeDasharray="3 4" />
+            <Tooltip
+              cursor={{ stroke: '#E2E8F0' }}
+              isAnimationActive={false}
+              content={({ active, payload, label }) =>
+                active && payload?.[0]?.value != null ? (
+                  <div className="rounded-lg border border-border-light bg-white/95 px-2.5 py-1.5 text-xs shadow-sm">
+                    <div className="font-mono text-[11px] text-data-grey">{formatFullTime(label)}</div>
+                    <div className="text-inkwell">{Math.round(payload[0].value)}% full</div>
+                  </div>
+                ) : null
+              }
+            />
+            <Area
+              type="monotone"
+              dataKey="share"
+              stroke={color}
+              strokeWidth={1.5}
+              fill={`url(#${gradient})`}
+              dot={false}
+              activeDot={{ r: 3, strokeWidth: 1.5, stroke: '#FFFFFF', fill: color }}
+              connectNulls
+              isAnimationActive={false}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 }
 
@@ -124,7 +299,7 @@ function DriveGlyph({ segments, share, color, width = 112 }) {
 // they hold, in the bar's shades, those under SMALL_USER_BYTES summed as
 // others. Once the disk is full enough for cleanup reminders, it states the
 // allowance and marks who is over it.
-function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAgo }) {
+function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAgo, range }) {
   const share = diskShare(disk);
   const users = disk.users ?? [];
   const counted = users.reduce((total, user) => total + user.bytes, 0);
@@ -133,24 +308,31 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
   const listed = users.filter((user) => user.bytes >= SMALL_USER_BYTES);
   const small = users.filter((user) => user.bytes < SMALL_USER_BYTES);
   const allowance = cleanupAllowance(disk);
+  // Who holds the disk, or how full it has been over the range being viewed.
+  const [view, setView] = useState('users');
+  const series = disk.history?.[range?.value] ?? null;
+  const showing = counted > 0 ? view : 'time';
   return (
-    <div className="flex gap-5">
-      <div className="flex w-[96px] flex-shrink-0 flex-col items-center justify-center">
-        <DriveGlyph segments={segments} share={share} color={color} width={96} />
+    <div>
+      {/* The drive beside the disk's name, its fill coloured by how full it is. */}
+      <div className="flex items-center gap-3">
+        <DriveGlyph segments={[]} share={share} color={fullnessColor(share)} width={52} grow />
+        <div className="min-w-0 flex-1">
+          <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">
+            {host} <span className="text-data-grey/60">·</span> {disk.mount}
+          </h4>
+          <p className="mt-0.5 truncate font-mono text-[11px] text-data-grey">
+            {formatBytes(disk.total_bytes)} disk{checkedAgo && ` · checked ${checkedAgo}`}
+          </p>
+        </div>
         <span
-          className="mt-3 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell"
+          className="font-tight text-lg font-semibold leading-none tabular-nums text-inkwell"
           style={level ? { color: READING_STYLES[level].color } : undefined}
         >
           {Math.round(share * 100)}%
         </span>
       </div>
-      <div className="min-w-0 flex-1">
-        <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">
-          {host} <span className="text-data-grey/60">·</span> {disk.mount}
-        </h4>
-        <p className="mt-0.5 truncate font-mono text-[11px] text-data-grey">
-          {formatBytes(disk.total_bytes)} disk{checkedAgo && ` · checked ${checkedAgo}`}
-        </p>
+      <div>
         <div className="mt-4">
           <Metric
             label="Used"
@@ -159,12 +341,39 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
             series={{ color, track: QUIET.track }}
           />
         </div>
-        {counted > 0 && (
-          <div className="mt-4">
-            <div className="mb-1.5 flex items-baseline justify-between gap-3 font-mono text-[11px] text-data-grey">
-              <span>By user</span>
-              {countedAgo && <span className="text-data-grey/70">counted {countedAgo}</span>}
-            </div>
+        <div className="mb-2 mt-4 flex items-center justify-between gap-3 font-mono text-[11px] text-data-grey">
+          <span
+            className="inline-flex rounded-full border border-border-light p-0.5"
+            role="radiogroup"
+            aria-label="Shown"
+          >
+            {[
+              ['users', 'By user'],
+              ['time', 'Over time'],
+            ]
+              .filter(([key]) => key === 'time' || counted > 0)
+              .map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="radio"
+                  aria-checked={showing === key}
+                  onClick={() => setView(key)}
+                  className={`rounded-full px-2.5 py-0.5 transition-colors ${
+                    showing === key ? 'bg-[#F1F5F9] text-inkwell' : 'text-data-grey/70 hover:text-inkwell'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+          </span>
+          <span className="text-data-grey/70">
+            {showing === 'users' ? countedAgo && `counted ${countedAgo}` : range?.title}
+          </span>
+        </div>
+        {showing === 'time' && <DiskOverTime series={series} range={range?.value} color={fullnessColor(share)} />}
+        {showing === 'users' && (
+          <div>
             <ScrollList count={listed.length + (small.length ? 1 : 0)} rowRem={1.25} className="space-y-1">
               {listed.map((user) => {
                 const over = allowance != null && user.bytes > allowance;
@@ -220,7 +429,7 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
 // One disk. Hovering or tapping the bar picks a segment, whose user and counted
 // size replace the line below it; the others fade. On wider screens the row is
 // a button that opens the disk's box, like a GPU tile.
-function DiskRow({ host, disk, interactive, checkedAgo, countedAgo }) {
+function DiskRow({ host, disk, interactive, checkedAgo, countedAgo, range }) {
   const [active, setActive] = useState(null);
   const percent = Math.round(diskShare(disk) * 100);
   const level = diskLevel(disk);
@@ -317,6 +526,7 @@ function DiskRow({ host, disk, interactive, checkedAgo, countedAgo }) {
             level={level}
             checkedAgo={checkedAgo}
             countedAgo={countedAgo}
+            range={range}
           />
         }
         width="w-[370px]"
@@ -335,7 +545,7 @@ function DiskRow({ host, disk, interactive, checkedAgo, countedAgo }) {
 
 // One server's disks. With several servers the cards sit side by side on wide
 // screens and their disks stack; otherwise the disks share a row.
-export default function DiskCard({ host, now, stacked }) {
+export default function DiskCard({ host, now, stacked, range }) {
   // The details box needs room beside the card, so phones keep the plain rows.
   const interactive = !useIsMobile();
   const checkedAgo = host.checked_at ? formatAgo(now - host.checked_at) : null;
@@ -356,6 +566,7 @@ export default function DiskCard({ host, now, stacked }) {
               interactive={interactive}
               checkedAgo={checkedAgo}
               countedAgo={countedAgo}
+              range={range}
             />
           ))}
         </ul>

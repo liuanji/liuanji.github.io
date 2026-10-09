@@ -102,6 +102,11 @@ module.exports = {
   				'0%, 100%': { transform: 'translateY(0) rotate(-12deg) scale(1.1)' },
   				'40%': { transform: 'translateY(-3px) rotate(-12deg) scale(1.1)' }
   			},
+  			// /top's drive icons: an activity light blinking unevenly.
+  			blink: {
+  				'0%, 12%, 30%, 100%': { opacity: '0.25' },
+  				'6%, 22%, 26%': { opacity: '1' }
+  			},
   			// /top's notes pill: its usual shadow with a soft ring in --glow swelling and fading.
   			glow: {
   				'0%, 100%': { boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1), 0 0 0 0 var(--glow)' },
@@ -115,6 +120,7 @@ module.exports = {
   			breathe: 'breathe 2.4s ease-in-out infinite',
   			glow: 'glow 3.2s ease-in-out infinite',
   			twinkle: 'twinkle 2.6s ease-in-out infinite',
+  			blink: 'blink 2.3s linear infinite',
   			hop: 'hop 0.45s ease-out 1 both'
   		}
   	}

@@ -20,7 +20,7 @@ export const SERIES = {
   memory: { label: 'Memory', color: '#1BAF7A', track: '#1BAF7A29' },
   busy: { label: 'GPUs in use', color: '#EB6834', track: '#EB683424' },
   // Muted so that disks nearing full, in the warm and hot hues, stand out.
-  disk: { label: 'Disk', color: '#6C7BB8', track: '#6C7BB824' },
+  disk: { label: 'Disk', color: '#5B6CC9', track: '#5B6CC924' },
 };
 
 // Soft, distinct hues that tell users apart in the compact view; a name always

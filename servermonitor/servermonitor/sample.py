@@ -280,6 +280,18 @@ def main() -> None:
     database = Database(database_path, interval_seconds=LIVE_INTERVAL_SECONDS)
     advance(database, recent_start, now + 1, LIVE_INTERVAL_SECONDS)
     database.cleanup(settings.rollup_retention_days)
+    # A past for each disk, so its box has a history to chart: every half hour,
+    # a slow climb to today's use with a gentle daily wobble.
+    with database.connect() as connection:
+        for host in hosts:
+            for mount, share in zip(("/scratch1", "/scratch2"), DISK_USE[host.name]):
+                rows = []
+                for checked_at in range(now - args.days * 86400, now, 1800):
+                    age = (now - checked_at) / (args.days * 86400)
+                    past = max(0.05, share - 0.18 * age + 0.015 * math.sin(checked_at / 86400 * 2 * math.pi))
+                    used = round(SCRATCH_DISK_BYTES * past)
+                    rows.append((host.name, mount, checked_at, used, SCRATCH_DISK_BYTES - used))
+                connection.executemany("INSERT OR IGNORE INTO disk_history VALUES (?, ?, ?, ?, ?)", rows)
     for host in hosts:
         database.save_disks(host.disks(now))
     publish(database)
