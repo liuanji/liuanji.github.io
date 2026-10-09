@@ -49,29 +49,50 @@ function Dots({ notes, breathing = false }) {
   );
 }
 
-// The all-clear croissant: two tiny sparkles twinkle beside it in turn, as if
-// it were fresh and shiny, and it hops when the mouse arrives. Still for
-// viewers who prefer reduced motion.
+// The all-clear croissant: a few tiny sparkles twinkle around it, as if it
+// were fresh and shiny, each at its own random pace and, after every twinkle,
+// at a new random spot on a ring around it; it hops when the mouse arrives.
+// Still for viewers who prefer reduced motion.
 const SPARKLE = '#E3B655';
-const SPARKLES = [
-  { className: '-right-1.5 -top-1 h-2 w-2', delay: '0s' },
-  { className: '-left-1.5 bottom-0 h-1.5 w-1.5', delay: '1.3s' },
-];
+const SPARKLE_COUNT = 4;
+
+// A spot on a ring 9-12px from the croissant's centre (in its 20px box), so a
+// sparkle never sits on the croissant nor leaves the circle, and a size.
+function sparkleSpot() {
+  const angle = Math.random() * 2 * Math.PI;
+  const radius = 9 + Math.random() * 3;
+  return { x: 10 + radius * Math.cos(angle), y: 10 + radius * Math.sin(angle), size: 5 + Math.random() * 3 };
+}
+
+function Sparkle({ index }) {
+  const [spot, setSpot] = useState(sparkleSpot);
+  const [timing] = useState(() => ({
+    delay: index * 0.8 + Math.random() * 0.8,
+    duration: 2.2 + Math.random() * 1.6,
+  }));
+  return (
+    <svg
+      viewBox="0 0 10 10"
+      onAnimationIteration={() => setSpot(sparkleSpot())}
+      className="pointer-events-none absolute scale-0 motion-safe:animate-twinkle"
+      style={{
+        left: spot.x - spot.size / 2,
+        top: spot.y - spot.size / 2,
+        width: spot.size,
+        height: spot.size,
+        animationDelay: `${timing.delay}s`,
+        animationDuration: `${timing.duration}s`,
+      }}
+    >
+      <path d="M5 0 Q5.6 4.4 10 5 Q5.6 5.6 5 10 Q4.4 5.6 0 5 Q4.4 4.4 5 0 Z" fill={SPARKLE} />
+    </svg>
+  );
+}
 
 function FreshCroissant({ hopping }) {
   return (
     <span className="relative flex h-5 w-5 items-center justify-center" aria-hidden="true">
-      {!hopping &&
-        SPARKLES.map((sparkle) => (
-          <svg
-            key={sparkle.delay}
-            viewBox="0 0 10 10"
-            className={`pointer-events-none absolute scale-0 motion-safe:animate-twinkle ${sparkle.className}`}
-            style={{ animationDelay: sparkle.delay }}
-          >
-            <path d="M5 0 Q5.6 4.4 10 5 Q5.6 5.6 5 10 Q4.4 5.6 0 5 Q4.4 4.4 5 0 Z" fill={SPARKLE} />
-          </svg>
-        ))}
+      {!hopping && Array.from({ length: SPARKLE_COUNT }, (_, index) => <Sparkle key={index} index={index} />)}
       <Croissant
         className={`h-4 w-4 ${hopping ? '-rotate-12 scale-110 motion-safe:animate-hop' : ''}`}
         strokeWidth={1.8}
