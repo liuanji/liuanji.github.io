@@ -920,6 +920,27 @@ const BUSY_GPU = {
   ],
 };
 
+// Short status lines for a GPU nobody is using, in place of "Idle"; also at
+// most 16 characters.
+const FREE_GPU = [
+  'Oven is free',
+  'Ready to bake',
+  'Cool and ready',
+  'Free to bake',
+  'Awaiting dough',
+  'Empty oven',
+  'Open for orders',
+  'Fresh and free',
+  'Zero epochs yet',
+  'No dough inside',
+  'Loss undefined',
+  'Rack is empty',
+];
+
+export function freeGpuPhrase(host, index) {
+  return FREE_GPU[hash(`free|${host}|${index}`) % FREE_GPU.length];
+}
+
 // utilization is the GPU's compute load in percent.
 export function busyGpuPhrase(host, index, utilization) {
   const pool = BUSY_GPU[utilization >= 30 ? 'hard' : 'gentle'];

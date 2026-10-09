@@ -12,7 +12,7 @@ import {
   powerBar,
   temperatureBar,
 } from './DetailBoxes';
-import { busyGpuPhrase, idleGpuPhrase, pressurePhrase, reservedIdlePhrase } from './easterEggs';
+import { busyGpuPhrase, freeGpuPhrase, idleGpuPhrase, pressurePhrase, reservedIdlePhrase } from './easterEggs';
 import {
   formatAxisTime,
   formatCpuModel,
@@ -187,7 +187,7 @@ export function GpuDeepDetails({ gpu, host, timeline, reservation = null, me = n
     ? `Idle for ${formatDuration(gpu.held_idle_seconds)}`
     : gpu.busy
       ? busyGpuPhrase(host, gpu.index, gpu.utilization)
-      : 'Idle';
+      : freeGpuPhrase(host, gpu.index);
   const memoryShare = gpu.memory_total_mb ? gpu.memory_used_mb / gpu.memory_total_mb : 0;
   return (
     <div>

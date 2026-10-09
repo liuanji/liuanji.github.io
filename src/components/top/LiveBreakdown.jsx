@@ -42,7 +42,10 @@ const READINGS = {
     server: (gpus) => {
       const power = sumOf(gpus, 'power_w');
       const limit = sumOf(gpus, 'power_limit_w');
-      return { share: limit ? power / limit : 0, value: limit ? `${formatPower(power)} of ${formatPower(limit)}` : formatPower(power) };
+      return {
+        share: limit ? power / limit : 0,
+        value: limit ? `${formatPower(power)} of ${formatPower(limit)}` : formatPower(power),
+      };
     },
     gpu: (gpu) => ({
       share: gpu.power_limit_w ? (gpu.power_w ?? 0) / gpu.power_limit_w : 0,
@@ -60,7 +63,11 @@ const READINGS = {
 // that stopped reporting keeps a dimmed row instead of its stale readings.
 function breakdownRows(key, hosts, now) {
   if (hosts.length === 1) {
-    return hosts[0].gpus.map((gpu) => ({ name: `GPU ${gpu.index}`, dot: gpu.busy ? '#2563EB' : null, ...READINGS[key].gpu(gpu) }));
+    return hosts[0].gpus.map((gpu) => ({
+      name: `GPU ${gpu.index}`,
+      dot: gpu.busy ? '#2563EB' : null,
+      ...READINGS[key].gpu(gpu),
+    }));
   }
   return hosts.map((host) => {
     const status = HOST_STATUS[host.status] ?? HOST_STATUS.unseen;
@@ -93,10 +100,14 @@ function BreakdownDetails({ metricKey, hosts, now, summary, share }) {
         </div>
       </div>
       {/* One grid for every row, so the values column is as wide as its longest
-          value and the bars take the rest. */}
-      <ul className="mt-4 grid grid-cols-[6rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2.5">
+          value and the bars take the rest; each row shares its columns and
+          picks up a light grey box under the mouse. */}
+      <ul className="-mx-2 mt-3 grid grid-cols-[6rem_minmax(0,1fr)_auto] gap-x-4 gap-y-0.5">
         {rows.map((row) => (
-          <li key={row.name} className="contents">
+          <li
+            key={row.name}
+            className="col-span-3 grid grid-cols-subgrid items-center rounded-lg px-2 py-1.5 transition-colors hover:bg-[#F2F4F7]"
+          >
             <span
               className={`flex min-w-0 items-center gap-2 font-mono text-xs text-inkwell ${row.dim ? 'opacity-50' : ''}`}
             >
@@ -186,7 +197,13 @@ export default function LiveTiles({ hosts, allHosts, now }) {
           action={hosts.length === 1 ? 'Show each GPU' : 'Show each server'}
           details={
             hosts.length ? (
-              <BreakdownDetails metricKey={tile.key} hosts={hosts} now={now} summary={tile.summary} share={tile.share} />
+              <BreakdownDetails
+                metricKey={tile.key}
+                hosts={hosts}
+                now={now}
+                summary={tile.summary}
+                share={tile.share}
+              />
             ) : null
           }
         />
