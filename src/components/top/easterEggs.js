@@ -962,3 +962,8 @@ const ALL_CLEAR = [
 export function allClearPhrase() {
   return ALL_CLEAR[hash('clear') % ALL_CLEAR.length];
 }
+
+// One of a milestone's lines, the same all visit long.
+export function milestoneLine(milestone) {
+  return milestone.lines[hash(`milestone|${milestone.rank}`) % milestone.lines.length];
+}

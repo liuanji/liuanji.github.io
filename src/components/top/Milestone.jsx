@@ -1,8 +1,7 @@
 import { Cake, Croissant, Crown, Orbit, Wheat } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CLOUD_SGD_PER_GPU_HOUR, MILESTONES, PASTRIES } from './config';
-import { ScrollList } from './controls';
-import { pastryPilePhrase } from './easterEggs';
+import { BAKERY_SGD, CLOUD_SGD_PER_GPU_HOUR, MILESTONES, PASTRIES } from './config';
+import { milestoneLine, pastryPilePhrase } from './easterEggs';
 import { formatDate, formatSgd } from './format';
 
 // Warm bakery tones for the badge and its box.
@@ -17,6 +16,14 @@ function compact(hours) {
   if (hours >= 1000000) return `${Number((hours / 1000000).toFixed(2))}M`;
   if (hours >= 100000) return `${Math.round(hours / 1000)}k`;
   return hours >= 10000 ? `${Number((hours / 1000).toFixed(1))}k` : Math.round(hours).toLocaleString('en-US');
+}
+
+const monthYear = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' });
+
+// A share of the servers paid off: one decimal below 10%, whole percents above.
+function paidShare(share) {
+  const percent = share * 100;
+  return `${percent < 10 ? Number(percent.toFixed(1)) : Math.round(percent)}%`;
 }
 
 // A milestone's round number of hours: 2.5k, 10k, 1M.
@@ -146,6 +153,10 @@ export default function MilestoneBadge({ lifetime }) {
   const hours = lifetime.gpu_hours;
   const { current, next, progress, reached } = milestoneFor(hours);
   const value = hours * CLOUD_SGD_PER_GPU_HOUR;
+  // The share of the servers' price paid back, and the day the rest would be at the recent pace.
+  const paid = value / BAKERY_SGD;
+  const perDay = (lifetime.gpu_hours_per_day ?? 0) * CLOUD_SGD_PER_GPU_HOUR;
+  const paidOn = perDay > 0 && paid < 1 ? new Date(Date.now() + ((BAKERY_SGD - value) / perDay) * 86400000) : null;
   return (
     <Popover>
       <PopoverTrigger
@@ -229,40 +240,38 @@ export default function MilestoneBadge({ lifetime }) {
               </p>
             </div>
           )}
+          {/* How much of what the servers cost the GPU time's cloud value has paid
+              back, as a share only, and when it may all be paid at the recent pace. */}
           <div className="mt-3 border-t border-border-light pt-3">
-            <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-data-grey/70">
-              Milestones reached
+            <div className="mb-1.5 flex items-baseline justify-between gap-3 font-mono text-[10px] uppercase tracking-widest text-data-grey/70">
+              <span>Paying off the servers</span>
+              <span className="text-[11px] normal-case tracking-normal tabular-nums text-inkwell">
+                {paidShare(paid)}
+              </span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: '#F6EEDD' }}>
+              <div
+                className="h-full rounded-full"
+                style={{ width: `max(${Math.min(1, paid) * 100}%, 0.5rem)`, backgroundColor: CRUST }}
+              />
+            </div>
+            <p className="mt-2 text-xs leading-relaxed text-data-grey">
+              {paid >= 1 ? (
+                'The servers have paid for themselves; every bake from here is a bonus.'
+              ) : paidOn ? (
+                <>
+                  At the last month’s pace of about {Math.round(lifetime.gpu_hours_per_day).toLocaleString('en-US')} GPU
+                  hours a day, brezel, croissant and toast pay for themselves around{' '}
+                  <span className="text-inkwell">{monthYear.format(paidOn)}</span>.
+                </>
+              ) : (
+                'A forecast appears after a day of baking.'
+              )}
             </p>
-            {/* Newest first, the current rank in crust; about three show and the rest scroll. */}
-            <ScrollList count={reached} visible={3} rowRem={1.5}>
-              {MILESTONES.slice(0, reached)
-                .reverse()
-                .map((milestone, index) => {
-                  const MilestoneIcon = emblemFor(milestone);
-                  return (
-                    <li key={milestone.rank} className="flex h-6 items-center gap-2 text-xs">
-                      <MilestoneIcon
-                        className="h-3.5 w-3.5 flex-shrink-0"
-                        strokeWidth={1.8}
-                        style={{ color: CRUST, fill: BUTTER }}
-                        aria-hidden="true"
-                      />
-                      <span
-                        className={`min-w-0 flex-1 truncate font-tight ${index === 0 ? 'font-medium' : 'text-data-grey'}`}
-                        style={index === 0 ? { color: CRUST } : undefined}
-                      >
-                        {milestone.rank}
-                      </span>
-                      <span className="font-mono text-[11px] tabular-nums text-data-grey/80">
-                        {milestone.hours ? `${short(milestone.hours)} hours` : 'the start'}
-                      </span>
-                    </li>
-                  );
-                })}
-            </ScrollList>
+            <p className="mt-1 text-[11px] text-data-grey/60">Cloud value against what the servers cost.</p>
           </div>
           <p className="mt-3 border-t border-border-light pt-3 font-mono text-[11px] italic text-data-grey/80">
-            {current.line}
+            {milestoneLine(current)}
           </p>
         </div>
       </PopoverContent>

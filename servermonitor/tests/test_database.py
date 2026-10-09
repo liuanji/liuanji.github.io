@@ -235,6 +235,15 @@ class DatabaseTest(unittest.TestCase):
         with self.database.connect() as connection:
             self.assertEqual(connection.execute("SELECT gpu_seconds FROM lifetime_gpu_time").fetchone()[0], 240)
 
+    def test_lifetime_gives_the_labs_pace_once_it_has_a_day_of_records(self) -> None:
+        start = 1_700_000_000
+        for offset in (0, 60, 120):
+            self.database.save(successful_result(start + offset))
+        # Not yet a day since the first record: too soon for a pace.
+        self.assertIsNone(self.database.lifetime(now=start + 3600)["gpu_hours_per_day"])
+        # Two days in: 240 GPU-seconds over two days.
+        self.assertEqual(self.database.lifetime(now=start + 2 * 86400)["gpu_hours_per_day"], round(240 / 3600 / 2, 1))
+
     def test_lifetime_is_seeded_once_from_hourly_sums(self) -> None:
         start = 1_700_000_000
         for offset in (0, 60):

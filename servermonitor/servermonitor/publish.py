@@ -216,7 +216,7 @@ def build_files(
     if not live_only:
         for host in settings.hosts:
             files[f"gpus-{host}"] = public_gpus(database, host, now, utc_offset)
-    lifetime = None if live_only else database.lifetime()
+    lifetime = None if live_only else database.lifetime(now)
     bakers = None if live_only else database.baker_profiles(now, utc_offset)
     for host in (None, *settings.hosts):
         key = host or "all"

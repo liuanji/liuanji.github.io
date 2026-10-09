@@ -129,23 +129,140 @@ export const HELD_IDLE_FLAG_SECONDS = 3600;
 // Its owner gets a kind note at the top of their own page sooner, after this long.
 export const HELD_IDLE_REMIND_SECONDS = 30 * 60;
 
+// What the servers cost, which the lab's GPU time pays back at the cloud rate
+// above, for the milestone box (shown only as a share, never as prices).
+export const SERVER_PRICES_SGD = { brezel: 115000, croissant: 130000, toast: 130000 };
+export const BAKERY_SGD = Object.values(SERVER_PRICES_SGD).reduce((total, price) => total + price, 0);
+
 // The lab's lifetime GPU-time milestones: bakery ranks reached at each total
-// of GPU hours, each with a line for its badge's box. One croissant in the
-// box's pile of 15 per rank, so keep exactly 15.
+// of GPU hours, each with a few lines for its badge's box (one a visit). One
+// croissant in the box's pile of 15 per rank, so keep exactly 15.
 export const MILESTONES = [
-  { hours: 0, rank: 'Rising dough', line: 'Every great bakery starts with a pinch of yeast.' },
-  { hours: 250, rank: 'Flour dusted', line: 'A light dusting of flour on every bench.' },
-  { hours: 1000, rank: 'Apprentice baker', line: 'The first trays are out of the oven.' },
-  { hours: 2500, rank: 'Dough whisperer', line: 'The dough listens now.' },
-  { hours: 5000, rank: 'Journeyman baker', line: 'The kitchen smells wonderful these days.' },
-  { hours: 10000, rank: 'Head baker', line: 'The ovens have never been warmer.' },
-  { hours: 25000, rank: 'Grand pâtissier', line: 'People queue around the block for these bakes.' },
-  { hours: 50000, rank: 'Bakery legend', line: 'Songs are sung about this bakery.' },
-  { hours: 100000, rank: 'Pastry empire', line: 'Croissants as far as the eye can see.' },
-  { hours: 250000, rank: 'Flour-powered planet', line: 'The whole world runs on our bread.' },
-  { hours: 500000, rank: 'Galactic patisserie', line: 'Deliveries now reach other star systems.' },
-  { hours: 1000000, rank: 'Croissant cosmos', line: 'A universe of perfectly laminated dough.' },
-  { hours: 2000000, rank: 'Pastry multiverse', line: 'Every universe has a branch of this bakery.' },
-  { hours: 5000000, rank: 'Eternal oven', line: 'The ovens have been warm since the dawn of time.' },
-  { hours: 10000000, rank: 'The Great Croissant', line: 'Ten million hours of baking. Well done, everyone.' },
+  {
+    hours: 0,
+    rank: 'Rising dough',
+    lines: [
+      'Every great bakery starts with a pinch of yeast.',
+      'The first epoch is always the slowest to rise.',
+      'A warm kitchen and an empty loss curve.',
+    ],
+  },
+  {
+    hours: 250,
+    rank: 'Flour dusted',
+    lines: [
+      'A light dusting of flour on every bench.',
+      'The first gradients are kneaded in.',
+      'Flour on the keyboards, logs in the terminal.',
+    ],
+  },
+  {
+    hours: 1000,
+    rank: 'Apprentice baker',
+    lines: [
+      'The first trays are out of the oven.',
+      'Learning to read the dough, and the loss curve.',
+      'A few checkpoints cooling on the rack.',
+    ],
+  },
+  {
+    hours: 2500,
+    rank: 'Dough whisperer',
+    lines: ['The dough listens now.', 'The models rise right on schedule.', 'Hyperparameters, proofed to perfection.'],
+  },
+  {
+    hours: 5000,
+    rank: 'Journeyman baker',
+    lines: [
+      'The kitchen smells wonderful these days.',
+      'Batch after batch, epoch after epoch.',
+      'The ovens hum through the night.',
+    ],
+  },
+  {
+    hours: 10000,
+    rank: 'Head baker',
+    lines: [
+      'The ovens have never been warmer.',
+      'Every GPU knows the recipe by heart.',
+      'The loss is low and the croissants are flaky.',
+    ],
+  },
+  {
+    hours: 25000,
+    rank: 'Grand pâtissier',
+    lines: [
+      'People queue around the block for these bakes.',
+      'Even the baselines are jealous.',
+      'A paper’s worth of pastries in every oven.',
+    ],
+  },
+  {
+    hours: 50000,
+    rank: 'Bakery legend',
+    lines: ['Songs are sung about this bakery.', 'Reviewers ask for the recipe.', 'The leaderboard smells of butter.'],
+  },
+  {
+    hours: 100000,
+    rank: 'Pastry empire',
+    lines: [
+      'Croissants as far as the eye can see.',
+      'More layers than any transformer.',
+      'Every benchmark has a bakery outpost.',
+    ],
+  },
+  {
+    hours: 250000,
+    rank: 'Flour-powered planet',
+    lines: [
+      'The whole world runs on our bread.',
+      'The planet’s loss has converged.',
+      'Every continent gets a fresh batch.',
+    ],
+  },
+  {
+    hours: 500000,
+    rank: 'Galactic patisserie',
+    lines: [
+      'Deliveries now reach other star systems.',
+      'Light-years of tokens, baked fresh.',
+      'The Milky Way, now with extra butter.',
+    ],
+  },
+  {
+    hours: 1000000,
+    rank: 'Croissant cosmos',
+    lines: [
+      'A universe of perfectly laminated dough.',
+      'The cosmic background radiates warmth.',
+      'Galaxies arranged in neat crescents.',
+    ],
+  },
+  {
+    hours: 2000000,
+    rank: 'Pastry multiverse',
+    lines: [
+      'Every universe has a branch of this bakery.',
+      'All timelines agree: the croissants are great.',
+      'An ensemble of universes, all well baked.',
+    ],
+  },
+  {
+    hours: 5000000,
+    rank: 'Eternal oven',
+    lines: [
+      'The ovens have been warm since the dawn of time.',
+      'Training since the Big Bang, still converging.',
+      'Time itself is proofing.',
+    ],
+  },
+  {
+    hours: 10000000,
+    rank: 'The Great Croissant',
+    lines: [
+      'Ten million hours of baking. Well done, everyone.',
+      'The final checkpoint, golden and flaky.',
+      'Thank you, bakers. Take a well-earned break.',
+    ],
+  },
 ];

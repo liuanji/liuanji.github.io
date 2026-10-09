@@ -32,6 +32,10 @@ SCHEMA_VERSION = "2"
 # longer windows and are kept for the configured rollup retention.
 MINUTE_WINDOW_SECONDS = 48 * 3600
 MINUTE_RETENTION_SECONDS = MINUTE_WINDOW_SECONDS + 3600
+# The lab's pace, for when its GPU time will have paid for the servers, is
+# taken over the last PACE_DAYS.
+PACE_DAYS = 30
+
 # Baker cards describe the last BAKER_DAYS of each user's GPU time, and chart
 # it over each period the page offers: (period, step in seconds, steps).
 BAKER_DAYS = 90
@@ -492,16 +496,26 @@ class Database:
             [(model, seconds, first_at) for model, (seconds, first_at) in totals.items()],
         )
 
-    def lifetime(self) -> dict[str, Any]:
-        """All GPU time ever credited, in GPU-hours per model and in total."""
+    def lifetime(self, now: int | None = None) -> dict[str, Any]:
+        """All GPU time ever credited, in GPU-hours in total and per model, and
+        the lab's recent pace: GPU-hours a day over the last PACE_DAYS, or over
+        the days since the first record if fewer."""
+        now = int(time.time()) if now is None else now
         with self.connect() as connection:
             rows = connection.execute(
                 "SELECT model, gpu_seconds, first_at FROM lifetime_gpu_time ORDER BY gpu_seconds DESC"
             ).fetchall()
+            recent = connection.execute(
+                "SELECT SUM(active_gpu_seconds) FROM user_hour WHERE bucket >= ? AND username != ?",
+                (now - PACE_DAYS * 86400, UNKNOWN_USER),
+            ).fetchone()[0]
+        since = min((int(row["first_at"]) for row in rows), default=None)
+        days = min(PACE_DAYS, (now - since) / 86400) if since is not None else 0
         return {
-            "since": min((int(row["first_at"]) for row in rows), default=None),
+            "since": since,
             "gpu_hours": round(sum(row["gpu_seconds"] for row in rows) / 3600, 1),
             "models": [{"model": row["model"], "gpu_hours": round(row["gpu_seconds"] / 3600, 1)} for row in rows],
+            "gpu_hours_per_day": round((recent or 0) / 3600 / days, 1) if days >= 1 else None,
         }
 
     @staticmethod
