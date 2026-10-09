@@ -39,6 +39,33 @@ export function Switch({ label, checked, onChange }) {
   );
 }
 
+// A small rounded switch between a few views, the chosen one on a pale fill:
+// options are [value, label] pairs.
+export function Segmented({ label, options, value, onChange, className = '' }) {
+  return (
+    <span
+      role="radiogroup"
+      aria-label={label}
+      className={`inline-flex rounded-full border border-border-light p-0.5 font-mono text-[11px] ${className}`}
+    >
+      {options.map(([key, text]) => (
+        <button
+          key={key}
+          type="button"
+          role="radio"
+          aria-checked={value === key}
+          onClick={() => onChange(key)}
+          className={`whitespace-nowrap rounded-full px-2.5 py-0.5 transition-colors ${
+            value === key ? 'bg-[#F1F5F9] text-inkwell' : 'text-data-grey/70 hover:text-inkwell'
+          }`}
+        >
+          {text}
+        </button>
+      ))}
+    </span>
+  );
+}
+
 // icon is { glyph, color }: a small badge tinted with color, holding glyph, in
 // the tile's top-right corner.
 export function StatTile({ label, value, total = null, caption = null, icon = null, className = '' }) {

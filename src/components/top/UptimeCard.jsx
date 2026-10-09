@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { HOST_STATUS, UPTIME_STATES } from './config';
 import { useStoredFlag } from '@/hooks/use-stored-flag';
-import { ServerLink, Switch } from './controls';
+import { Segmented, ServerLink } from './controls';
 import {
   formatBar,
   formatBarCount,
@@ -336,8 +336,10 @@ export default function UptimeCard({ uptime, hosts, range, onOpen }) {
   const labDown = sum(rows.map((series) => sum(series.down)));
   return (
     <div className="bg-white rounded-2xl border border-border-light">
-      <div className="flex flex-col gap-3 border-b border-border-light px-6 pb-4 pt-5 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+      {/* The title and its subtitle as one block on the left; the key and the
+          view switch stacked on the right, with room between them. */}
+      <div className="flex flex-col gap-3 border-b border-border-light px-6 pb-4 pt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <div className="min-w-0">
           <h3 className="font-tight font-semibold text-lg text-inkwell">Availability</h3>
           <p className="mt-0.5 text-xs text-data-grey" aria-live="polite">
             {focus ? (
@@ -364,7 +366,7 @@ export default function UptimeCard({ uptime, hosts, range, onOpen }) {
             )}
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:items-end">
+        <div className="flex flex-col items-start gap-2.5 sm:items-end">
           <ul className="-mx-1.5 flex flex-wrap gap-x-1 gap-y-1">
             {LEGEND.map((key) => (
               <li key={key}>
@@ -385,7 +387,17 @@ export default function UptimeCard({ uptime, hosts, range, onOpen }) {
               </li>
             ))}
           </ul>
-          {rows.length > 1 && <Switch label="By server" checked={separate} onChange={setSeparate} />}
+          {rows.length > 1 && (
+            <Segmented
+              label="Shown"
+              options={[
+                ['all', 'All servers'],
+                ['each', 'By server'],
+              ]}
+              value={separate ? 'each' : 'all'}
+              onChange={(key) => setSeparate(key === 'each')}
+            />
+          )}
         </div>
       </div>
       {together ? (

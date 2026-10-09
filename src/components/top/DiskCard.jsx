@@ -3,7 +3,7 @@ import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YA
 import { HardDrive } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LEVEL_SERIES, READING_STYLES, SERIES, SMALL_USER_BYTES } from './config';
-import { Banner, BannerLink, ScrollList } from './controls';
+import { Banner, BannerLink, ScrollList, Segmented } from './controls';
 import { BoxFooter, DetailsPopover, GLYPH, Metric, QUIET } from './DetailBoxes';
 import { pressurePhrase } from './easterEggs';
 import {
@@ -316,7 +316,7 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
     <div>
       {/* The drive beside the disk's name, its fill coloured by how full it is. */}
       <div className="flex items-center gap-3">
-        <DriveGlyph segments={[]} share={share} color={fullnessColor(share)} width={52} grow />
+        <DriveGlyph segments={[]} share={share} color={fullnessColor(share)} width={46} grow />
         <div className="min-w-0 flex-1">
           <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">
             {host} <span className="text-data-grey/60">·</span> {disk.mount}
@@ -342,31 +342,15 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
           />
         </div>
         <div className="mb-2 mt-4 flex items-center justify-between gap-3 font-mono text-[11px] text-data-grey">
-          <span
-            className="inline-flex rounded-full border border-border-light p-0.5"
-            role="radiogroup"
-            aria-label="Shown"
-          >
-            {[
+          <Segmented
+            label="Shown"
+            options={[
               ['users', 'By user'],
               ['time', 'Over time'],
-            ]
-              .filter(([key]) => key === 'time' || counted > 0)
-              .map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  role="radio"
-                  aria-checked={showing === key}
-                  onClick={() => setView(key)}
-                  className={`rounded-full px-2.5 py-0.5 transition-colors ${
-                    showing === key ? 'bg-[#F1F5F9] text-inkwell' : 'text-data-grey/70 hover:text-inkwell'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-          </span>
+            ].filter(([key]) => key === 'time' || counted > 0)}
+            value={showing}
+            onChange={setView}
+          />
           <span className="text-data-grey/70">
             {showing === 'users' ? countedAgo && `counted ${countedAgo}` : range?.title}
           </span>
@@ -529,7 +513,7 @@ function DiskRow({ host, disk, interactive, checkedAgo, countedAgo, range }) {
             range={range}
           />
         }
-        width="w-[370px]"
+        width="w-[410px]"
       >
         <button
           type="button"

@@ -1,6 +1,6 @@
 import { useId, useMemo, useState } from 'react';
 import { Area, ComposedChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { TextTabs } from './controls';
+import { Segmented, TextTabs } from './controls';
 import { formatAxisTime, formatFullTime } from './format';
 
 const TICK = { fill: '#94A3B8', fontSize: 11, fontFamily: 'JetBrains Mono, monospace' };
@@ -138,38 +138,23 @@ export default function UsageChart({ history, range, servers = null, server = 'a
 
   return (
     <div className="bg-white rounded-2xl border border-border-light p-6">
-      <div className="mb-4 grid gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-x-6 sm:gap-y-3">
-        <h3 className="font-tight font-semibold text-lg text-inkwell sm:col-start-1 sm:row-start-1">Usage trend</h3>
-        <p className="text-xs leading-6 text-data-grey sm:col-start-1 sm:row-start-2" aria-live="polite">
-          {summary}
-        </p>
-        {servers && (
-          <div className="mt-2 sm:col-start-2 sm:row-start-1 sm:mt-0 sm:justify-self-end">
-            <TextTabs label="Server shown" options={servers} value={server} onChange={onServer} />
-          </div>
-        )}
-        {/* The quantity shown: a small segmented switch, apart from the server tabs above. */}
-        <div
-          role="radiogroup"
-          aria-label="Shown"
-          className={`inline-flex rounded-full border border-border-light p-0.5 sm:col-start-2 sm:row-start-2 sm:justify-self-end ${
-            servers ? 'mt-1 justify-self-start sm:mt-0' : 'justify-self-start'
-          }`}
-        >
-          {Object.entries(VIEWS).map(([key, { label }]) => (
-            <button
-              key={key}
-              type="button"
-              role="radio"
-              aria-checked={view === key}
-              onClick={() => setView(key)}
-              className={`rounded-full px-2.5 py-0.5 font-mono text-[11px] transition-colors ${
-                view === key ? 'bg-[#F1F5F9] text-inkwell' : 'text-data-grey/70 hover:text-inkwell'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+      {/* The title and its summary as one block on the left; the server tabs
+          and the view switch stacked on the right, with room between them. */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <div className="min-w-0">
+          <h3 className="font-tight font-semibold text-lg text-inkwell">Usage trend</h3>
+          <p className="mt-0.5 text-xs text-data-grey" aria-live="polite">
+            {summary}
+          </p>
+        </div>
+        <div className="flex flex-col items-start gap-2.5 sm:items-end">
+          {servers && <TextTabs label="Server shown" options={servers} value={server} onChange={onServer} />}
+          <Segmented
+            label="Shown"
+            options={Object.entries(VIEWS).map(([key, { label }]) => [key, label])}
+            value={view}
+            onChange={setView}
+          />
         </div>
       </div>
 
