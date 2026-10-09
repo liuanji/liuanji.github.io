@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react';
-import { Area, ComposedChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, ComposedChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Segmented, TextTabs } from './controls';
 import { formatAxisTime, formatFullTime } from './format';
 
@@ -99,7 +99,6 @@ export default function UsageChart({ history, range, servers = null, server = 'a
   const [view, setView] = useState('busy');
   const color = INK;
   const readings = points.filter((point) => point.busy != null);
-  const latest = readings.at(-1);
   const total = Math.max(1, ...readings.map((point) => point.total ?? 0));
   const top = view === 'busy' ? total : 100;
   const busiest = readings.reduce((best, point) => (!best || point[view] > best[view] ? point : best), null);
@@ -225,32 +224,8 @@ export default function UsageChart({ history, range, servers = null, server = 'a
                   strokeWidth={1.1}
                   fill={`url(#${gradient}-core)`}
                   dot={false}
-                  activeDot={false}
+                  activeDot={{ r: 3, strokeWidth: 1.5, stroke: '#FFFFFF', fill: INK_SOFT }}
                   isAnimationActive={false}
-                />
-              )}
-              {/* Where each line ends, at now. */}
-              {latest && view === 'busy' && (
-                <ReferenceDot
-                  x={latest.timestamp}
-                  y={latest.computingDrawn}
-                  r={2.5}
-                  fill="#FFFFFF"
-                  stroke={INK_SOFT}
-                  strokeOpacity={0.6}
-                  strokeWidth={1.2}
-                  ifOverflow="visible"
-                />
-              )}
-              {latest && (
-                <ReferenceDot
-                  x={latest.timestamp}
-                  y={latest[`${view}Drawn`]}
-                  r={3}
-                  fill={color}
-                  stroke="#FFFFFF"
-                  strokeWidth={1.5}
-                  ifOverflow="visible"
                 />
               )}
             </ComposedChart>
