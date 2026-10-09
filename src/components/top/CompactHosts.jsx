@@ -1,7 +1,8 @@
-import { Thermometer, Zap } from 'lucide-react';
+import { Thermometer, ThermometerSun, Zap } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, RESERVATION_CLASH, TEMPERATURE_ICON_RANGE } from './config';
 import { DownNotice, ServerLink, StatusPill } from './controls';
+import { isOverheated } from './Overheat';
 import {
   ChipGlyph,
   CpuDetails,
@@ -129,9 +130,11 @@ function HeatIcons({ temperature, power, className }) {
 // reservations get a lavender bookmark and tint; others' a grey lock and a
 // dashed grey edge. On a reserved GPU someone else runs on, the mark and the
 // runner's name turn amber, and the tile is outlined in amber when the runner
-// is the viewer.
+// is the viewer. Above OVERHEAT_C the tile turns red with a pulsing halo, a red
+// thermometer in its corner and its temperature in red, whatever else is going on.
 function GpuRing({ gpu, host, interactive, now, reserving }) {
-  const hot = temperatureLevel(gpu.temperature_c) === 'hot';
+  const overheated = isOverheated(gpu);
+  const hot = overheated || temperatureLevel(gpu.temperature_c) === 'hot';
   const temperature = heat(gpu.temperature_c, TEMPERATURE_ICON_RANGE);
   const power = heat(gpu.power_limit_w ? gpu.power_w / gpu.power_limit_w : null, POWER_ICON_RANGE);
   const reservation = reserving ? findReservation(reserving.reservations, host, gpu.index, now) : null;
@@ -157,21 +160,40 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
           : reservation && !mine
             ? 'outline-dashed outline-[1.5px] outline-offset-[-1.5px] outline-[#94A3B8]'
             : ''
-      } ${gpu.busy || reservation ? '' : 'opacity-55'} ${
+      } ${overheated ? 'bg-[#B33A3A]/[0.12] motion-safe:animate-alarm ring-2 ring-inset ring-[#B33A3A]' : ''} ${
+        gpu.busy || reservation ? '' : 'opacity-55'
+      } ${
         interactive
           ? 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20'
           : ''
       }`}
     >
-      <HeatIcons
-        temperature={temperature}
-        power={power}
-        className="absolute right-1.5 top-1.5 hidden flex-col sm:flex"
-      />
+      {overheated ? (
+        // Too hot: a red thermometer where the heat icons sit, and the
+        // temperature in red where the memory usually is.
+        <ThermometerSun
+          className="absolute right-1.5 top-1.5 h-4 w-4 motion-safe:animate-pulse"
+          style={{ color: LEVEL_SERIES.hot.color }}
+          strokeWidth={2.25}
+          aria-hidden="true"
+        />
+      ) : (
+        <HeatIcons
+          temperature={temperature}
+          power={power}
+          className="absolute right-1.5 top-1.5 hidden flex-col sm:flex"
+        />
+      )}
       <UsageRing gpu={gpu} />
       <div className="mt-2 flex items-center gap-1 whitespace-nowrap font-mono text-[11px] text-data-grey">
         GPU {gpu.index}
-        <span className="hidden text-data-grey/60 sm:inline">· {formatMemory(gpu.memory_used_mb)}</span>
+        {overheated ? (
+          <span className="font-medium" style={{ color: LEVEL_SERIES.hot.color }}>
+            · {Math.round(gpu.temperature_c)}°C
+          </span>
+        ) : (
+          <span className="hidden text-data-grey/60 sm:inline">· {formatMemory(gpu.memory_used_mb)}</span>
+        )}
         <HeatIcons temperature={temperature} power={power} className="flex sm:hidden" />
       </div>
       <div className="mt-1 flex w-full justify-center font-mono text-[11px]">
@@ -342,6 +364,26 @@ function CompactHost({ host, now, interactive, onOpen, reserving }) {
 
 // One icon that breathes through its heat colours, dim to hot and back; with
 // reduced motion it holds the middle colour.
+// The temperature key: the thermometer warms through its heat colours and, at
+// the peak, turns into the overheat warning's sun-burst thermometer before
+// cooling back. With reduced motion it holds the plain one at the middle colour.
+function TemperatureScale() {
+  return (
+    <span className="relative h-3.5 w-3.5" aria-hidden="true">
+      <Thermometer
+        className="absolute inset-0 h-3.5 w-3.5 motion-safe:animate-[heat_4s_ease-in-out_infinite,heat-out_4s_ease-in-out_infinite]"
+        style={{ color: heatColor(0.5) }}
+        strokeWidth={2.25}
+      />
+      <ThermometerSun
+        className="absolute inset-0 h-3.5 w-3.5 opacity-0 motion-safe:animate-heat-in"
+        style={{ color: LEVEL_SERIES.hot.color }}
+        strokeWidth={2.25}
+      />
+    </span>
+  );
+}
+
 function HeatScale({ Icon }) {
   return (
     <Icon
@@ -409,8 +451,8 @@ export default function CompactHosts({ hosts, now, onOpen, reserving = null }) {
           Inner ring: memory
         </LegendItem>
         <LegendItem>
-          <HeatScale Icon={Thermometer} />
-          70–90°C
+          <TemperatureScale />
+          {TEMPERATURE_ICON_RANGE.from}–{TEMPERATURE_ICON_RANGE.to}°C
         </LegendItem>
         <LegendItem>
           <HeatScale Icon={Zap} />

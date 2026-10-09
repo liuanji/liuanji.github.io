@@ -87,6 +87,16 @@ module.exports = {
   				'25%, 75%': { color: 'hsl(20, 40.5%, 59%)' },
   				'50%': { color: 'hsl(0, 51%, 46%)' }
   			},
+  			// The temperature key's two thermometers trading places at the heat's peak:
+  			// the plain one fades out as the red, sun-burst one fades in, and back.
+  			'heat-out': {
+  				'0%, 32%, 68%, 100%': { opacity: '1' },
+  				'44%, 56%': { opacity: '0' }
+  			},
+  			'heat-in': {
+  				'0%, 32%, 68%, 100%': { opacity: '0' },
+  				'44%, 56%': { opacity: '1' }
+  			},
   			// A status LED softly brightening and glowing in its own colour.
   			breathe: {
   				'0%, 100%': { opacity: '0.45', boxShadow: '0 0 0 0 transparent' },
@@ -107,6 +117,11 @@ module.exports = {
   				'0%, 12%, 30%, 100%': { opacity: '0.25' },
   				'6%, 22%, 26%': { opacity: '1' }
   			},
+  			// /top's overheated GPUs: a red halo swelling and fading around the tile.
+  			alarm: {
+  				'0%, 100%': { boxShadow: 'inset 0 0 0 2px rgb(179 58 58 / 0.9), 0 0 0 0 rgb(179 58 58 / 0.35)' },
+  				'50%': { boxShadow: 'inset 0 0 0 2px rgb(179 58 58 / 0.9), 0 0 0 5px rgb(179 58 58 / 0)' }
+  			},
   			// /top's notes pill: its usual shadow with a soft ring in --glow swelling and fading.
   			glow: {
   				'0%, 100%': { boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1), 0 0 0 0 var(--glow)' },
@@ -117,8 +132,11 @@ module.exports = {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			heat: 'heat 4s ease-in-out infinite',
+  			'heat-out': 'heat-out 4s ease-in-out infinite',
+  			'heat-in': 'heat-in 4s ease-in-out infinite',
   			breathe: 'breathe 2.4s ease-in-out infinite',
   			glow: 'glow 3.2s ease-in-out infinite',
+  			alarm: 'alarm 1.6s ease-out infinite',
   			twinkle: 'twinkle 2.6s ease-in-out infinite',
   			blink: 'blink 2.3s linear infinite',
   			hop: 'hop 0.45s ease-out 1 both'

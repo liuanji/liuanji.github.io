@@ -50,12 +50,13 @@ export const HOST_STATUS = {
 // GPU readings worth a glance: warm, then hot. Temperature in °C, power as a
 // share of the GPU's enforced power limit. Same hues as the Delayed and
 // Unreachable statuses, darkened so the text keeps 4.5:1 on white and on the tint.
-export const TEMPERATURE_LEVELS_C = { warm: 75, hot: 85 };
+export const TEMPERATURE_LEVELS_C = { warm: 65, hot: 75 };
 export const POWER_LEVELS = { warm: 0.7, hot: 0.9 };
 // The compact view's thermometer and lightning icons appear at `from` and warm
 // steadily, from a dim amber to the hot red, until `to`. Temperature in °C,
-// power as a share of the GPU's enforced power limit.
-export const TEMPERATURE_ICON_RANGE = { from: 70, to: 90 };
+// power as a share of the GPU's enforced power limit. Temperature tops out at
+// the overheat warning (OVERHEAT_C), where the tile itself turns red.
+export const TEMPERATURE_ICON_RANGE = { from: 60, to: 75 };
 export const POWER_ICON_RANGE = { from: 0.7, to: 1 };
 
 // A server's RAM as a share of its total; jobs get killed when it runs out.

@@ -19,6 +19,7 @@ import {
   DELAYED_AFTER_SECONDS,
   HISTORY_REFRESH_MS,
   HOST_STATUS,
+  LEVEL_SERIES,
   LIVE_REFRESH_MS,
   OFFLINE_AFTER_SECONDS,
   RANGES,
@@ -35,6 +36,7 @@ import {
   formatPower,
 } from '../components/top/format';
 import { IdleBanner, myHeldIdle } from '../components/top/Insights';
+import { OverheatBanner, myOverheated } from '../components/top/Overheat';
 import { ClashBanner, myClashes } from '../components/top/Reservations';
 import { useReservations } from '../components/top/useReservations';
 import { useSession } from '../components/top/useSession';
@@ -265,8 +267,16 @@ export default function Top() {
   // Like clashes, checked on every server's disks.
   const cleanups = cleanupReminders(disks.data?.hosts ?? [], user);
   const heldIdle = myHeldIdle(hosts, user);
+  // GPUs of the viewer's running over OVERHEAT_C: urgent, so on top and in the pill.
+  const overheated = myOverheated(hosts, user);
   // The viewer's notices, for the pill in the corner.
   const notes = [
+    overheated.length && {
+      key: 'heat',
+      color: LEVEL_SERIES.hot.color,
+      label: 'A GPU of yours is running hot',
+      urgent: true,
+    },
     clashes.length && { key: 'clash', color: RESERVATION_CLASH.color, label: 'On a GPU someone reserved' },
     heldIdle.length && { key: 'idle', color: SERIES.compute.color, label: 'A GPU of yours is resting' },
     cleanups.length && {
@@ -327,13 +337,15 @@ export default function Top() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
             >
-              {/* Notices live in the pill in the corner; only a nearly full disk also gets a banner here. */}
-              {cleanupIsUrgent(cleanups) && (
-                <div className="mb-10">
-                  <CleanupBanner reminders={cleanups} onOpen={showStorage} />
+              {/* Notices live in the pill in the corner; only urgent ones (a GPU running hot, a nearly full disk) also get a banner here. */}
+              {(overheated.length > 0 || cleanupIsUrgent(cleanups)) && (
+                <div className="mb-10 space-y-3">
+                  <OverheatBanner items={overheated} onOpen={hosts.length > 1 ? showHost : undefined} />
+                  {cleanupIsUrgent(cleanups) && <CleanupBanner reminders={cleanups} onOpen={showStorage} />}
                 </div>
               )}
               <NotesPill notes={notes} me={user}>
+                <OverheatBanner items={overheated} onOpen={hosts.length > 1 ? showHost : undefined} />
                 <ClashBanner clashes={clashes} onOpen={hosts.length > 1 ? showHost : undefined} />
                 <IdleBanner items={heldIdle} onOpen={hosts.length > 1 ? showHost : undefined} />
                 <CleanupBanner reminders={cleanups} onOpen={showStorage} />

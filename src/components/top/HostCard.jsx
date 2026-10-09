@@ -2,6 +2,7 @@ import { TriangleAlert } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { HISTORY_REFRESH_MS, LEVEL_SERIES, READING_STYLES, RESERVATION_CLASH, SERIES } from './config';
 import { DownNotice, StatusPill } from './controls';
+import { OverheatBadge, isOverheated } from './Overheat';
 import { DetailsPopover, RamDetails } from './DetailBoxes';
 import { CpuDeepDetails, GpuDeepDetails, SystemHistory, UsersBreakdown } from './ExpandedBoxes';
 import { PeoplePanel, Sparkline, WeekHeatmap, WeekUsers, formatDuration, isHeldIdle } from './Insights';
@@ -22,7 +23,7 @@ import {
 
 // GPU, its last day, compute, memory, temperature and power, users.
 const ROW_GRID =
-  'grid grid-cols-2 gap-x-4 gap-y-2 md:grid-cols-[5.25rem_7rem_minmax(0,1fr)_minmax(0,1fr)_6.5rem_minmax(0,1.2fr)] md:items-center md:gap-x-6';
+  'grid grid-cols-2 gap-x-4 gap-y-2 md:grid-cols-[5.25rem_7rem_minmax(0,1fr)_minmax(0,1fr)_7.5rem_minmax(0,1.2fr)] md:items-center md:gap-x-6';
 // The reservation column sits beside each row's button, as a button cannot hold
 // another; on phones it shrinks to its icon, beside the temperature line.
 const RESERVE_COLUMN = 'w-9 flex-shrink-0 md:w-36';
@@ -206,13 +207,15 @@ function Reading({ text, level, title }) {
 
 // A reserved row follows the tiles: lavender with a lavender edge when it is
 // the viewer's; while someone else runs on it, its mark and holder turn amber,
-// with an amber edge when that someone is the viewer.
+// with an amber edge when that someone is the viewer. Above OVERHEAT_C the row
+// turns red with a red edge, its temperature a pulsing red badge.
 function GpuRow({ gpu, host, interactive, now, reserving, timeline }) {
   const reservation = reserving ? findReservation(reserving.reservations, host, gpu.index, now) : null;
   const clash = clashingUsers(gpu, reservation);
   const meClashing = Boolean(reserving) && clash.includes(reserving.me);
   const mine = Boolean(reservation) && reservation.user === reserving.me;
   const thermal = gpu.temperature_c == null ? '—' : `${Math.round(gpu.temperature_c)}°C`;
+  const overheated = isOverheated(gpu);
   const power = gpu.power_w == null ? '—' : `${Math.round(gpu.power_w)} W`;
   const powerTitle =
     gpu.power_w != null && gpu.power_limit_w
@@ -234,7 +237,9 @@ function GpuRow({ gpu, host, interactive, now, reserving, timeline }) {
       }
       width="w-[600px]"
       label={`${host} GPU ${gpu.index}, ${Math.round(gpu.utilization)}% compute`}
-      className={`${ROW_GRID} py-3 pl-6 ${reserving ? 'pr-2' : 'pr-6'} ${interactive ? 'hover:bg-black/[0.02] data-[state=open]:bg-black/[0.04]' : ''}`}
+      className={`${ROW_GRID} py-3 pl-6 ${reserving ? 'pr-2' : 'pr-6'} ${interactive ? 'hover:bg-black/[0.02] data-[state=open]:bg-black/[0.04]' : ''} ${
+        overheated ? 'bg-[#B33A3A]/[0.08] shadow-[inset_3px_0_0_#B33A3A]' : ''
+      }`}
     >
       <div className="order-1 flex items-center gap-2 md:order-none">
         <span
@@ -280,9 +285,16 @@ function GpuRow({ gpu, host, interactive, now, reserving, timeline }) {
         />
       </div>
       {/* The negative margins cancel the readings' padding, so plain values line up as before. */}
-      <div className="order-2 -mr-1 text-right font-mono text-xs tabular-nums text-data-grey md:order-none md:-ml-1 md:mr-0 md:text-left">
-        <Reading text={thermal} level={temperatureLevel(gpu.temperature_c)} />
-        {' · '}
+      <div className="order-2 -mr-1 whitespace-nowrap text-right font-mono text-xs tabular-nums text-data-grey md:order-none md:-ml-1 md:mr-0 md:text-left">
+        {/* A fixed slot, as wide as the hot badge, so the power lines up in every row. */}
+        <span className="inline-block w-[3.4rem] md:text-left">
+          {overheated ? (
+            <OverheatBadge gpu={gpu} className="motion-safe:animate-pulse" />
+          ) : (
+            <Reading text={thermal} level={temperatureLevel(gpu.temperature_c)} />
+          )}
+        </span>
+        {'· '}
         <Reading text={power} level={powerLevel(gpu.power_w, gpu.power_limit_w)} title={powerTitle} />
       </div>
       {/* Each user as plain text with how long their job has run; on a GPU held
