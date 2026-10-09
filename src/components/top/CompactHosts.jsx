@@ -375,7 +375,8 @@ function HeaderMeter({ label, Glyph, share, title, series, level = null, details
         animated
       />
       <span
-        className={`w-8 text-left tabular-nums ${level ? 'font-medium' : 'text-inkwell'}`}
+        // Just the reading's width, so the space round it matches the label's.
+        className={`text-left tabular-nums ${level ? 'font-medium' : 'text-inkwell'}`}
         style={level ? { color: READING_STYLES[level].color } : undefined}
         aria-hidden="true"
       >
