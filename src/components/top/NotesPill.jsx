@@ -39,6 +39,38 @@ function Dots({ notes }) {
   );
 }
 
+// The all-clear croissant: two tiny sparkles twinkle beside it in turn, as if
+// it were fresh and shiny, and it hops when the mouse arrives. Still for
+// viewers who prefer reduced motion.
+const SPARKLE = '#E3B655';
+const SPARKLES = [
+  { className: '-right-1.5 -top-1 h-2 w-2', delay: '0s' },
+  { className: '-left-1.5 bottom-0 h-1.5 w-1.5', delay: '1.3s' },
+];
+
+function FreshCroissant({ hopping }) {
+  return (
+    <span className="relative flex h-5 w-5 items-center justify-center" aria-hidden="true">
+      {!hopping &&
+        SPARKLES.map((sparkle) => (
+          <svg
+            key={sparkle.delay}
+            viewBox="0 0 10 10"
+            className={`pointer-events-none absolute scale-0 motion-safe:animate-twinkle ${sparkle.className}`}
+            style={{ animationDelay: sparkle.delay }}
+          >
+            <path d="M5 0 Q5.6 4.4 10 5 Q5.6 5.6 5 10 Q4.4 5.6 0 5 Q4.4 4.4 5 0 Z" fill={SPARKLE} />
+          </svg>
+        ))}
+      <Croissant
+        className={`h-4 w-4 ${hopping ? '-rotate-12 scale-110 motion-safe:animate-hop' : ''}`}
+        strokeWidth={1.8}
+        style={{ color: CRUST, fill: BUTTER }}
+      />
+    </span>
+  );
+}
+
 export default function NotesPill({ notes, me = null, children }) {
   const [open, setOpen] = useState(false);
   // With no notices: the croissant circle shows its phrase while the mouse rests on it.
@@ -277,12 +309,7 @@ export default function NotesPill({ notes, me = null, children }) {
                 peek ? 'gap-2 px-4 py-2.5' : 'h-10 w-10'
               }`}
             >
-              <Croissant
-                className={`h-4 w-4 transition-transform duration-300 ${peek ? '-rotate-12 scale-110' : ''}`}
-                strokeWidth={1.8}
-                style={{ color: CRUST, fill: BUTTER }}
-                aria-hidden="true"
-              />
+              <FreshCroissant hopping={peek} />
               {peek && <span className="whitespace-nowrap">{allClearPhrase()}</span>}
             </motion.button>
           )}
