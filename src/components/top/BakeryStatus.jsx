@@ -1,23 +1,24 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GLYPH } from './DetailBoxes';
 import { HOST_STATUS } from './config';
 import { bakeryStateLine } from './easterEggs';
 import { formatAgo, formatFullTime } from './format';
+import { PASTRIES } from './pastries';
 
 // The bakery behind the page's "Live" dot, in three states: live, with the
-// oven's window glowing, a loaf rising inside and steam curling off the top;
+// oven's window glowing, a pastry rising inside and steam curling off the top;
 // delayed, the glow dimmed and a kitchen timer ticking on top; and closed (the
 // monitor gone quiet), the window cold, a sign swinging from the handle and the
 // oven dozing off. Viewers who prefer reduced motion get the still scene.
 const SCENE = {
   live: {
-    title: 'Fresh out of the oven',
+    title: 'Welcome to the Tractable Bakery',
     glow: '#F4B860',
     light: HOST_STATUS.online.color,
     panel: '#FFF7EA',
   },
   delayed: {
-    title: 'This batch is running a little late',
+    title: 'The bakery is running a little late',
     glow: '#F2CF94',
     light: HOST_STATUS.stale.color,
     panel: '#FFF8EB',
@@ -29,16 +30,32 @@ const SCENE = {
     panel: '#F6F4F0',
   },
 };
-const LOAF = '#E3B655';
-const CRUST = '#C9973D';
+const POWER_OFF = '#EDA748';
 const STEAM = ['M68 24c-3-4 3-7 0-11s3-7 0-11', 'M80 22c-3-4 3-7 0-11s3-7 0-11', 'M92 24c-3-4 3-7 0-11s3-7 0-11'];
 
-function OvenScene({ state }) {
+// A pastry and its shadow on the tray.
+function Pastry({ pastry }) {
+  return (
+    <>
+      <ellipse cx="80" cy="83.3" rx={pastry.shadow} ry="1.5" fill="#8A6A3A" opacity="0.22" />
+      <g transform={pastry.transform}>
+        {pastry.shapes.map(({ tag: Shape, ...shape }, index) => (
+          <Shape key={index} {...shape} />
+        ))}
+      </g>
+    </>
+  );
+}
+
+function OvenScene({ state, pastry, leaving, bake, on }) {
   const { glow, light } = SCENE[state];
   const warm = state !== 'closed';
+  // Baking: the oven open for business and switched on.
+  const baking = warm && on;
   return (
     <svg viewBox="0 0 160 112" className="h-auto w-[220px] overflow-visible" aria-hidden="true">
       {state === 'live' &&
+        baking &&
         STEAM.map((d, index) => (
           <path
             key={d}
@@ -88,14 +105,51 @@ function OvenScene({ state }) {
       <rect x="36" y="30" width="88" height="70" rx="9" fill="white" stroke={GLYPH.outline} strokeWidth="2.2" />
       <line x1="36" y1="45" x2="124" y2="45" stroke={GLYPH.outline} strokeWidth="2" />
       <circle cx="49" cy="37.5" r="3.2" fill="white" stroke={GLYPH.outline} strokeWidth="1.8" />
-      <circle cx="60" cy="37.5" r="3.2" fill="white" stroke={GLYPH.outline} strokeWidth="1.8" />
-      <circle
-        cx="112"
-        cy="37.5"
-        r="2.6"
-        fill={light}
-        className={state === 'live' ? 'motion-safe:animate-pulse' : undefined}
+      {/* The power knob turns a quarter round when the oven is on. */}
+      <line
+        x1="49"
+        y1="37.5"
+        x2="49"
+        y2="35.2"
+        stroke={GLYPH.outline}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        style={{
+          transformOrigin: '49px 37.5px',
+          transform: `rotate(${baking ? 90 : 0}deg)`,
+          transition: 'transform 0.5s ease-in-out',
+        }}
       />
+      <circle cx="60" cy="37.5" r="3.2" fill="white" stroke={GLYPH.outline} strokeWidth="1.8" />
+      {warm ? (
+        // The power button: breathing amber while the oven is off, so it is
+        // easy to find, and lit in the state's colour once it is on.
+        <g>
+          {!baking && (
+            <circle
+              cx="112"
+              cy="37.5"
+              r="4.2"
+              fill={POWER_OFF}
+              className="motion-safe:animate-power-breathe"
+              style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+            />
+          )}
+          <circle cx="112" cy="37.5" r="4.2" fill={baking ? light : POWER_OFF} style={{ transition: 'fill 0.5s' }} />
+          <path
+            d="M112 34.7v2.3M110.1 35.7a2.6 2.6 0 1 0 3.8 0"
+            fill="none"
+            stroke="white"
+            strokeWidth="1.1"
+            strokeLinecap="round"
+          />
+        </g>
+      ) : (
+        <circle cx="112" cy="37.5" r="2.6" fill={GLYPH.outline} />
+      )}
+      {/* Inside the oven: its glow, the baking tray seen from a little above,
+          and this batch's pastry resting on it with its shadow, rising (still
+          rising when late). */}
       <rect x="46" y="53" width="68" height="38" rx="6" fill={GLYPH.unlit} />
       {warm && (
         <rect
@@ -105,28 +159,60 @@ function OvenScene({ state }) {
           height="38"
           rx="6"
           fill={glow}
-          className="motion-safe:animate-oven-glow"
-          style={{ opacity: state === 'live' ? 0.6 : 0.4 }}
+          // Warming up when switched on; cold and dark when off.
+          className={baking ? 'motion-safe:animate-oven-glow' : undefined}
+          style={{ opacity: baking ? (state === 'live' ? 0.6 : 0.4) : 0, transition: 'opacity 0.9s ease-in-out' }}
         />
       )}
-      <rect x="46" y="53" width="68" height="38" rx="6" fill="none" stroke={GLYPH.outline} strokeWidth="2" />
-      {/* The loaf on its tray, rising (and still rising when late). */}
-      <line x1="54" y1="84" x2="106" y2="84" stroke={GLYPH.outline} strokeWidth="2" strokeLinecap="round" />
-      {warm && (
-        <g
-          className="motion-safe:animate-dough-rise"
-          style={{
-            transformBox: 'fill-box',
-            transformOrigin: 'center bottom',
-            animationDuration: state === 'live' ? '3.2s' : '6s',
-          }}
-        >
-          <path d="M64 83c0-12 7-18 16-18s16 6 16 18z" fill={LOAF} stroke={CRUST} strokeWidth="1.8" />
-          <path d="M72 71l4 5M79 69l4 5M86 71l4 5" stroke={CRUST} strokeWidth="1.6" strokeLinecap="round" />
-        </g>
-      )}
-      {/* The handle, and when closed a sign hanging from it. */}
-      <line x1="58" y1="49" x2="102" y2="49" stroke={GLYPH.outline} strokeWidth="2.4" strokeLinecap="round" />
+      <rect x="46" y="53" width="68" height="38" rx="6" fill="none" stroke={GLYPH.outline} strokeWidth="1.2" />
+      {/* When another one goes in, the door swings down, the tray comes out
+          towards the viewer, the last pastry is taken off to the right, the
+          new one is set on from the left, the tray goes back in and the door
+          swings shut again. */}
+      <g
+        key={`tray-${bake}`}
+        className={bake ? 'motion-safe:animate-tray-out' : undefined}
+        style={{ transformBox: 'view-box', transformOrigin: '80px 84px' }}
+      >
+        <path d="M57.5 80.5h45l3 4h-51z" fill="#E6EBF1" />
+        <rect x="54.5" y="84.5" width="51" height="2.2" rx="1" fill={GLYPH.outline} />
+        {warm && leaving && (
+          <g key={`out-${bake}`} className="motion-safe:animate-pastry-out">
+            <Pastry pastry={leaving} />
+          </g>
+        )}
+        {warm && (
+          <g
+            key={`in-${bake}`}
+            className={bake ? 'motion-safe:animate-pastry-enter' : 'motion-safe:animate-pastry-in'}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center bottom' }}
+          >
+            <g
+              className={baking ? 'motion-safe:animate-dough-rise' : undefined}
+              style={{
+                transformBox: 'fill-box',
+                transformOrigin: 'center bottom',
+                animationDuration: state === 'live' ? '3.2s' : '6s',
+              }}
+            >
+              <Pastry pastry={pastry} />
+            </g>
+          </g>
+        )}
+      </g>
+      {/* The door: its glass with a glint, its frame and its handle, hinged
+          at the bottom. */}
+      <g
+        key={`door-${bake}`}
+        className={bake ? 'motion-safe:animate-door-swing' : undefined}
+        style={{ transformBox: 'view-box', transformOrigin: '80px 92px' }}
+      >
+        <rect x="46" y="53" width="68" height="38" rx="6" fill="white" opacity="0.12" />
+        <path d="M52 64l7-7M55 66l4-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" opacity="0.7" />
+        <rect x="46" y="53" width="68" height="38" rx="6" fill="none" stroke={GLYPH.outline} strokeWidth="2" />
+        <line x1="58" y1="49" x2="102" y2="49" stroke={GLYPH.outline} strokeWidth="2.4" strokeLinecap="round" />
+      </g>
+      {/* When closed, a sign hangs from the handle. */}
       {state === 'closed' && (
         <g
           className="motion-safe:animate-sign-swing"
@@ -168,21 +254,86 @@ function OvenScene({ state }) {
 // The card itself: the scene, a line for the state (a new one each time the
 // card opens) and when the last batch of readings came out.
 export function BakeryCard({ state, generatedAt, now }) {
-  const [line] = useState(() => bakeryStateLine(state));
+  // A random pastry when the card opens; a different one with each new batch
+  // of readings while it is open, and whenever the oven is clicked, each with
+  // a new line. bake counts the swaps, and leaving is the pastry on its way out.
+  const [batch, setBatch] = useState(() => ({
+    at: generatedAt,
+    index: Math.floor(Math.random() * PASTRIES.length),
+    bake: 0,
+    leaving: null,
+    line: bakeryStateLine(state),
+    on: true,
+  }));
+  const swap = (current, at) => ({
+    at,
+    index: (current.index + 1 + Math.floor(Math.random() * (PASTRIES.length - 1))) % PASTRIES.length,
+    bake: current.bake + 1,
+    leaving: PASTRIES[current.index],
+    line: bakeryStateLine(state, current.line),
+    // A fresh pastry waits in a cold oven until someone switches it on.
+    on: false,
+  });
+  if (batch.at !== generatedAt) setBatch(swap(batch, generatedAt));
+  // Once out of the oven, the last pastry is cleared away.
+  useEffect(() => {
+    if (!batch.leaving) return undefined;
+    const timer = setTimeout(() => setBatch((current) => ({ ...current, leaving: null })), 2600);
+    return () => clearTimeout(timer);
+  }, [batch.bake, batch.leaving]);
+  const pastry = PASTRIES[batch.index];
+  const warm = state !== 'closed';
   const { title, panel } = SCENE[state];
   const age = now - generatedAt;
   return (
     <div>
-      <div className="flex justify-center rounded-xl px-4 pb-3 pt-5" style={{ backgroundColor: panel }}>
-        <OvenScene state={state} />
+      <div className="rounded-xl px-4 pb-3 pt-5" style={{ backgroundColor: panel }}>
+        <div className="flex justify-center">
+          {/* The drawing, with the oven door and its power button as buttons
+              laid over it (sized to the 220px scene's 160 x 112 box). */}
+          <div className="relative w-[220px]">
+            <OvenScene
+              state={state}
+              pastry={pastry}
+              leaving={warm ? batch.leaving : null}
+              bake={batch.bake}
+              on={warm && batch.on}
+            />
+            {warm && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setBatch((current) => swap(current, current.at))}
+                  aria-label={`Take out ${pastry.name} and bake something else`}
+                  title="Bake something else"
+                  className="absolute left-[63px] top-[64px] h-[64px] w-[94px] cursor-pointer rounded-lg transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => setBatch((current) => ({ ...current, on: !current.on }))}
+                  aria-label={batch.on ? 'Turn the oven off' : 'Turn the oven on'}
+                  aria-pressed={batch.on}
+                  title={batch.on ? 'Turn the oven off' : 'Turn the oven on'}
+                  className="absolute left-[143px] top-[41px] h-[22px] w-[22px] cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20"
+                />
+              </>
+            )}
+          </div>
+        </div>
       </div>
       <h4 className="mt-4 font-tight text-base font-semibold leading-tight text-inkwell">{title}</h4>
       <p className="mt-1 text-sm leading-relaxed text-data-grey">
-        {line}
+        {batch.line}
         {state === 'delayed' && ' Fresh readings should be along soon.'}
         {state === 'closed' && ' The servers themselves may be running just fine.'}
       </p>
       <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-border-light pt-3 font-mono text-[11px]">
+        {state !== 'closed' && (
+          <>
+            <dt className="text-data-grey">In the oven</dt>
+            <dd className="text-right text-inkwell">{pastry.name}</dd>
+          </>
+        )}
         <dt className="text-data-grey">Last batch</dt>
         <dd className="text-right tabular-nums text-inkwell">
           {formatFullTime(generatedAt)} <span className="text-data-grey">· {formatAgo(age)}</span>

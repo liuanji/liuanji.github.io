@@ -253,7 +253,7 @@ const CLOSED_BAKERY = [
 ];
 
 // The card behind the page's "Live" dot: a line for each state of the bakery,
-// a fresh one each time the card opens.
+// a fresh one with each new bake.
 const BAKERY_STATE_LINES = {
   live: [
     'Fresh readings come out of the oven every minute.',
@@ -271,10 +271,12 @@ const BAKERY_STATE_LINES = {
   ],
 };
 
-export function bakeryStateLine(state) {
-  if (state === 'closed') return `The chefs are ${closedBakeryPhrase()}.`;
-  const lines = BAKERY_STATE_LINES[state];
-  return lines[Math.floor(Math.random() * lines.length)];
+// avoid, the line shown last, is not picked again straight away.
+export function bakeryStateLine(state, avoid = null) {
+  const lines =
+    state === 'closed' ? CLOSED_BAKERY.map((phrase) => `The chefs are ${phrase}.`) : BAKERY_STATE_LINES[state];
+  const choices = lines.filter((line) => line !== avoid);
+  return choices[Math.floor(Math.random() * choices.length)];
 }
 
 export function closedBakeryPhrase() {

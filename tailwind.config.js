@@ -140,6 +140,37 @@ module.exports = {
   				'0%, 100%': { transform: 'scaleY(0.8)' },
   				'50%': { transform: 'scaleY(1.05)' }
   			},
+  			'pastry-in': {
+  				'0%': { opacity: '0', transform: 'translateX(-14px) scale(0.7)' },
+  				'100%': { opacity: '1', transform: 'translateX(0) scale(1)' }
+  			},
+  			'pastry-out': {
+  				'0%': { opacity: '1', transform: 'translateX(0)' },
+  				'80%': { opacity: '1' },
+  				'100%': { opacity: '0', transform: 'translateX(64px)' }
+  			},
+  			'pastry-enter': {
+  				'0%': { opacity: '0', transform: 'translateX(-64px)' },
+  				'20%': { opacity: '1' },
+  				'100%': { opacity: '1', transform: 'translateX(0)' }
+  			},
+  			// The oven door swinging down on its hinge, staying open while the pastries
+  			// change, and swinging shut.
+  			'door-swing': {
+  				'0%, 100%': { transform: 'scaleY(1)' },
+  				'14%, 86%': { transform: 'scaleY(0.05)' }
+  			},
+  			// The tray coming out of the open oven towards the viewer while the
+  			// pastries change, then going back in.
+  			'tray-out': {
+  				'0%, 14%, 86%, 100%': { transform: 'translateY(0) scale(1)' },
+  				'32%, 68%': { transform: 'translateY(9px) scale(1.12)' }
+  			},
+  			// The oven's power button breathing while it is off.
+  			'power-breathe': {
+  				'0%, 100%': { opacity: '0.15', transform: 'scale(1)' },
+  				'50%': { opacity: '0.55', transform: 'scale(1.9)' }
+  			},
   			steam: {
   				'0%': { opacity: '0', transform: 'translateY(4px)' },
   				'35%': { opacity: '0.9' },
@@ -194,6 +225,12 @@ module.exports = {
   			'sparkle-blink': 'sparkle-blink 0.6s ease-in-out',
   			'oven-glow': 'oven-glow 2.4s ease-in-out infinite',
   			'dough-rise': 'dough-rise 3.2s ease-in-out infinite',
+  			'pastry-out': 'pastry-out 0.45s ease-in 0.8s both',
+  			'pastry-enter': 'pastry-enter 0.45s ease-out 1.25s both',
+  			'door-swing': 'door-swing 2.5s ease-in-out both',
+  			'tray-out': 'tray-out 2.5s ease-in-out both',
+  			'pastry-in': 'pastry-in 0.6s ease-out both',
+  			'power-breathe': 'power-breathe 1.8s ease-in-out infinite',
   			steam: 'steam 2.1s ease-out infinite',
   			'sign-swing': 'sign-swing 2.8s ease-in-out infinite',
   			snooze: 'snooze 2.7s ease-out infinite',
