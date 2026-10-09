@@ -341,6 +341,15 @@ class DatabaseTest(unittest.TestCase):
         self.assertEqual(users[0]["username"], "alice")
         self.assertEqual(users[0]["gpu_hours"], 0.008)
 
+    def test_user_summary_keeps_a_sliver_of_weighted_time_above_zero(self) -> None:
+        start = 1_700_000_000
+        for offset in (0, 60):
+            self.database.save(successful_result(start + offset))
+        with self.database.connect() as connection:
+            connection.execute("UPDATE user_minute SET weighted_gpu_seconds = 1.2 WHERE username = 'alice'")
+        alice = next(user for user in self.database.user_summary(start - 60, start + 60, "brezel") if user["username"] == "alice")
+        self.assertEqual(alice["weighted_gpu_hours"], 0.001)
+
     def test_driver_memory_without_process_is_idle(self) -> None:
         timestamp = 1_700_000_000
         self.database.save(phantom_utilization_result(timestamp))

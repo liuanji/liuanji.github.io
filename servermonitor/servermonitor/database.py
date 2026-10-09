@@ -316,6 +316,13 @@ def gpu_problems(gpu: dict[str, Any]) -> list[str]:
     return problems
 
 
+def _hours(seconds: float) -> float:
+    """Seconds as hours to three decimals, where a sliver above zero stays
+    0.001 rather than rounding to nothing, so the page can say "< 0.1"."""
+    hours = round(seconds / 3600, 3)
+    return 0.001 if seconds > 0 and hours == 0 else hours
+
+
 def _is_busy(gpu: GPUStat, process_uuids: set[str]) -> bool:
     return gpu.uuid in process_uuids or gpu.memory_used_mb >= BUSY_MEMORY_THRESHOLD_MB
 
@@ -1368,15 +1375,15 @@ class Database:
             item["memory_mb_seconds"] += float(row["memory_mb_seconds"] or 0)
             item["weighted_seconds"] += float(row["weighted_seconds"] or 0)
             item["hosts"].append(
-                {"name": row["host"], "gpu_hours": round(active / 3600, 3)}
+                {"name": row["host"], "gpu_hours": _hours(active)}
             )
 
         result = [
             {
                 "username": item["username"],
-                "gpu_hours": round(item["active_seconds"] / 3600, 3),
-                "memory_gb_hours": round(item["memory_mb_seconds"] / 1024 / 3600, 3),
-                "weighted_gpu_hours": round(item["weighted_seconds"] / 3600, 3),
+                "gpu_hours": _hours(item["active_seconds"]),
+                "memory_gb_hours": _hours(item["memory_mb_seconds"] / 1024),
+                "weighted_gpu_hours": _hours(item["weighted_seconds"]),
                 "hosts": sorted(item["hosts"], key=lambda value: -value["gpu_hours"]),
             }
             for item in users.values()
