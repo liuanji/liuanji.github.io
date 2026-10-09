@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { useGrowingShare } from './useGrowingShare';
 
 // Small icons that show their tile's reading, drawn like stroke icons on a 24
 // unit grid in the metric's colour. share runs from 0 to 1.
@@ -60,7 +61,15 @@ function GaugeIcon({ share, color }) {
           strokeDasharray={`${value * half} ${half}`}
         />
       )}
-      <line x1={center.x} y1={center.y} x2={needle.x} y2={needle.y} stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <line
+        x1={center.x}
+        y1={center.y}
+        x2={needle.x}
+        y2={needle.y}
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
       <circle cx={center.x} cy={center.y} r="1.6" fill={color} />
     </>
   );
@@ -110,12 +119,14 @@ function BoltIcon({ share, color }) {
 }
 
 const ICONS = { busy: SlotsIcon, compute: GaugeIcon, memory: StickIcon, power: BoltIcon };
-
-export function MetricIcon({ metricKey, share, color, className = 'h-5 w-5' }) {
+// grow animates the reading in from 0 each time the icon appears, as in the
+// boxes the tiles open.
+export function MetricIcon({ metricKey, share, color, className = 'h-5 w-5', grow = false }) {
   const Drawing = ICONS[metricKey];
+  const shown = useGrowingShare(share, grow);
   return (
     <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
-      <Drawing share={share} color={color} />
+      <Drawing share={shown} color={color} />
     </svg>
   );
 }

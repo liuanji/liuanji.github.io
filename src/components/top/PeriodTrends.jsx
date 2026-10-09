@@ -58,7 +58,10 @@ function trendRows(history, metric) {
   const rows = history.points
     .map((point) => ({ time: point.timestamp, value: metric.read(point), point }))
     .filter((row) => row.value != null);
-  const steps = rows.slice(1).map((row, index) => row.time - rows[index].time).sort((a, b) => a - b);
+  const steps = rows
+    .slice(1)
+    .map((row, index) => row.time - rows[index].time)
+    .sort((a, b) => a - b);
   const typical = steps[Math.floor(steps.length / 2)];
   if (!typical) return rows;
   return rows.flatMap((row, index) =>
@@ -108,7 +111,7 @@ function TrendDetails({ metric, rows, history, range, scope, average, share }) {
           style={{ backgroundColor: `${metric.color}1A` }}
           aria-hidden="true"
         >
-          <MetricIcon metricKey={metric.key} share={share} color={metric.color} className="h-[18px] w-[18px]" />
+          <MetricIcon metricKey={metric.key} share={share} color={metric.color} className="h-[18px] w-[18px]" grow />
         </span>
         <div className="min-w-0">
           <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">

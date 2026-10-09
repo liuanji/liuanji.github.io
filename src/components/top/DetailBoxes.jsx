@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { StatTile } from './controls';
+import { useGrowingShare } from './useGrowingShare';
 import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, SERIES, TEMPERATURE_ICON_RANGE } from './config';
 import { formatCpuCount, formatCpuModel, formatMemory, formatMemoryOf, gpuModels, userColor } from './format';
 import { busyGpuPhrase, freeGpuPhrase, idleGpuPhrase, pressurePhrase, reservedIdlePhrase } from './easterEggs';
@@ -343,11 +344,16 @@ export function GpuGlyph({ compute, memory, width = 116 }) {
   const fan = { x: 14.5, y: 13, radius: 8.4 };
   const circumference = 2 * Math.PI * fan.radius;
   const load = Math.min(1, Math.max(0, compute));
-  const arc = load * circumference;
+  // The compute ring sweeps up from 0 when the box appears.
+  const arc = useGrowingShare(load) * circumference;
   // Seconds per turn: 3.2 at the lightest load down to 0.6 at full load.
   const spin = load >= 0.02 ? 3.2 - 2.6 * load : null;
   const chips = 8;
-  const filled = Math.min(1, Math.max(0, memory)) * chips;
+  const used = Math.min(1, Math.max(0, memory));
+  const filled = used * chips;
+  // The memory chips pulse in a wave in reading order, like the RAM stick's:
+  // seconds per wave, 3.2 when nearly empty down to 1.4 when full.
+  const wave = used >= 0.02 ? 3.2 - 1.8 * used : null;
   return (
     <svg width={width} height={(width * 30.5) / 60} viewBox="0 0 60 30.5" aria-hidden="true">
       <rect x="0.65" y="0.65" width="58.7" height="24.7" rx="3" fill="white" stroke={GLYPH.outline} strokeWidth="1.3" />
@@ -392,7 +398,20 @@ export function GpuGlyph({ compute, memory, width = 116 }) {
           <g key={index}>
             <rect x={x} y={y} width="5.6" height="6.4" rx="0.8" fill={GLYPH.unlit} />
             {amount > 0 && (
-              <rect x={x} y={y} width={5.6 * amount} height="6.4" rx="0.8" fill={RING_SERIES.memory.color} />
+              <rect
+                x={x}
+                y={y}
+                width={5.6 * amount}
+                height="6.4"
+                rx="0.8"
+                fill={RING_SERIES.memory.color}
+                className={wave ? 'motion-safe:animate-pulse' : undefined}
+                style={
+                  wave
+                    ? { animationDuration: `${wave}s`, animationDelay: `-${((chips - index) / chips) * wave}s` }
+                    : undefined
+                }
+              />
             )}
           </g>
         );
@@ -417,9 +436,14 @@ export function GpuGlyph({ compute, memory, width = 116 }) {
 
 // A tiny memory stick whose six chips fill from the left with the RAM in use,
 // above a row of gold contacts with the key notch.
-export function StickGlyph({ share, color, width = 44 }) {
+// With animated set, the lit memory chips pulse in a wave from left to right,
+// like data written along the stick, quicker the fuller it is; an empty stick
+// and viewers who prefer reduced motion get a still one.
+export function StickGlyph({ share, color, width = 44, animated = false }) {
   const chips = 6;
   const filled = share * chips;
+  // Seconds per wave: 3.2 when nearly empty down to 1.4 when full.
+  const wave = animated && share >= 0.02 ? 3.2 - 1.8 * share : null;
   return (
     // The viewBox centres the stick's body; the contacts hang below it, so the
     // body lines up with the text beside it.
@@ -431,7 +455,22 @@ export function StickGlyph({ share, color, width = 44 }) {
         return (
           <g key={index}>
             <rect x={x} y="4.2" width="3.9" height="6.1" rx="0.7" fill={GLYPH.unlit} />
-            {amount > 0 && <rect x={x} y="4.2" width={3.9 * amount} height="6.1" rx="0.7" fill={color} />}
+            {amount > 0 && (
+              <rect
+                x={x}
+                y="4.2"
+                width={3.9 * amount}
+                height="6.1"
+                rx="0.7"
+                fill={color}
+                className={wave ? 'motion-safe:animate-pulse' : undefined}
+                style={
+                  wave
+                    ? { animationDuration: `${wave}s`, animationDelay: `-${((chips - index) / chips) * wave}s` }
+                    : undefined
+                }
+              />
+            )}
           </g>
         );
       })}
@@ -565,7 +604,7 @@ export function RamDetails({ host, system, level, children = null, compact = fal
       compact={compact}
       large={
         <div className="flex w-[112px] flex-shrink-0 flex-col items-center justify-center">
-          <StickGlyph share={used / total} color={inUse.color} width={112} />
+          <StickGlyph share={used / total} color={inUse.color} width={112} animated />
           <span
             className="mt-3 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell"
             style={level ? { color: READING_STYLES[level].color } : undefined}
@@ -574,7 +613,7 @@ export function RamDetails({ host, system, level, children = null, compact = fal
           </span>
         </div>
       }
-      small={<StickGlyph share={used / total} color={inUse.color} width={60} />}
+      small={<StickGlyph share={used / total} color={inUse.color} width={60} animated />}
       title={
         <>
           {host} <span className="text-data-grey/60">·</span> RAM

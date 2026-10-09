@@ -268,7 +268,6 @@ export default function MilestoneBadge({ lifetime }) {
                 'A forecast appears after a day of baking.'
               )}
             </p>
-            <p className="mt-1 text-[11px] text-data-grey/60">Cloud value against what the servers cost.</p>
           </div>
           <p className="mt-3 border-t border-border-light pt-3 font-mono text-[11px] italic text-data-grey/80">
             {milestoneLine(current)}

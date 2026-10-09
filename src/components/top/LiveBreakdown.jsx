@@ -90,7 +90,7 @@ function BreakdownDetails({ metricKey, hosts, now, summary, share }) {
           style={{ backgroundColor: `${metric.color}1A` }}
           aria-hidden="true"
         >
-          <MetricIcon metricKey={metricKey} share={share} color={metric.color} className="h-[18px] w-[18px]" />
+          <MetricIcon metricKey={metricKey} share={share} color={metric.color} className="h-[18px] w-[18px]" grow />
         </span>
         <div className="min-w-0">
           <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">
