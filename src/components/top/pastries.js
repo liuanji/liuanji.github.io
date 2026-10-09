@@ -3,6 +3,9 @@
 // oven scene's 160 x 112 box) and is a list of SVG shapes: a tag and its
 // attributes, in React's spelling. shadow is the half-width of the soft shadow
 // it casts on the tray; transform, if any, applies to the whole pastry.
+// Each also has a raw phase, before the oven bakes it: its colours swapped for
+// the paler ones in RAW_COLORS, and its toppings (marked topping: icing,
+// and butter) not on yet.
 const GOLD = '#E3B655';
 const CRUST = '#C9973D';
 const LINE = { stroke: CRUST, strokeWidth: 1.6, strokeLinecap: 'round', fill: 'none' };
@@ -16,6 +19,18 @@ const ROPE_EDGE = {
   strokeLinejoin: 'round',
 };
 const ROPE = { fill: 'none', stroke: '#C47E3E', strokeWidth: 3.2, strokeLinecap: 'round', strokeLinejoin: 'round' };
+
+// Baked colours and their raw dough.
+export const RAW_COLORS = {
+  [GOLD]: '#F4E7C8',
+  [CRUST]: '#DECA9E',
+  '#C47E3E': '#EEDDBB',
+  '#8C5022': '#D3BD93',
+  '#F6E2B3': '#FBF4E2',
+  '#BF8638': '#E4D2AA',
+  '#E2C48A': '#ECDFC4',
+  '#A87A35': '#E6D2AC',
+};
 
 export const PASTRIES = [
   {
@@ -86,6 +101,7 @@ export const PASTRIES = [
         height: 6.4,
         rx: 1.6,
         transform: 'rotate(-6 80 68.6)',
+        topping: true,
         fill: '#FBE7A1',
         stroke: '#E8C96A',
         strokeWidth: 1,
@@ -94,6 +110,7 @@ export const PASTRIES = [
         tag: 'path',
         d: 'M77 67.4h3.4',
         transform: 'rotate(-6 80 68.6)',
+        topping: true,
         stroke: 'white',
         strokeWidth: 0.9,
         strokeLinecap: 'round',
@@ -153,58 +170,15 @@ export const PASTRIES = [
         tag: 'path',
         d: 'M67.6 75.2c0-3.6 5.5-6.2 12.4-6.2s12.4 2.6 12.4 6.2c0 1.4-1.4 1.6-2.2 1-.8 1.6-2.6 2-3.4.8-1 1.8-3 1.8-3.8.4-1.2 1.6-3.6 1.6-4.6.2-1 1.4-3 1.2-3.6-.2-1 1.2-2.8 1-3.2-.6-1 .6-2 0-2-1.6z',
         fill: '#EAA3B4',
+        topping: true,
       },
       { tag: 'ellipse', cx: 80, cy: 74.6, rx: 3.6, ry: 1.7, fill: '#A87A35' },
       {
         tag: 'path',
         d: 'M71.5 73.6l1.5-.4M75 71.2l1.2-.8M84.8 71.2l1.3.6M88 74l1.2.6M83.6 76.2l1.4.1M76 76.4l1.1-.6',
+        topping: true,
         stroke: 'white',
         strokeWidth: 1.1,
-        strokeLinecap: 'round',
-      },
-    ],
-  },
-  {
-    name: 'a slice of strawberry cake',
-    shadow: 17,
-    shapes: [
-      // Its back, the cut side with its layers of jam, then the top.
-      {
-        tag: 'path',
-        d: 'M96 71.5l-8-5v9l8 5z',
-        fill: '#F2D7A6',
-        stroke: CRUST,
-        strokeWidth: 1.8,
-        strokeLinejoin: 'round',
-      },
-      {
-        tag: 'path',
-        d: 'M64 74l32-2.5v9L64 83z',
-        fill: '#F7E7C4',
-        stroke: CRUST,
-        strokeWidth: 1.8,
-        strokeLinejoin: 'round',
-      },
-      { tag: 'path', d: 'M64 77.2l32-2.5M64 80.1l32-2.5', stroke: '#EAA3B4', strokeWidth: 1.6 },
-      {
-        tag: 'path',
-        d: 'M64 74l24-7.5 8 5z',
-        fill: '#FFF6E8',
-        stroke: CRUST,
-        strokeWidth: 1.8,
-        strokeLinejoin: 'round',
-      },
-      { tag: 'ellipse', cx: 88, cy: 69.4, rx: 3, ry: 1.6, fill: 'white', stroke: '#EADBC4', strokeWidth: 0.8 },
-      {
-        tag: 'path',
-        d: 'M88.2 64.2c-1.8-.2-3 1-2.6 2.6.4 1.6 2.4 2.6 3.4 2.6s1.8-1.6 1.6-3c-.2-1.4-1.2-2.1-2.4-2.2z',
-        fill: '#E06A6A',
-      },
-      {
-        tag: 'path',
-        d: 'M87.8 64.4c.4-1 1.4-1.6 2.4-1.4',
-        stroke: '#6BAA6B',
-        strokeWidth: 1.2,
         strokeLinecap: 'round',
       },
     ],

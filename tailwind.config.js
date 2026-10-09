@@ -130,15 +130,11 @@ module.exports = {
   				'35%': { transform: 'scale(0.15)' },
   				'70%': { transform: 'scale(1.2)' }
   			},
-  			// The bakery card's oven: its window glowing, the loaf rising, steam curling
+  			// The bakery card's oven: its window glowing, steam curling
   			// up, the closed sign swinging and the dozing oven's z's floating off.
   			'oven-glow': {
   				'0%, 100%': { opacity: '0.45' },
   				'50%': { opacity: '0.85' }
-  			},
-  			'dough-rise': {
-  				'0%, 100%': { transform: 'scaleY(0.8)' },
-  				'50%': { transform: 'scaleY(1.05)' }
   			},
   			'pastry-in': {
   				'0%': { opacity: '0', transform: 'translateX(-14px) scale(0.7)' },
@@ -224,7 +220,6 @@ module.exports = {
   			'sparkle-in': 'sparkle-in 0.56s ease-in-out both',
   			'sparkle-blink': 'sparkle-blink 0.6s ease-in-out',
   			'oven-glow': 'oven-glow 2.4s ease-in-out infinite',
-  			'dough-rise': 'dough-rise 3.2s ease-in-out infinite',
   			'pastry-out': 'pastry-out 0.45s ease-in 0.8s both',
   			'pastry-enter': 'pastry-enter 0.45s ease-out 1.25s both',
   			'door-swing': 'door-swing 2.5s ease-in-out both',

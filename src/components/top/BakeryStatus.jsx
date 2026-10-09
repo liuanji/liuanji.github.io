@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { GLYPH } from './DetailBoxes';
 import { HOST_STATUS } from './config';
 import { bakeryStateLine } from './easterEggs';
 import { formatAgo, formatFullTime } from './format';
-import { PASTRIES } from './pastries';
+import { PASTRIES, RAW_COLORS } from './pastries';
 
 // The bakery behind the page's "Live" dot, in three states: live, with the
 // oven's window glowing, a pastry rising inside and steam curling off the top;
@@ -34,20 +34,42 @@ const POWER_OFF = '#EDA748';
 const STEAM = ['M68 24c-3-4 3-7 0-11s3-7 0-11', 'M80 22c-3-4 3-7 0-11s3-7 0-11', 'M92 24c-3-4 3-7 0-11s3-7 0-11'];
 
 // A pastry and its shadow on the tray.
-function Pastry({ pastry }) {
+// doneness runs from 0, raw dough, to 1, baked: the colours warm from their
+// raw shades through every shade between, the pastry rises a little, and the
+// toppings go on over the last fifth.
+function Pastry({ pastry, doneness = 1 }) {
+  const cook = (color) => (RAW_COLORS[color] ? mixColor(RAW_COLORS[color], color, doneness) : color);
+  const topping = Math.max(0, (doneness - 0.8) / 0.2);
+  const rise = `translate(80 83) scale(${0.95 + 0.05 * doneness} ${0.85 + 0.15 * doneness}) translate(-80 -83)`;
   return (
     <>
       <ellipse cx="80" cy="83.3" rx={pastry.shadow} ry="1.5" fill="#8A6A3A" opacity="0.22" />
-      <g transform={pastry.transform}>
-        {pastry.shapes.map(({ tag: Shape, ...shape }, index) => (
-          <Shape key={index} {...shape} />
-        ))}
+      <g transform={rise}>
+        <g transform={pastry.transform}>
+          {pastry.shapes.map(({ tag: Shape, topping: isTopping, fill, stroke, ...shape }, index) =>
+            isTopping && topping <= 0 ? null : (
+              <Shape
+                key={index}
+                {...shape}
+                fill={cook(fill)}
+                stroke={cook(stroke)}
+                opacity={isTopping ? topping : undefined}
+              />
+            ),
+          )}
+        </g>
       </g>
     </>
   );
 }
 
-function OvenScene({ state, pastry, leaving, bake, on }) {
+function mixColor(from, to, amount) {
+  const channels = (hex) => [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
+  const [a, b] = [channels(from), channels(to)];
+  return `rgb(${a.map((value, index) => Math.round(value + (b[index] - value) * amount)).join(',')})`;
+}
+
+function OvenScene({ state, pastry, leaving, bake, on, doneness, cooling }) {
   const { glow, light } = SCENE[state];
   const warm = state !== 'closed';
   // Baking: the oven open for business and switched on.
@@ -165,38 +187,38 @@ function OvenScene({ state, pastry, leaving, bake, on }) {
         />
       )}
       <rect x="46" y="53" width="68" height="38" rx="6" fill="none" stroke={GLYPH.outline} strokeWidth="1.2" />
-      {/* When another one goes in, the door swings down, the tray comes out
-          towards the viewer, the last pastry is taken off to the right, the
-          new one is set on from the left, the tray goes back in and the door
-          swings shut again. */}
+      {/* When another one goes in, the oven is switched off first if it was
+          on (cooling, a pause while it goes dark), then the door swings down,
+          the tray comes out towards the viewer, the last pastry is taken off
+          to the right, the new one is set on from the left, the tray goes back
+          in and the door swings shut again. */}
       <g
         key={`tray-${bake}`}
         className={bake ? 'motion-safe:animate-tray-out' : undefined}
-        style={{ transformBox: 'view-box', transformOrigin: '80px 84px' }}
+        style={{ transformBox: 'view-box', transformOrigin: '80px 84px', animationDelay: `${cooling}s` }}
       >
         <path d="M57.5 80.5h45l3 4h-51z" fill="#E6EBF1" />
         <rect x="54.5" y="84.5" width="51" height="2.2" rx="1" fill={GLYPH.outline} />
         {warm && leaving && (
-          <g key={`out-${bake}`} className="motion-safe:animate-pastry-out">
-            <Pastry pastry={leaving} />
+          <g
+            key={`out-${bake}`}
+            className="motion-safe:animate-pastry-out"
+            style={{ animationDelay: `${0.8 + cooling}s` }}
+          >
+            <Pastry pastry={leaving.pastry} doneness={leaving.doneness} />
           </g>
         )}
         {warm && (
           <g
             key={`in-${bake}`}
             className={bake ? 'motion-safe:animate-pastry-enter' : 'motion-safe:animate-pastry-in'}
-            style={{ transformBox: 'fill-box', transformOrigin: 'center bottom' }}
+            style={{
+              transformBox: 'fill-box',
+              transformOrigin: 'center bottom',
+              animationDelay: bake ? `${1.25 + cooling}s` : undefined,
+            }}
           >
-            <g
-              className={baking ? 'motion-safe:animate-dough-rise' : undefined}
-              style={{
-                transformBox: 'fill-box',
-                transformOrigin: 'center bottom',
-                animationDuration: state === 'live' ? '3.2s' : '6s',
-              }}
-            >
-              <Pastry pastry={pastry} />
-            </g>
+            <Pastry pastry={pastry} doneness={doneness} />
           </g>
         )}
       </g>
@@ -205,7 +227,7 @@ function OvenScene({ state, pastry, leaving, bake, on }) {
       <g
         key={`door-${bake}`}
         className={bake ? 'motion-safe:animate-door-swing' : undefined}
-        style={{ transformBox: 'view-box', transformOrigin: '80px 92px' }}
+        style={{ transformBox: 'view-box', transformOrigin: '80px 92px', animationDelay: `${cooling}s` }}
       >
         <rect x="46" y="53" width="68" height="38" rx="6" fill="white" opacity="0.12" />
         <path d="M52 64l7-7M55 66l4-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" opacity="0.7" />
@@ -253,6 +275,42 @@ function OvenScene({ state, pastry, leaving, bake, on }) {
 
 // The card itself: the scene, a line for the state (a new one each time the
 // card opens) and when the last batch of readings came out.
+// How long a pastry takes to bake, and the pause to switch the oven off
+// before one is taken out.
+const BAKE_MS = 5000;
+const COOLING_S = 0.7;
+
+// How baked this batch's pastry is, 0 (raw) to 1: the first pastry comes
+// baked, each new one starts raw, and it bakes only while the oven is on,
+// pausing where it is when switched off. current is the latest value, for
+// handlers.
+function useDoneness(on, bake) {
+  const [value, setValue] = useState(1);
+  const current = useRef(1);
+  current.current = value;
+  useEffect(() => {
+    if (bake) setValue(0);
+  }, [bake]);
+  const done = value >= 1;
+  useEffect(() => {
+    if (!on || done) return undefined;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setValue(1);
+      return undefined;
+    }
+    let last = performance.now();
+    let frame = requestAnimationFrame(function step(now) {
+      // The time since the last frame, taken now: the update itself may run later.
+      const elapsed = Math.max(0, now - last);
+      last = now;
+      setValue((previous) => Math.min(1, previous + elapsed / BAKE_MS));
+      frame = requestAnimationFrame(step);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [on, done]);
+  return { value, current: current.current };
+}
+
 export function BakeryCard({ state, generatedAt, now }) {
   // A random pastry when the card opens; a different one with each new batch
   // of readings while it is open, and whenever the oven is clicked, each with
@@ -262,25 +320,30 @@ export function BakeryCard({ state, generatedAt, now }) {
     index: Math.floor(Math.random() * PASTRIES.length),
     bake: 0,
     leaving: null,
+    cooling: 0,
     line: bakeryStateLine(state),
     on: true,
   }));
+  const doneness = useDoneness(batch.on, batch.bake);
+  // A swap switches the oven off first, if it was on, and then takes the
+  // pastry out as it is (baked or not).
   const swap = (current, at) => ({
     at,
     index: (current.index + 1 + Math.floor(Math.random() * (PASTRIES.length - 1))) % PASTRIES.length,
     bake: current.bake + 1,
-    leaving: PASTRIES[current.index],
+    leaving: { pastry: PASTRIES[current.index], doneness: doneness.current },
+    cooling: current.on ? COOLING_S : 0,
     line: bakeryStateLine(state, current.line),
-    // A fresh pastry waits in a cold oven until someone switches it on.
+    // A fresh pastry waits raw in a cold oven until someone switches it on.
     on: false,
   });
   if (batch.at !== generatedAt) setBatch(swap(batch, generatedAt));
   // Once out of the oven, the last pastry is cleared away.
   useEffect(() => {
     if (!batch.leaving) return undefined;
-    const timer = setTimeout(() => setBatch((current) => ({ ...current, leaving: null })), 2600);
+    const timer = setTimeout(() => setBatch((current) => ({ ...current, leaving: null })), 2600 + batch.cooling * 1000);
     return () => clearTimeout(timer);
-  }, [batch.bake, batch.leaving]);
+  }, [batch.bake, batch.leaving, batch.cooling]);
   const pastry = PASTRIES[batch.index];
   const warm = state !== 'closed';
   const { title, panel } = SCENE[state];
@@ -296,6 +359,8 @@ export function BakeryCard({ state, generatedAt, now }) {
               state={state}
               pastry={pastry}
               leaving={warm ? batch.leaving : null}
+              doneness={doneness.value}
+              cooling={batch.cooling}
               bake={batch.bake}
               on={warm && batch.on}
             />
@@ -331,7 +396,17 @@ export function BakeryCard({ state, generatedAt, now }) {
         {state !== 'closed' && (
           <>
             <dt className="text-data-grey">In the oven</dt>
-            <dd className="text-right text-inkwell">{pastry.name}</dd>
+            <dd className="text-right text-inkwell">
+              {pastry.name}{' '}
+              <span className="text-data-grey">
+                ·{' '}
+                {doneness.value <= 0
+                  ? 'raw'
+                  : doneness.value < 1
+                    ? `baking ${Math.round(doneness.value * 100)}%`
+                    : 'freshly baked'}
+              </span>
+            </dd>
           </>
         )}
         <dt className="text-data-grey">Last batch</dt>
