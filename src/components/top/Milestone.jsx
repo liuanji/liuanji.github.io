@@ -18,6 +18,12 @@ function compact(hours) {
   return hours >= 10000 ? `${Number((hours / 1000).toFixed(1))}k` : Math.round(hours).toLocaleString('en-US');
 }
 
+// The bonus laps' gold, a touch warmer than the crust.
+const GOLD = '#F3D27A';
+const GOLD_DEEP = '#D9A441';
+// Which bakery's worth comes next: after the first is paid, the second.
+const ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
+
 const monthYear = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' });
 
 // A share of the servers paid off: one decimal below 10%, whole percents above.
@@ -160,7 +166,12 @@ export default function MilestoneBadge({ lifetime, pace = null }) {
   const gpuHoursPerDay = pace?.gpuHoursPerDay ?? lifetime.gpu_hours_per_day ?? 0;
   const paceOf = pace ? pace.title.replace(/^Last/, 'the last') : 'the last month';
   const perDay = gpuHoursPerDay * CLOUD_SGD_PER_GPU_HOUR;
-  const paidOn = perDay > 0 && paid < 1 ? new Date(Date.now() + ((BAKERY_SGD - value) / perDay) * 86400000) : null;
+  // Past the price, the servers pay for themselves again and again: laps of the
+  // bakery, and the progress and date of the next one.
+  const laps = Math.floor(paid);
+  const lap = paid - laps;
+  const nextAt = (laps + 1) * BAKERY_SGD;
+  const paidOn = perDay > 0 ? new Date(Date.now() + ((nextAt - value) / perDay) * 86400000) : null;
   return (
     <Popover>
       <PopoverTrigger
@@ -248,27 +259,64 @@ export default function MilestoneBadge({ lifetime, pace = null }) {
               back, as a share only, and when it may all be paid at the recent pace. */}
           <div className="mt-3 border-t border-border-light pt-3">
             <div className="mb-1.5 flex items-baseline justify-between gap-3 font-mono text-[10px] uppercase tracking-widest text-data-grey/70">
-              <span>Paying off the servers</span>
-              <span className="text-[11px] normal-case tracking-normal tabular-nums text-inkwell">
+              <span>{laps ? 'Paid off · bonus bakes' : 'Paying off the servers'}</span>
+              <span className="flex items-center gap-1 text-[11px] normal-case tracking-normal tabular-nums text-inkwell">
+                {laps > 0 && <Crown className="h-3 w-3" strokeWidth={2.2} style={{ color: CRUST, fill: BUTTER }} />}
                 {paidShare(paid)}
               </span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: '#F6EEDD' }}>
-              <div
-                className="h-full rounded-full"
-                style={{ width: `max(${Math.min(1, paid) * 100}%, 0.5rem)`, backgroundColor: CRUST }}
-              />
+            {/* Before the price: progress to it. After: a golden croissant for each time the
+                servers have paid for themselves (one and a count past five), and the bar
+                fills again towards the next. */}
+            <div className="flex items-center gap-2">
+              {laps > 0 && (
+                <span className="flex items-center gap-0.5" title={`Paid for ${laps === 1 ? 'once' : `${laps} times`}`}>
+                  {Array.from({ length: laps > 5 ? 1 : laps }, (_, index) => (
+                    <Croissant
+                      key={index}
+                      className="h-3.5 w-3.5"
+                      strokeWidth={1.8}
+                      style={{ color: CRUST, fill: GOLD }}
+                      aria-hidden="true"
+                    />
+                  ))}
+                  {laps > 5 && <span className="font-mono text-[10px] text-data-grey">×{laps}</span>}
+                </span>
+              )}
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ backgroundColor: '#F6EEDD' }}>
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `max(${(laps ? lap : paid) * 100}%, 0.5rem)`,
+                    backgroundColor: laps ? GOLD_DEEP : CRUST,
+                  }}
+                />
+              </div>
             </div>
             <p className="mt-2 text-xs leading-relaxed text-data-grey">
-              {paid >= 1 ? (
-                'The servers have paid for themselves; every bake from here is a bonus.'
-              ) : paidOn ? (
+              {laps > 0 && (
                 <>
-                  At the pace of {paceOf}, about {Math.round(gpuHoursPerDay).toLocaleString('en-US')} GPU hours a day,
-                  brezel, croissant and toast pay for themselves around{' '}
+                  <span className="text-inkwell">
+                    {laps === 1
+                      ? 'The ovens have paid for themselves!'
+                      : laps === 2
+                        ? 'The ovens have paid for themselves twice over!'
+                        : `The ovens have paid for themselves ${laps} times over!`}
+                  </span>{' '}
+                  Every bake from here is a bonus batch.{' '}
+                </>
+              )}
+              {paidOn ? (
+                <>
+                  At the pace of {paceOf}, about {Math.round(gpuHoursPerDay).toLocaleString('en-US')} GPU hours a day,{' '}
+                  {laps ? (
+                    <>the {ORDINALS[laps] ?? `${laps + 1}th`} bakery’s worth is baked around </>
+                  ) : (
+                    <>brezel, croissant and toast pay for themselves around </>
+                  )}
                   <span className="text-inkwell">{monthYear.format(paidOn)}</span>.
                 </>
-              ) : (
+              ) : laps ? null : (
                 'No baking in this period yet, so no forecast.'
               )}
             </p>

@@ -219,7 +219,8 @@ function HeaderMeter({ label, Glyph, share, title, series, level = null, details
   const inner = (
     <>
       <span aria-hidden="true">{label}</span>
-      <Glyph share={clamped} color={(LEVEL_SERIES[level] ?? series).color} />
+      {/* Alive like the boxes' own: the CPU's cores and the RAM's chips pulse with the load. */}
+      <Glyph share={clamped} color={(LEVEL_SERIES[level] ?? series).color} animated />
       <span
         className={`w-8 text-left tabular-nums ${level ? 'font-medium' : 'text-inkwell'}`}
         style={level ? { color: READING_STYLES[level].color } : undefined}
