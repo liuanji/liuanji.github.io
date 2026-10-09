@@ -338,7 +338,7 @@ export default function UptimeCard({ uptime, hosts, range, onOpen }) {
     <div className="bg-white rounded-2xl border border-border-light">
       {/* The title and its subtitle as one block on the left; the key and the
           view switch stacked on the right, with room between them. */}
-      <div className="flex flex-col gap-3 border-b border-border-light px-6 pb-4 pt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+      <div className="flex flex-col gap-3 border-b border-border-light px-6 pb-4 pt-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0">
           <h3 className="font-tight font-semibold text-lg text-inkwell">Availability</h3>
           <p className="mt-0.5 text-xs text-data-grey" aria-live="polite">

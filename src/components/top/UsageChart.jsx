@@ -1,17 +1,18 @@
 import { useId, useMemo, useState } from 'react';
 import { Area, ComposedChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Segmented, TextTabs } from './controls';
-import { formatAxisTime, formatFullTime } from './format';
+import { formatAxisTime, formatFullTime, formatPower } from './format';
 
 const TICK = { fill: '#94A3B8', fontSize: 11, fontFamily: 'JetBrains Mono, monospace' };
 
-// Compute (how many GPUs were in use, against all of them) or memory in use, in
-// one ink blue, the utilized part in a lighter tone of it. Inside the fade under the GPUs in use, a softer line marks
-// how many GPUs' worth were computing, with a denser fade below it: their
-// utilization, named as a share where the line ends.
+// Compute (how many GPUs were in use, against all of them), memory in use or the
+// GPUs' total power draw, in one ink blue. Inside the fade under the GPUs in
+// use, a softer line in a lighter tone marks how many GPUs' worth were
+// computing, with a denser fade below it: their utilization.
 const VIEWS = {
   busy: { label: 'Compute' },
   memory: { label: 'Memory' },
+  power: { label: 'Power' },
 };
 const INK = '#3E5BA9';
 const INK_SOFT = '#8EA2D8';
@@ -22,6 +23,7 @@ function toChartPoints(points) {
     busy: point.gpus_in_use,
     total: point.gpu_count,
     compute: point.utilization,
+    power: point.power_w,
     memory: point.memory_percent,
     // Utilization: the GPUs' worth computing (the average load over every GPU)
     // as a share of the GPUs in use.
@@ -51,7 +53,13 @@ function toChartPoints(points) {
   return rows.flatMap((row, index) =>
     index && row.timestamp - rows[index - 1].timestamp > typical * 2.5
       ? [
-          { timestamp: rows[index - 1].timestamp + typical, busyDrawn: null, computeDrawn: null, memoryDrawn: null },
+          {
+            timestamp: rows[index - 1].timestamp + typical,
+            busyDrawn: null,
+            computeDrawn: null,
+            memoryDrawn: null,
+            powerDrawn: null,
+          },
           row,
         ]
       : [row],
@@ -59,6 +67,7 @@ function toChartPoints(points) {
 }
 
 function format(view, value, total) {
+  if (view === 'power') return formatPower(value);
   return view === 'busy' ? `${Math.round(value)} of ${total}` : `${Math.round(value)}%`;
 }
 
@@ -77,6 +86,10 @@ function ChartTooltip({ active = false, payload = [], label = 0, view }) {
             </span>{' '}
             GPUs in use
             <span className="text-data-grey"> · {Math.round(row.utilized * 100)}% utilized</span>
+          </>
+        ) : view === 'power' ? (
+          <>
+            <span className="font-medium tabular-nums">{formatPower(row.power)}</span> drawn by the GPUs
           </>
         ) : (
           <>
@@ -100,7 +113,9 @@ export default function UsageChart({ history, range, servers = null, server = 'a
   const color = INK;
   const readings = points.filter((point) => point.busy != null);
   const total = Math.max(1, ...readings.map((point) => point.total ?? 0));
-  const top = view === 'busy' ? total : 100;
+  // Power's scale is the most drawn in the range, rounded up to a whole kW.
+  const powerTop = Math.max(1000, Math.ceil(Math.max(0, ...readings.map((point) => point.power ?? 0)) / 1000) * 1000);
+  const top = view === 'busy' ? total : view === 'power' ? powerTop : 100;
   const busiest = readings.reduce((best, point) => (!best || point[view] > best[view] ? point : best), null);
   const quietest = readings.reduce((best, point) => (!best || point[view] < best[view] ? point : best), null);
   const average = readings.length ? readings.reduce((sum, point) => sum + point[view], 0) / readings.length : 0;
@@ -111,7 +126,7 @@ export default function UsageChart({ history, range, servers = null, server = 'a
   const ticks = [0, 1, 2, 3, 4].map((step) => history.start + (span * step) / 4);
   const when = (timestamp) =>
     range === '1h' || range === '24h' ? formatAxisTime(timestamp, '24h') : formatFullTime(timestamp);
-  const noun = { busy: 'GPUs in use', memory: 'memory in use' }[view];
+  const noun = { busy: 'GPUs in use', memory: 'memory in use', power: 'drawn by the GPUs' }[view];
 
   const summary = readings.length ? (
     <>
@@ -139,7 +154,7 @@ export default function UsageChart({ history, range, servers = null, server = 'a
     <div className="bg-white rounded-2xl border border-border-light p-6">
       {/* The title and its summary as one block on the left; the server tabs
           and the view switch stacked on the right, with room between them. */}
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0">
           <h3 className="font-tight font-semibold text-lg text-inkwell">Usage trend</h3>
           <p className="mt-0.5 text-xs text-data-grey" aria-live="polite">
@@ -189,11 +204,11 @@ export default function UsageChart({ history, range, servers = null, server = 'a
               <YAxis
                 domain={[0, top]}
                 ticks={[0, top]}
-                tickFormatter={(tick) => (view === 'busy' ? tick : `${tick}%`)}
+                tickFormatter={(tick) => (view === 'busy' ? tick : view === 'power' ? `${tick / 1000} kW` : `${tick}%`)}
                 axisLine={false}
                 tickLine={false}
                 tick={TICK}
-                width={40}
+                width={view === 'power' ? 50 : 40}
               />
               {/* All the GPUs (or 100%), as a faint ceiling. */}
               <ReferenceLine y={top} stroke="#E2E8F0" strokeDasharray="3 4" />
