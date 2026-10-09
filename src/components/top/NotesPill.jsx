@@ -29,11 +29,21 @@ function readHidden() {
   }
 }
 
-function Dots({ notes }) {
+// One dot per notice. On the pill they breathe in turn, each brightening and
+// glowing in its own colour a beat after the last, like the servers' status dots.
+function Dots({ notes, breathing = false }) {
   return (
     <span className="flex items-center gap-1.5" aria-hidden="true">
-      {notes.map((note) => (
-        <span key={note.key} className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: note.color }} />
+      {notes.map((note, index) => (
+        <span
+          key={note.key}
+          className={`h-2.5 w-2.5 rounded-full ${breathing ? 'motion-safe:animate-breathe' : ''}`}
+          style={{
+            backgroundColor: note.color,
+            color: note.color,
+            animationDelay: breathing ? `${index * 0.4}s` : undefined,
+          }}
+        />
       ))}
     </span>
   );
@@ -292,7 +302,7 @@ export default function NotesPill({ notes, me = null, children }) {
               title={notes.map((note) => note.label).join(' · ')}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-inkwell focus-visible:outline-none"
             >
-              <Dots notes={notes} />
+              <Dots notes={notes} breathing />
               {count} for you
             </motion.button>
           ) : (
