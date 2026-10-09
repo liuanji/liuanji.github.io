@@ -343,6 +343,7 @@ class Database:
             if legacy:
                 self._migrate_legacy(connection, legacy)
             self._seed_lifetime(connection)
+            self._repair_cut_names(connection)
         if legacy:
             # Give the space of the dropped sample tables back to the disk.
             connection = self.connect()
@@ -412,6 +413,47 @@ class Database:
             """,
             [(name, amount, start) for name, amount in per_user.items()],
         )
+
+    @staticmethod
+    def _repair_cut_names(connection: sqlite3.Connection) -> None:
+        """Fold user rows recorded under a name ps had cut short ("liankew+",
+        the first seven letters and a "+") into the one longer name they could
+        stand for. A cut name that matches no name, or several, is left as it is."""
+        tables = ("user_minute", "user_hour", "lifetime_user_time")
+        names = {
+            row[0] for table in tables for row in connection.execute(f"SELECT DISTINCT username FROM {table}")
+        }
+        for cut in [name for name in names if len(name) == 8 and name.endswith("+")]:
+            matches = [name for name in names if len(name) > 8 and name.startswith(cut[:7]) and not name.endswith("+")]
+            if len(matches) != 1:
+                continue
+            [full] = matches
+            for table in ("user_minute", "user_hour"):
+                connection.execute(
+                    f"""
+                    INSERT INTO {table} (bucket, host, username, active_gpu_seconds, memory_mb_seconds,
+                                         weighted_gpu_seconds)
+                    SELECT bucket, host, ?, active_gpu_seconds, memory_mb_seconds, weighted_gpu_seconds
+                    FROM {table} WHERE username = ?
+                    ON CONFLICT (bucket, host, username) DO UPDATE SET
+                        active_gpu_seconds = active_gpu_seconds + excluded.active_gpu_seconds,
+                        memory_mb_seconds = memory_mb_seconds + excluded.memory_mb_seconds,
+                        weighted_gpu_seconds = weighted_gpu_seconds + excluded.weighted_gpu_seconds
+                    """,
+                    (full, cut),
+                )
+                connection.execute(f"DELETE FROM {table} WHERE username = ?", (cut,))
+            connection.execute(
+                """
+                INSERT INTO lifetime_user_time (username, gpu_seconds, first_at)
+                SELECT ?, gpu_seconds, first_at FROM lifetime_user_time WHERE username = ?
+                ON CONFLICT (username) DO UPDATE SET
+                    gpu_seconds = gpu_seconds + excluded.gpu_seconds,
+                    first_at = MIN(first_at, excluded.first_at)
+                """,
+                (full, cut),
+            )
+            connection.execute("DELETE FROM lifetime_user_time WHERE username = ?", (cut,))
 
     def _seed_lifetime(self, connection: sqlite3.Connection) -> None:
         """Start the lifetime totals, once each, from the hourly user sums

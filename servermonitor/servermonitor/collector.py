@@ -75,7 +75,8 @@ printf '%s\\n' "$apps"
 printf '%s\\n' '{USER_MARKER}'
 pids="$(printf '%s\\n' "$apps" | awk -F, '{{gsub(/ /,"",$2); if ($2 ~ /^[0-9]+$/) print $2}}' | sort -u | paste -sd, -)"
 if [ -n "$pids" ]; then
-    ps -o pid= -o user= -o etimes= -p "$pids"
+    # user:32, or ps cuts a name longer than eight letters to seven and a "+".
+    ps -o pid= -o user:32= -o etimes= -p "$pids"
 fi
 printf '%s\\n' '{HEALTH_MARKER}'
 nvidia-smi --query-gpu=index,clocks_event_reasons.active,ecc.errors.uncorrected.volatile.total,remapped_rows.pending,remapped_rows.failure --format=csv,noheader,nounits 2>/dev/null || true

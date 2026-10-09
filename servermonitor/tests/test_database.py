@@ -293,6 +293,23 @@ class DatabaseTest(unittest.TestCase):
         carol = self.database.baker_profiles(now=start + 3600, utc_offset=0)["carol"]
         self.assertEqual((carol["lifetime_gpu_hours"], carol["recent"], carol["series"]), (2.0, None, None))
 
+    def test_names_cut_short_by_ps_are_folded_into_the_full_name(self) -> None:
+        start = 1_700_000_000
+        for offset in (0, 60):
+            self.database.save(successful_result(start + offset))
+        with self.database.connect() as connection:
+            # alice's long name, as ps used to cut it, beside rows under the full name.
+            connection.execute("UPDATE user_hour SET username = 'aliceinwonderland' WHERE username = 'alice'")
+            connection.execute("UPDATE user_minute SET username = 'alicein+' WHERE username = 'alice'")
+            connection.execute("UPDATE lifetime_user_time SET username = 'alicein+' WHERE username = 'alice'")
+            connection.execute("INSERT INTO lifetime_user_time VALUES ('aliceinwonderland', 3600, 1600000000)")
+        self.database.initialize()
+        with self.database.connect() as connection:
+            names = {row[0] for row in connection.execute("SELECT username FROM user_minute")}
+            lifetime = dict(connection.execute("SELECT username, gpu_seconds FROM lifetime_user_time").fetchall())
+        self.assertEqual(names, {"aliceinwonderland", "bob"})
+        self.assertEqual(lifetime, {"aliceinwonderland": 3660, "bob": 60})
+
     def test_observed_time_survives_collection_interval_change(self) -> None:
         start = 1_700_000_000
         for offset in (0, 60, 120, 180):

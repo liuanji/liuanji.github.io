@@ -3,6 +3,7 @@ from subprocess import CompletedProcess
 from unittest.mock import patch
 
 from servermonitor.collector import (
+    COLLECT_SCRIPT,
     LocalCollector,
     SSHCollector,
     parse_accounts,
@@ -28,6 +29,14 @@ DF_OUTPUT = """Filesystem           1-blocks           Used     Available Capaci
 /dev/nvme1n1p1 15238728286208  9953547710464 4517116379136      69% /scratch2
 /dev/nvme2n1p1 15238728286208 10287580110848 4183083978752      72% /scratch1
 """
+
+
+class ScriptTest(unittest.TestCase):
+    def test_every_ps_owner_column_is_wide_enough_for_long_names(self) -> None:
+        # Without a width, ps cuts a name longer than eight letters to seven and a "+".
+        for line in COLLECT_SCRIPT.splitlines():
+            if line.strip().startswith("ps ") or "{ ps " in line:
+                self.assertNotRegex(line, r"user=")
 
 
 class DiskParserTest(unittest.TestCase):
