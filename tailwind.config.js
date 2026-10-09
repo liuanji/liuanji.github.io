@@ -87,15 +87,19 @@ module.exports = {
   				'25%, 75%': { color: 'hsl(20, 40.5%, 59%)' },
   				'50%': { color: 'hsl(0, 51%, 46%)' }
   			},
-  			// The temperature key's two thermometers trading places at the heat's peak:
-  			// the plain one fades out as the red, sun-burst one fades in, and back.
-  			'heat-out': {
-  				'0%, 32%, 68%, 100%': { opacity: '1' },
-  				'44%, 56%': { opacity: '0' }
+  			// The temperature key heating up: the mercury rises, the thermometer slides
+  			// aside and sun rays appear one by one at the peak, then all reverses.
+  			'key-mercury': {
+  				'0%, 100%': { strokeDashoffset: '9' },
+  				'50%': { strokeDashoffset: '0' }
   			},
-  			'heat-in': {
-  				'0%, 32%, 68%, 100%': { opacity: '0' },
-  				'44%, 56%': { opacity: '1' }
+  			'key-slide': {
+  				'0%, 22%, 78%, 100%': { transform: 'translateX(0)' },
+  				'42%, 58%': { transform: 'translateX(6px)' }
+  			},
+  			'key-ray': {
+  				'0%, 34%, 66%, 100%': { opacity: '0', transform: 'scale(0.3)' },
+  				'46%, 54%': { opacity: '1', transform: 'scale(1)' }
   			},
   			// A status LED softly brightening and glowing in its own colour.
   			breathe: {
@@ -132,8 +136,9 @@ module.exports = {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			heat: 'heat 4s ease-in-out infinite',
-  			'heat-out': 'heat-out 4s ease-in-out infinite',
-  			'heat-in': 'heat-in 4s ease-in-out infinite',
+  			'key-mercury': 'key-mercury 4s ease-in-out infinite',
+  			'key-slide': 'key-slide 4s ease-in-out infinite',
+  			'key-ray': 'key-ray 4s ease-in-out infinite',
   			breathe: 'breathe 2.4s ease-in-out infinite',
   			glow: 'glow 3.2s ease-in-out infinite',
   			alarm: 'alarm 1.6s ease-out infinite',

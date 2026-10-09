@@ -364,23 +364,38 @@ function CompactHost({ host, now, interactive, onOpen, reserving }) {
 
 // One icon that breathes through its heat colours, dim to hot and back; with
 // reduced motion it holds the middle colour.
-// The temperature key: the thermometer warms through its heat colours and, at
-// the peak, turns into the overheat warning's sun-burst thermometer before
-// cooling back. With reduced motion it holds the plain one at the middle colour.
+// The temperature key, drawn in steps rather than swapped: as it warms through
+// its heat colours the mercury rises, the thermometer slides aside and the
+// overheat warning's sun rays appear one by one, then it all cools back. With
+// reduced motion it holds a plain thermometer at the middle colour.
+const KEY_RAYS = ['M12 9a4 4 0 0 0-2 7.5', 'M12 3v2', 'M6.34 7.34 4.93 5.93', 'M4 13H2', 'm6.6 18.4-1.4 1.4'];
+
 function TemperatureScale() {
   return (
-    <span className="relative h-3.5 w-3.5" aria-hidden="true">
-      <Thermometer
-        className="absolute inset-0 h-3.5 w-3.5 motion-safe:animate-[heat_4s_ease-in-out_infinite,heat-out_4s_ease-in-out_infinite]"
-        style={{ color: heatColor(0.5) }}
-        strokeWidth={2.25}
-      />
-      <ThermometerSun
-        className="absolute inset-0 h-3.5 w-3.5 opacity-0 motion-safe:animate-heat-in"
-        style={{ color: LEVEL_SERIES.hot.color }}
-        strokeWidth={2.25}
-      />
-    </span>
+    <svg
+      viewBox="0 0 24 24"
+      className="h-3.5 w-3.5 motion-safe:animate-heat"
+      style={{ color: heatColor(0.5) }}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {KEY_RAYS.map((d, index) => (
+        <path
+          key={d}
+          d={d}
+          className="opacity-0 motion-safe:animate-key-ray"
+          style={{ transformOrigin: '12px 12px', animationDelay: `${(index - 2) * 0.12}s` }}
+        />
+      ))}
+      <g className="motion-safe:animate-key-slide">
+        <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
+        <path d="M12 17V8" strokeDasharray="9" strokeDashoffset="9" className="motion-safe:animate-key-mercury" />
+      </g>
+    </svg>
   );
 }
 
