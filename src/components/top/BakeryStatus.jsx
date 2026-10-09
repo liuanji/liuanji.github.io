@@ -74,6 +74,16 @@ function OvenScene({ state, pastry, leaving, bake, on, doneness, rattle }) {
   const warm = state !== 'closed';
   // Baking: the oven open for business and switched on.
   const baking = warm && on;
+  // A tried, locked door rattles in place. It is played on the element, not by
+  // remounting it, so the door's own swing does not start over.
+  const door = useRef(null);
+  useEffect(() => {
+    if (!rattle || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    door.current?.animate(
+      [0, -1.5, 1.5, -1.5, 1.5, 0].map((x) => ({ transform: `translateX(${x}px)` })),
+      { duration: 400, easing: 'ease-in-out' },
+    );
+  }, [rattle]);
   return (
     <svg viewBox="0 0 160 112" className="h-auto w-[250px] overflow-visible" aria-hidden="true">
       {state === 'live' &&
@@ -243,14 +253,23 @@ function OvenScene({ state, pastry, leaving, bake, on, doneness, rattle }) {
           </g>
         )}
       </g>
-      {/* The door: its glass with a glint, its frame and its handle, hinged
-          at the bottom. */}
-      <g key={`rattle-${rattle}`} className={rattle ? 'motion-safe:animate-door-rattle' : undefined}>
+      {/* The door: its panel, its glass with a glint, the window's frame and
+          the handle, hinged at the bottom. */}
+      <g ref={door}>
         <g
           key={`door-${bake}`}
           className={bake ? 'motion-safe:animate-door-swing' : undefined}
-          style={{ transformBox: 'view-box', transformOrigin: '80px 92px' }}
+          style={{ transformBox: 'view-box', transformOrigin: '80px 95px' }}
         >
+          {/* The door's panel round the window, so it reads as a door when it
+              hangs open. */}
+          <path
+            d="M48 46h64a6 6 0 0 1 6 6v37a6 6 0 0 1-6 6H48a6 6 0 0 1-6-6V52a6 6 0 0 1 6-6zM52 53a6 6 0 0 0-6 6v26a6 6 0 0 0 6 6h56a6 6 0 0 0 6-6V59a6 6 0 0 0-6-6z"
+            fill="white"
+            fillRule="evenodd"
+            stroke={GLYPH.outline}
+            strokeWidth="1.6"
+          />
           <rect x="46" y="53" width="68" height="38" rx="6" fill="white" opacity="0.12" />
           <path d="M52 64l7-7M55 66l4-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" opacity="0.7" />
           <rect x="46" y="53" width="68" height="38" rx="6" fill="none" stroke={GLYPH.outline} strokeWidth="2" />
@@ -416,7 +435,9 @@ export function BakeryCard({ state, generatedAt, now }) {
                         ? 'Turn the oven off before taking the pastry out'
                         : `Take out ${pastry.name} and bake something else`
                   }
-                  className="absolute left-[72px] top-[73px] h-[73px] w-[106px] cursor-pointer rounded-lg transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20"
+                  className={`absolute left-[72px] top-[73px] h-[73px] w-[106px] cursor-pointer rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20 ${
+                    ready(batch) ? 'hover:bg-white/25' : ''
+                  }`}
                 />
                 <button
                   type="button"

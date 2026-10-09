@@ -150,11 +150,12 @@ module.exports = {
   				'20%': { opacity: '1' },
   				'100%': { opacity: '1', transform: 'translateX(0)' }
   			},
-  			// The oven door swinging down on its hinge, staying open while the pastries
-  			// change, and swinging shut.
+  			// The oven door swinging down on its hinge until it hangs open below the
+  			// window (seen from the front, folded past the hinge), staying open while
+  			// the pastries change, and swinging shut.
   			'door-swing': {
   				'0%, 100%': { transform: 'scaleY(1)' },
-  				'14%, 86%': { transform: 'scaleY(0.05)' }
+  				'14%, 86%': { transform: 'scaleY(-0.26)' }
   			},
   			// The tray coming out of the open oven towards the viewer while the
   			// pastries change, then going back in.
@@ -167,13 +168,7 @@ module.exports = {
   				'0%, 100%': { opacity: '0.15', transform: 'scale(1)' },
   				'50%': { opacity: '0.55', transform: 'scale(1.9)' }
   			},
-  			// The oven door rattling shut when tried with the oven on, and the power
-  			// button pulsing to be switched off.
-  			'door-rattle': {
-  				'0%, 100%': { transform: 'translateX(0)' },
-  				'20%, 60%': { transform: 'translateX(-1.5px)' },
-  				'40%, 80%': { transform: 'translateX(1.5px)' }
-  			},
+  			// The oven's power button pulsing when the locked door is tried.
   			'power-nudge': {
   				'0%': { opacity: '0.7', transform: 'scale(1)' },
   				'100%': { opacity: '0', transform: 'scale(2.4)' }
@@ -237,7 +232,6 @@ module.exports = {
   			'tray-out': 'tray-out 2.5s ease-in-out both',
   			'pastry-in': 'pastry-in 0.6s ease-out both',
   			'power-breathe': 'power-breathe 1.8s ease-in-out infinite',
-  			'door-rattle': 'door-rattle 0.4s ease-in-out',
   			'power-nudge': 'power-nudge 0.7s ease-out 2',
   			steam: 'steam 2.1s ease-out infinite',
   			'sign-swing': 'sign-swing 2.8s ease-in-out infinite',
