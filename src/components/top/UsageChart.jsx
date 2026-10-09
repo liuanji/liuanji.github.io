@@ -2,6 +2,7 @@ import { useId, useMemo, useState } from 'react';
 import { Area, ComposedChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Segmented, TextTabs } from './controls';
 import { formatAxisTime, formatFullTime, formatPower } from './format';
+import { useMorphedSeries } from './useGrowingShare';
 
 const TICK = { fill: '#94A3B8', fontSize: 11, fontFamily: 'JetBrains Mono, monospace' };
 
@@ -127,6 +128,17 @@ export default function UsageChart({ history, range, servers = null, server = 'a
   const when = (timestamp) =>
     range === '1h' || range === '24h' ? formatAxisTime(timestamp, '24h') : formatFullTime(timestamp);
   const noun = { busy: 'GPUs in use', memory: 'memory in use', power: 'drawn by the GPUs' }[view];
+  // The curves are drawn as shares of the axis's top, so switching views glides
+  // each point from its old height to its new one; they rise from the baseline
+  // when the chart opens, and the utilized line sinks away outside Compute.
+  const mainShown = useMorphedSeries(
+    points.map((point) => (point[`${view}Drawn`] == null ? null : point[`${view}Drawn`] / top)),
+  );
+  const coreShown = useMorphedSeries(
+    points.map((point) => (point.computingDrawn == null ? null : view === 'busy' ? point.computingDrawn / top : 0)),
+  );
+  const drawn = points.map((point, index) => ({ ...point, mainShown: mainShown[index], coreShown: coreShown[index] }));
+  const coreVisible = view === 'busy' || coreShown.some((value) => value > 0.002);
 
   const summary = readings.length ? (
     <>
@@ -177,7 +189,7 @@ export default function UsageChart({ history, range, servers = null, server = 'a
       ) : (
         <div className="h-[200px]" role="img" aria-label={`Line chart of ${noun} over time`}>
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={points} margin={{ top: 14, right: 28, bottom: 0, left: 0 }}>
+            <ComposedChart data={drawn} margin={{ top: 14, right: 28, bottom: 0, left: 0 }}>
               <defs>
                 {/* A light wash under the GPUs in use, and a deeper one under the
                     utilized share; both fade towards the bottom. */}
@@ -202,16 +214,18 @@ export default function UsageChart({ history, range, servers = null, server = 'a
                 tickMargin={10}
               />
               <YAxis
-                domain={[0, top]}
-                ticks={[0, top]}
-                tickFormatter={(tick) => (view === 'busy' ? tick : view === 'power' ? `${tick / 1000} kW` : `${tick}%`)}
+                domain={[0, 1]}
+                ticks={[0, 1]}
+                tickFormatter={(tick) =>
+                  view === 'busy' ? tick * top : view === 'power' ? `${(tick * top) / 1000} kW` : `${tick * top}%`
+                }
                 axisLine={false}
                 tickLine={false}
                 tick={TICK}
                 width={view === 'power' ? 50 : 40}
               />
               {/* All the GPUs (or 100%), as a faint ceiling. */}
-              <ReferenceLine y={top} stroke="#E2E8F0" strokeDasharray="3 4" />
+              <ReferenceLine y={1} stroke="#E2E8F0" strokeDasharray="3 4" />
               <Tooltip
                 content={<ChartTooltip view={view} />}
                 cursor={{ stroke: '#E2E8F0', strokeWidth: 1 }}
@@ -219,7 +233,7 @@ export default function UsageChart({ history, range, servers = null, server = 'a
               />
               <Area
                 type="monotone"
-                dataKey={`${view}Drawn`}
+                dataKey="mainShown"
                 stroke={color}
                 strokeWidth={1.5}
                 strokeOpacity={0.85}
@@ -231,10 +245,10 @@ export default function UsageChart({ history, range, servers = null, server = 'a
               {/* The utilized share, the GPUs' worth computing, as a softer line
                   inside the fade with a denser fade below it: the rim between it
                   and the line above is the GPUs held but idle. */}
-              {view === 'busy' && (
+              {coreVisible && (
                 <Area
                   type="monotone"
-                  dataKey="computingDrawn"
+                  dataKey="coreShown"
                   stroke={INK_SOFT}
                   strokeWidth={1.1}
                   fill={`url(#${gradient}-core)`}

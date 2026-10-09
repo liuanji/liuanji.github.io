@@ -10,7 +10,7 @@ import {
   TEMPERATURE_ICON_RANGE,
 } from './config';
 import { DownNotice, ServerLink, StatusPill } from './controls';
-import { isOverheated } from './Overheat';
+import { OVERHEAT_DEEPEST_C, isOverheated, overheatColor } from './Overheat';
 import {
   ChipGlyph,
   CpuDetails,
@@ -289,7 +289,7 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
         // temperature in red where the memory usually is.
         <ThermometerSun
           className="absolute right-1.5 top-1.5 h-4 w-4 motion-safe:animate-pulse"
-          style={{ color: LEVEL_SERIES.hot.color }}
+          style={{ color: overheatColor(gpu.temperature_c) }}
           strokeWidth={2.25}
           aria-hidden="true"
         />
@@ -305,7 +305,7 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
       <div className="mt-2 flex items-center gap-1 whitespace-nowrap font-mono text-[11px] text-data-grey">
         GPU {gpu.index}
         {overheated ? (
-          <span className="font-medium" style={{ color: LEVEL_SERIES.hot.color }}>
+          <span className="font-medium" style={{ color: overheatColor(gpu.temperature_c) }}>
             · {Math.round(gpu.temperature_c)}°C
           </span>
         ) : (
@@ -494,7 +494,7 @@ function TemperatureScale() {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="h-3.5 w-3.5 motion-safe:animate-heat"
+      className="h-3.5 w-3.5 motion-safe:animate-key-heat"
       style={{ color: heatColor(0.5) }}
       fill="none"
       stroke="currentColor"
@@ -664,7 +664,7 @@ export default function CompactHosts({ hosts, now, onOpen, reserving = null }) {
         </LegendItem>
         <LegendItem>
           <TemperatureScale />
-          {TEMPERATURE_ICON_RANGE.from}–{TEMPERATURE_ICON_RANGE.to}°C
+          {TEMPERATURE_ICON_RANGE.from}–{OVERHEAT_DEEPEST_C}°C
         </LegendItem>
         <LegendItem>
           <PowerScale />

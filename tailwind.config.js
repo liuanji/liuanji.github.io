@@ -87,6 +87,14 @@ module.exports = {
   				'25%, 75%': { color: 'hsl(20, 40.5%, 59%)' },
   				'50%': { color: 'hsl(0, 51%, 46%)' }
   			},
+  			// The temperature key's colours: the heat scale up to the overheat red,
+  			// deepening to the crimson of 90°C at the peak (overheatColor).
+  			'key-heat': {
+  				'0%, 100%': { color: 'hsl(40, 30%, 72%)' },
+  				'25%, 75%': { color: 'hsl(20, 40.5%, 59%)' },
+  				'40%, 60%': { color: '#B33A3A' },
+  				'50%': { color: '#7A1F33' }
+  			},
   			// The temperature key heating up: the mercury rises, the thermometer slides
   			// aside and sun rays appear one by one at the peak, then all reverses.
   			'key-mercury': {
@@ -215,6 +223,7 @@ module.exports = {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			heat: 'heat 4s ease-in-out infinite',
+  			'key-heat': 'key-heat 4s ease-in-out infinite',
   			'key-mercury': 'key-mercury 4s ease-in-out infinite',
   			'key-slide': 'key-slide 4s ease-in-out infinite',
   			'key-ray': 'key-ray 4s ease-in-out infinite',

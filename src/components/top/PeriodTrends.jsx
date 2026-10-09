@@ -4,6 +4,7 @@ import { SERIES } from './config';
 import { BoxTile } from './DetailBoxes';
 import { formatAxisTime, formatFullTime, formatPercent, formatPower } from './format';
 import { MetricIcon } from './MetricIcons';
+import { useMorphedSeries } from './useGrowingShare';
 
 // Power's axis tops out at the next whole kW above the highest reading.
 function powerTop(rows) {
@@ -103,6 +104,9 @@ function TrendDetails({ metric, rows, history, range, scope, average, share }) {
   const lowest = readings.reduce((best, row) => (!best || row.value < best.value ? row : best), null);
   const span = history.end - history.start;
   const top = readings.length ? metric.top(readings) : 1;
+  // The line rises from the baseline as the box opens, and glides to new readings.
+  const shown = useMorphedSeries(rows.map((row) => row.value));
+  const drawn = rows.map((row, index) => ({ ...row, shown: shown[index] }));
   return (
     <div>
       <div className="flex items-center gap-3">
@@ -125,7 +129,7 @@ function TrendDetails({ metric, rows, history, range, scope, average, share }) {
           <p className="pt-14 text-center text-xs text-data-grey">Not enough data for this period yet.</p>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={rows} margin={{ top: 6, right: 10, bottom: 0, left: 0 }}>
+            <LineChart data={drawn} margin={{ top: 6, right: 10, bottom: 0, left: 0 }}>
               <CartesianGrid vertical={false} stroke="#EEF2F6" />
               <XAxis
                 dataKey="time"
@@ -154,7 +158,7 @@ function TrendDetails({ metric, rows, history, range, scope, average, share }) {
               />
               <Line
                 type="monotone"
-                dataKey="value"
+                dataKey="shown"
                 stroke={metric.color}
                 strokeWidth={2}
                 dot={false}

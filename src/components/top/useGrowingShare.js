@@ -38,3 +38,38 @@ export function useEasedValue(value, grow = true) {
   }, [target, grow]);
   return shown;
 }
+
+// A chart's series (numbers, with null for gaps) as drawn: it rises from the
+// baseline when it first appears, and each time the values change (another
+// view, new readings) every point glides from where it was to its new value.
+// Gaps stay gaps. Viewers who prefer reduced motion get the values at once.
+export function useMorphedSeries(values, duration = 650) {
+  const [shown, setShown] = useState(() => values.map((value) => (value == null ? null : 0)));
+  const current = useRef(shown);
+  const target = useRef(values);
+  target.current = values;
+  const key = values.map((value) => (value == null ? '' : value.toFixed(4))).join(',');
+  useEffect(() => {
+    const goal = target.current;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      current.current = goal;
+      setShown(goal);
+      return undefined;
+    }
+    const from =
+      current.current.length === goal.length ? current.current : goal.map((value) => (value == null ? null : 0));
+    const start = performance.now();
+    let frame = requestAnimationFrame(function step(now) {
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = progress < 0.5 ? 4 * progress ** 3 : 1 - (-2 * progress + 2) ** 3 / 2;
+      const next = goal.map((value, index) =>
+        value == null ? null : (from[index] ?? 0) + (value - (from[index] ?? 0)) * eased,
+      );
+      current.current = next;
+      setShown(next);
+      if (progress < 1) frame = requestAnimationFrame(step);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [key, duration]);
+  return shown;
+}

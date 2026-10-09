@@ -58,7 +58,8 @@ export const POWER_LEVELS = { warm: 0.7, hot: 0.9 };
 // The compact view's thermometer and lightning icons appear at `from` and warm
 // steadily, from a dim amber to the hot red, until `to`. Temperature in °C,
 // power as a share of the GPU's enforced power limit. Temperature tops out at
-// the overheat warning (OVERHEAT_C), where the tile itself turns red.
+// the overheat warning (OVERHEAT_C), where the tile itself turns red and its
+// red deepens up to OVERHEAT_DEEPEST_C.
 export const TEMPERATURE_ICON_RANGE = { from: 60, to: 75 };
 export const POWER_ICON_RANGE = { from: 0.7, to: 1 };
 // From this share of its power limit a GPU's bolt fills in and sparkles, the

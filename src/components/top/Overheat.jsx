@@ -6,6 +6,17 @@ import { LEVEL_SERIES } from './config';
 // users an urgent note at the top of their page.
 export const OVERHEAT_C = 75;
 const HOT = LEVEL_SERIES.hot.color;
+// Above OVERHEAT_C the warning's red deepens with the heat, to a dark crimson
+// at OVERHEAT_DEEPEST_C and beyond, so 77°C and 88°C look different.
+export const OVERHEAT_DEEPEST_C = 90;
+const DEEPEST = '#7A1F33';
+
+export function overheatColor(celsius) {
+  const amount = Math.min(1, Math.max(0, (celsius - OVERHEAT_C) / (OVERHEAT_DEEPEST_C - OVERHEAT_C)));
+  const channels = (hex) => [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
+  const [from, to] = [channels(HOT), channels(DEEPEST)];
+  return `rgb(${from.map((value, index) => Math.round(value + (to[index] - value) * amount)).join(',')})`;
+}
 
 export function isOverheated(gpu) {
   return gpu.temperature_c != null && gpu.temperature_c >= OVERHEAT_C;
@@ -25,7 +36,7 @@ export function OverheatBadge({ gpu, className = '' }) {
   return (
     <span
       className={`inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-px font-mono text-[10px] font-medium text-white ${className}`}
-      style={{ backgroundColor: HOT }}
+      style={{ backgroundColor: overheatColor(gpu.temperature_c) }}
       title={`${Math.round(gpu.temperature_c)}°C: ${OVERHEAT_C}°C or more`}
     >
       <ThermometerSun className="h-3 w-3" strokeWidth={2.25} aria-hidden="true" />
