@@ -946,3 +946,19 @@ export function busyGpuPhrase(host, index, utilization) {
   const pool = BUSY_GPU[utilization >= 30 ? 'hard' : 'gentle'];
   return pool[hash(`busy|${host}|${index}`) % pool.length];
 }
+
+// The notes pill when there is nothing for the viewer.
+const ALL_CLEAR = [
+  'All clear in the kitchen',
+  'Nothing for you; bake on',
+  'No notes, just croissants',
+  'Your ovens are all happy',
+  'Not a crumb out of place',
+  'Loss is low, worries lower',
+  'Everything is rising nicely',
+  'All quiet at the bakery',
+];
+
+export function allClearPhrase() {
+  return ALL_CLEAR[hash('clear') % ALL_CLEAR.length];
+}

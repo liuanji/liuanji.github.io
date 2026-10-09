@@ -17,6 +17,14 @@ const MAX_SEGMENTS = 5;
 const SHADES = ['FF', 'D9', 'B8', '99', '80'];
 const OTHER_SHADE = '4D';
 
+// A user's share of the counted space: whole percents, but a small share keeps
+// a decimal ("0.4%") and a sliver says so ("< 0.1%") rather than "0%".
+function formatShare(share) {
+  if (share <= 0) return '0%';
+  if (share < 0.001) return '< 0.1%';
+  return share < 0.01 ? `${(share * 100).toFixed(1)}%` : `${Math.round(share * 100)}%`;
+}
+
 // A disk's per-user segments. The users were counted up to 2 hours before the
 // disk's used space was checked, so their sizes are rescaled to fill exactly
 // the used part of the bar; each keeps its counted size for the details.
@@ -179,9 +187,7 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
                       {formatBytes(user.bytes)}
                       {over && <span className="sr-only"> (over the allowance)</span>}
                     </span>
-                    <span className="text-right tabular-nums text-data-grey">
-                      {Math.round((user.bytes / counted) * 100)}%
-                    </span>
+                    <span className="text-right tabular-nums text-data-grey">{formatShare(user.bytes / counted)}</span>
                   </li>
                 );
               })}
@@ -193,7 +199,7 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
                     {formatBytes(small.reduce((total, user) => total + user.bytes, 0))}
                   </span>
                   <span className="text-right tabular-nums">
-                    {Math.round((small.reduce((total, user) => total + user.bytes, 0) / counted) * 100)}%
+                    {formatShare(small.reduce((total, user) => total + user.bytes, 0) / counted)}
                   </span>
                 </li>
               )}

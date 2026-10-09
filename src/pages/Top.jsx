@@ -205,8 +205,6 @@ export default function Top() {
   };
   // The time range switch, and its section, for the copy that floats beside it.
   const rangeSwitch = useRef(null);
-  // The notices at the top, which a small pill stands in for once they scroll away.
-  const notices = useRef(null);
   const historySection = useRef(null);
 
   const selectedHosts = host === 'all' ? hosts : hosts.filter((item) => item.name === host);
@@ -257,7 +255,7 @@ export default function Top() {
   // Like clashes, checked on every server's disks.
   const cleanups = cleanupReminders(disks.data?.hosts ?? [], user);
   const heldIdle = myHeldIdle(hosts, user);
-  // The same notices, for the pill that stands in for them once they scroll away.
+  // The same notices, for the pill in the corner that keeps them within reach.
   const notes = [
     clashes.length && { key: 'clash', color: RESERVATION_CLASH.color, label: 'On a GPU someone reserved' },
     heldIdle.length && { key: 'idle', color: SERIES.compute.color, label: 'A GPU of yours is resting' },
@@ -315,13 +313,13 @@ export default function Top() {
               transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
             >
               {notes.length > 0 && (
-                <div ref={notices} className="mb-10 scroll-mt-28 space-y-3">
+                <div className="mb-10 space-y-3">
                   <ClashBanner clashes={clashes} onOpen={hosts.length > 1 ? showHost : undefined} />
                   <IdleBanner items={heldIdle} onOpen={hosts.length > 1 ? showHost : undefined} />
                   <CleanupBanner reminders={cleanups} onOpen={showStorage} />
                 </div>
               )}
-              <NotesPill notes={notes} anchor={notices}>
+              <NotesPill notes={notes} me={user}>
                 <ClashBanner clashes={clashes} onOpen={hosts.length > 1 ? showHost : undefined} />
                 <IdleBanner items={heldIdle} onOpen={hosts.length > 1 ? showHost : undefined} />
                 <CleanupBanner reminders={cleanups} onOpen={showStorage} />

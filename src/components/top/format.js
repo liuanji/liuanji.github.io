@@ -117,9 +117,10 @@ export function cleanupReminders(hosts, user) {
   );
 }
 
-// Binary units, as df -h counts them: "9.4 TB", "604 GB".
+// Binary units, as df -h counts them: "9.4 TB", "604 GB"; a sliver is "< 1 GB".
 export function formatBytes(bytes) {
   const gb = (Number(bytes) || 0) / 1024 ** 3;
+  if (gb > 0 && gb < 0.5) return '< 1 GB';
   return gb >= 1024 ? `${decimal.format(gb / 1024)} TB` : `${Math.round(gb)} GB`;
 }
 
