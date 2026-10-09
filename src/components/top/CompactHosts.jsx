@@ -355,7 +355,8 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
 // over the picture and the value, as in the full view. On wider screens it is
 // a button that opens the part's box, like a GPU tile.
 // count, when given, shows the reading as how many of count (as the GPUs in
-// use) instead of a percentage.
+// use) instead of a percentage. Every meter is as wide and tall as the others,
+// its label, picture and reading kept together in the middle.
 function HeaderMeter({ label, Glyph, share, title, series, level = null, details = null, count = null }) {
   const clamped = Math.min(1, Math.max(0, share));
   // Like the rings, the meter and its number rise from 0 when the page loads
@@ -384,7 +385,10 @@ function HeaderMeter({ label, Glyph, share, title, series, level = null, details
   );
   if (!details) {
     return (
-      <span className="flex items-center gap-1.5 font-mono text-xs text-data-grey" title={title}>
+      <span
+        className="flex w-[124px] items-center justify-center gap-1.5 font-mono text-xs text-data-grey"
+        title={title}
+      >
         <span className="sr-only">{title}</span>
         {inner}
       </span>
@@ -395,7 +399,7 @@ function HeaderMeter({ label, Glyph, share, title, series, level = null, details
       <button
         type="button"
         aria-label={`${title}. Show details.`}
-        className="-mx-1.5 -my-1 flex items-center gap-1.5 rounded-lg px-1.5 py-1 font-mono text-xs text-data-grey transition-colors hover:bg-[#F1F3F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20 data-[state=open]:bg-[#ECEFF3]"
+        className="-mx-1.5 -my-1 flex h-[34px] w-[136px] items-center justify-center gap-1.5 rounded-lg px-1.5 font-mono text-xs text-data-grey transition-colors hover:bg-[#F1F3F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20 data-[state=open]:bg-[#ECEFF3]"
       >
         {inner}
       </button>
