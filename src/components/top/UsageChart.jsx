@@ -6,14 +6,15 @@ import { formatAxisTime, formatFullTime } from './format';
 const TICK = { fill: '#94A3B8', fontSize: 11, fontFamily: 'JetBrains Mono, monospace' };
 
 // Compute (how many GPUs were in use, against all of them) or memory in use, in
-// one colour family. Inside the fade under the GPUs in use, a softer line marks
+// one ink blue, the utilized part in a lighter tone of it. Inside the fade under the GPUs in use, a softer line marks
 // how many GPUs' worth were computing, with a denser fade below it: their
 // utilization, named as a share where the line ends.
 const VIEWS = {
   busy: { label: 'Compute' },
   memory: { label: 'Memory' },
 };
-const INK = '#475569';
+const INK = '#3E5BA9';
+const INK_SOFT = '#8EA2D8';
 
 function toChartPoints(points) {
   const rows = points.map((point) => ({
@@ -87,25 +88,6 @@ function ChartTooltip({ active = false, payload = [], label = 0, view }) {
   );
 }
 
-// A line's name in the right margin, beside where it ends at now, so it never
-// sits on a line; nudged up or down to keep the two names apart.
-function EndLabel({ viewBox, text, muted = false, nudge = 0 }) {
-  if (!viewBox) return null;
-  return (
-    <text
-      x={viewBox.x + 8}
-      y={viewBox.y + nudge}
-      dy="0.32em"
-      textAnchor="start"
-      fontSize="10.5"
-      fontFamily="JetBrains Mono, monospace"
-      fill={muted ? '#94A3B8' : '#475569'}
-    >
-      {text}
-    </text>
-  );
-}
-
 // servers, when given, is [{ value, label }] for a switch between all servers
 // and each one; server is the one shown and onServer picks another. One quantity
 // at a time as a quiet line, with what to take from it said in words above:
@@ -130,11 +112,6 @@ export default function UsageChart({ history, range, servers = null, server = 'a
   const ticks = [0, 1, 2, 3, 4].map((step) => history.start + (span * step) / 4);
   const when = (timestamp) =>
     range === '1h' || range === '24h' ? formatAxisTime(timestamp, '24h') : formatFullTime(timestamp);
-  // The two names at now need about 13px between them; the chart is 200px tall
-  // less its axis, so spread them apart when the lines end closer than that.
-  const plotHeight = 166;
-  const endGap = latest ? ((latest.busyDrawn - latest.computingDrawn) / top) * plotHeight : 99;
-  const labelGap = (13 - endGap) / 2;
   const noun = { busy: 'GPUs in use', memory: 'memory in use' }[view];
 
   const summary = readings.length ? (
@@ -161,7 +138,7 @@ export default function UsageChart({ history, range, servers = null, server = 'a
 
   return (
     <div className="bg-white rounded-2xl border border-border-light p-6">
-      <div className="mb-4 grid gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-x-6">
+      <div className="mb-4 grid gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-x-6 sm:gap-y-3">
         <h3 className="font-tight font-semibold text-lg text-inkwell sm:col-start-1 sm:row-start-1">Usage trend</h3>
         <p className="text-xs leading-6 text-data-grey sm:col-start-1 sm:row-start-2" aria-live="polite">
           {summary}
@@ -201,7 +178,7 @@ export default function UsageChart({ history, range, servers = null, server = 'a
       ) : (
         <div className="h-[200px]" role="img" aria-label={`Line chart of ${noun} over time`}>
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={points} margin={{ top: 14, right: 92, bottom: 0, left: 0 }}>
+            <ComposedChart data={points} margin={{ top: 14, right: 28, bottom: 0, left: 0 }}>
               <defs>
                 {/* A light wash under the GPUs in use, and a deeper one under the
                     utilized share; both fade towards the bottom. */}
@@ -210,8 +187,8 @@ export default function UsageChart({ history, range, servers = null, server = 'a
                   <stop offset="100%" stopColor={color} stopOpacity={0.01} />
                 </linearGradient>
                 <linearGradient id={`${gradient}-core`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={color} stopOpacity={0.15} />
-                  <stop offset="100%" stopColor={color} stopOpacity={0.04} />
+                  <stop offset="0%" stopColor={INK_SOFT} stopOpacity={0.3} />
+                  <stop offset="100%" stopColor={INK_SOFT} stopOpacity={0.06} />
                 </linearGradient>
               </defs>
               <XAxis
@@ -259,8 +236,7 @@ export default function UsageChart({ history, range, servers = null, server = 'a
                 <Area
                   type="monotone"
                   dataKey="computingDrawn"
-                  stroke={color}
-                  strokeOpacity={0.5}
+                  stroke={INK_SOFT}
                   strokeWidth={1.1}
                   fill={`url(#${gradient}-core)`}
                   dot={false}
@@ -268,25 +244,17 @@ export default function UsageChart({ history, range, servers = null, server = 'a
                   isAnimationActive={false}
                 />
               )}
-              {/* Each line named where it ends, at now, instead of a key to match. */}
+              {/* Where each line ends, at now. */}
               {latest && view === 'busy' && (
                 <ReferenceDot
                   x={latest.timestamp}
                   y={latest.computingDrawn}
                   r={2.5}
                   fill="#FFFFFF"
-                  stroke={color}
+                  stroke={INK_SOFT}
                   strokeOpacity={0.6}
                   strokeWidth={1.2}
                   ifOverflow="visible"
-                  label={(props) => (
-                    <EndLabel
-                      {...props}
-                      muted
-                      nudge={labelGap > 0 ? labelGap : 0}
-                      text={`${Math.round(latest.utilized * 100)}% utilized`}
-                    />
-                  )}
                 />
               )}
               {latest && (
@@ -298,13 +266,6 @@ export default function UsageChart({ history, range, servers = null, server = 'a
                   stroke="#FFFFFF"
                   strokeWidth={1.5}
                   ifOverflow="visible"
-                  label={(props) => (
-                    <EndLabel
-                      {...props}
-                      nudge={view === 'busy' && labelGap > 0 ? -labelGap : 0}
-                      text={view === 'busy' ? `${Math.round(latest.busy)} in use` : `${Math.round(latest[view])}% now`}
-                    />
-                  )}
                 />
               )}
             </ComposedChart>
