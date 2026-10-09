@@ -29,6 +29,24 @@ function WeightedHelp() {
 
 const RANKING_ROWS = 8;
 
+// A small share as a short track and its percent.
+function ShareMeter({ share, muted = false }) {
+  return (
+    <span className="flex items-center gap-2.5 font-mono text-xs tabular-nums">
+      <span className="h-1.5 w-16 flex-shrink-0 overflow-hidden rounded-full bg-[#EEF2F7]" aria-hidden="true">
+        <span
+          className="block h-full rounded-full"
+          style={{
+            width: `${Math.max(2, share * 100)}%`,
+            backgroundColor: muted ? '#9DB0E3' : SERIES.compute.color,
+          }}
+        />
+      </span>
+      <span className={muted ? 'text-data-grey' : 'text-inkwell'}>{Math.round(share * 100)}%</span>
+    </span>
+  );
+}
+
 // An easter egg pricing GPU-hours as cloud time: one user's while their row is
 // hovered (or tapped), otherwise everyone's shown here.
 function cloudEstimate(hours, user, who) {
@@ -93,6 +111,18 @@ export default function UserRanking({
                 <th scope="col" className="hidden py-2.5 pr-8 text-left font-normal sm:table-cell">
                   <WeightedHelp />
                 </th>
+                {/* With one server, its share of the server's GPU time and how hard the
+                    GPUs worked take the room the Servers column would. */}
+                {!showHosts && (
+                  <>
+                    <th scope="col" className="hidden py-2.5 pr-8 text-left font-normal md:table-cell">
+                      Share
+                    </th>
+                    <th scope="col" className="hidden py-2.5 pr-6 text-left font-normal md:table-cell">
+                      Utilized
+                    </th>
+                  </>
+                )}
                 {/* The last column takes the spare width, so the others sit close together. */}
                 {showHosts && (
                   <th scope="col" className="hidden w-full py-2.5 pr-6 text-left font-normal md:table-cell">
@@ -147,6 +177,19 @@ export default function UserRanking({
                   <td className="hidden whitespace-nowrap py-3 pr-8 font-mono text-xs tabular-nums text-data-grey sm:table-cell">
                     {formatHours(user.weighted_gpu_hours)} h
                   </td>
+                  {!showHosts && (
+                    <>
+                      <td className="hidden py-3 pr-8 md:table-cell">
+                        <ShareMeter share={totalHours > 0 ? user.gpu_hours / totalHours : 0} />
+                      </td>
+                      <td className="hidden py-3 pr-6 md:table-cell">
+                        <ShareMeter
+                          share={user.gpu_hours > 0 ? Math.min(1, user.weighted_gpu_hours / user.gpu_hours) : 0}
+                          muted
+                        />
+                      </td>
+                    </>
+                  )}
                   {showHosts && (
                     <td className="hidden py-3 pr-6 md:table-cell">
                       <div className="flex flex-wrap gap-1.5">

@@ -364,7 +364,7 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
                 return (
                   <li
                     key={user.user}
-                    className="grid grid-cols-[0.5rem_minmax(0,1fr)_auto_2.25rem] items-center gap-2.5 font-mono text-xs"
+                    className="grid grid-cols-[0.5rem_minmax(0,1fr)_auto_3.25rem] items-center gap-2.5 font-mono text-xs"
                   >
                     <span
                       className="h-2 w-2 rounded-[2px]"
@@ -380,18 +380,18 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
                       {formatBytes(user.bytes)}
                       {over && <span className="sr-only"> (over the allowance)</span>}
                     </span>
-                    <span className="text-right tabular-nums text-data-grey">{formatShare(user.bytes / counted)}</span>
+                    <span className="whitespace-nowrap text-right tabular-nums text-data-grey">{formatShare(user.bytes / counted)}</span>
                   </li>
                 );
               })}
               {small.length > 0 && (
-                <li className="grid grid-cols-[0.5rem_minmax(0,1fr)_auto_2.25rem] items-center gap-2.5 font-mono text-xs text-data-grey">
+                <li className="grid grid-cols-[0.5rem_minmax(0,1fr)_auto_3.25rem] items-center gap-2.5 font-mono text-xs text-data-grey">
                   <span className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: othersColor }} aria-hidden="true" />
                   <span className="truncate">{othersLabel(small.length)}</span>
                   <span className="tabular-nums">
                     {formatBytes(small.reduce((total, user) => total + user.bytes, 0))}
                   </span>
-                  <span className="text-right tabular-nums">
+                  <span className="whitespace-nowrap text-right tabular-nums">
                     {formatShare(small.reduce((total, user) => total + user.bytes, 0) / counted)}
                   </span>
                 </li>
