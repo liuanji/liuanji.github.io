@@ -84,8 +84,9 @@ export function GpuDetails({ gpu, host, reservation = null, me = null, now = 0 }
   const power = gpu.power_limit_w && gpu.power_w != null ? gpu.power_w / gpu.power_limit_w : null;
   return (
     <div className="flex gap-6">
-      {/* A fixed width, so a long holder's name truncates instead of pushing the readings. */}
-      <div className="flex w-[8.5rem] flex-shrink-0 flex-col items-center justify-center">
+      {/* A fixed width, wide enough for the status phrase on one line, so a long holder's
+          name truncates instead of pushing the readings. */}
+      <div className="flex w-[9.5rem] flex-shrink-0 flex-col items-center justify-center">
         <GpuGlyph
           compute={gpu.utilization / 100}
           memory={gpu.memory_total_mb ? gpu.memory_used_mb / gpu.memory_total_mb : 0}
@@ -102,9 +103,12 @@ export function GpuDetails({ gpu, host, reservation = null, me = null, now = 0 }
             </span>
           ))}
         </span>
-        <span className="mt-2.5 flex items-center gap-1.5 font-mono text-[11px] text-data-grey">
+        {/* The dot leads the phrase; were one ever too long, it would wrap centred under the picture. */}
+        <span className="mt-2.5 max-w-full text-center font-mono text-[11px] leading-snug text-data-grey">
           <span
-            className={`h-1.5 w-1.5 rounded-full ${gpu.busy ? 'bg-synapse' : 'ring-1 ring-inset ring-data-grey/50'}`}
+            className={`mr-1.5 inline-block h-1.5 w-1.5 -translate-y-px rounded-full align-middle ${
+              gpu.busy ? 'bg-synapse' : 'ring-1 ring-inset ring-data-grey/50'
+            }`}
             aria-hidden="true"
           />
           {gpu.busy ? busyGpuPhrase(host, gpu.index, gpu.utilization) : 'Idle'}
