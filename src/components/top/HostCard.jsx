@@ -7,6 +7,7 @@ import { OverheatBadge, isOverheated } from './Overheat';
 import { DetailsPopover, RamDetails } from './DetailBoxes';
 import { CpuDeepDetails, GpuDeepDetails, SystemHistory, UsersBreakdown } from './ExpandedBoxes';
 import { PeoplePanel, Sparkline, WeekHeatmap, WeekUsers, formatDuration, isHeldIdle } from './Insights';
+import { useGrowingShare } from './useGrowingShare';
 import { useStatusFile } from './useStatusFile';
 import { ReserveControl, clashingUsers, findReservation, formatLeft } from './Reservations';
 import {
@@ -32,8 +33,12 @@ const RESERVE_COLUMN = 'w-9 flex-shrink-0 md:w-36';
 // In GPU rows the column headers name each meter on wide screens, so the label
 // only shows on narrow ones unless alwaysLabel is set. A warm or hot level
 // recolours the value and the bar.
-function Meter({ label, value, max, display, series, level = null, alwaysLabel = false }) {
+// With format, the value is shown counting along with the bar, which grows
+// from empty as it appears and glides to each new reading.
+function Meter({ label, value, max, display, format = null, series, level = null, alwaysLabel = false }) {
   const percent = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
+  const shown = useGrowingShare(percent / 100);
+  if (format && max > 0) display = format(shown * max);
   const bar = LEVEL_SERIES[level] ?? series;
   return (
     <div className="min-w-0">
@@ -59,7 +64,7 @@ function Meter({ label, value, max, display, series, level = null, alwaysLabel =
         aria-valuemax={100}
         aria-valuenow={Math.round(percent)}
       >
-        <div className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: bar.color }} />
+        <div className="h-full rounded-full" style={{ width: `${shown * 100}%`, backgroundColor: bar.color }} />
       </div>
     </div>
   );
@@ -101,7 +106,8 @@ function SystemStrip({ system, host, interactive, timeline }) {
           label={formatCpuCount(system) ? `CPU · ${formatCpuCount(system)}` : 'CPU'}
           value={cpu ?? 0}
           max={100}
-          display={cpu == null ? '—' : `${Math.round(cpu)}%`}
+          display="—"
+          format={cpu == null ? null : (value) => `${Math.round(value)}%`}
           series={SERIES.compute}
           alwaysLabel
         />
@@ -123,7 +129,8 @@ function SystemStrip({ system, host, interactive, timeline }) {
           label="RAM"
           value={system.memory_used_mb ?? 0}
           max={system.memory_total_mb ?? 0}
-          display={ramKnown ? formatMemoryOf(system.memory_used_mb, system.memory_total_mb) : '—'}
+          display="—"
+          format={ramKnown ? (value) => formatMemoryOf(value, system.memory_total_mb) : null}
           series={SERIES.memory}
           level={ram}
           alwaysLabel
@@ -137,8 +144,11 @@ function SystemStrip({ system, host, interactive, timeline }) {
 // heading in a box just as wide as its longest value (in monospace characters),
 // so the bar follows it closely and every row's bar starts at the same place;
 // on phones it is labelled above.
-function RowMeter({ label, value, max, display, series, valueWidth, title }) {
+// As with Meter, format makes the value count along with the bar.
+function RowMeter({ label, value, max, display, format = null, series, valueWidth, title }) {
   const percent = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
+  const shown = useGrowingShare(percent / 100);
+  if (format && max > 0) display = format(shown * max);
   return (
     <div className="min-w-0">
       <div className="mb-1 flex items-baseline justify-between gap-2 md:hidden">
@@ -161,7 +171,7 @@ function RowMeter({ label, value, max, display, series, valueWidth, title }) {
           aria-valuemax={100}
           aria-valuenow={Math.round(percent)}
         >
-          <div className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: series.color }} />
+          <div className="h-full rounded-full" style={{ width: `${shown * 100}%`, backgroundColor: series.color }} />
         </div>
       </div>
     </div>
@@ -222,6 +232,11 @@ function GpuRow({ gpu, host, interactive, now, reserving, timeline }) {
     gpu.power_w != null && gpu.power_limit_w
       ? `${Math.round(gpu.power_w)} W of ${Math.round(gpu.power_limit_w)} W limit (${Math.round((gpu.power_w / gpu.power_limit_w) * 100)}%)`
       : undefined;
+  // Hover, open and overheat shading, across the whole row: with the
+  // reservation column beside it, on the line holding both.
+  const shading = `${interactive ? 'hover:bg-black/[0.02] data-[state=open]:bg-black/[0.04] has-[[data-state=open]]:bg-black/[0.04]' : ''} ${
+    overheated ? 'bg-[#B33A3A]/[0.08] shadow-[inset_3px_0_0_#B33A3A]' : ''
+  }`;
   const row = (
     <Opens
       details={
@@ -238,9 +253,7 @@ function GpuRow({ gpu, host, interactive, now, reserving, timeline }) {
       }
       width="w-[600px]"
       label={`${host} GPU ${gpu.index}, ${Math.round(gpu.utilization)}% compute`}
-      className={`${ROW_GRID} py-3 pl-6 ${reserving ? 'pr-2' : 'pr-6'} ${interactive ? 'hover:bg-black/[0.02] data-[state=open]:bg-black/[0.04]' : ''} ${
-        overheated ? 'bg-[#B33A3A]/[0.08] shadow-[inset_3px_0_0_#B33A3A]' : ''
-      }`}
+      className={`${ROW_GRID} py-3 pl-6 ${reserving ? 'pr-2' : `pr-6 ${shading}`}`}
     >
       <div className="order-1 flex items-center gap-2 md:order-none">
         <span
@@ -269,7 +282,7 @@ function GpuRow({ gpu, host, interactive, now, reserving, timeline }) {
           label="Compute"
           value={gpu.utilization}
           max={100}
-          display={`${Math.round(gpu.utilization)}%`}
+          format={(value) => `${Math.round(value)}%`}
           series={SERIES.compute}
           valueWidth="w-[4ch]"
         />
@@ -279,7 +292,7 @@ function GpuRow({ gpu, host, interactive, now, reserving, timeline }) {
           label="Memory"
           value={gpu.memory_used_mb}
           max={gpu.memory_total_mb}
-          display={formatMemory(gpu.memory_used_mb)}
+          format={formatMemory}
           title={formatMemoryOf(gpu.memory_used_mb, gpu.memory_total_mb)}
           series={SERIES.memory}
           valueWidth="w-[5ch]"
@@ -338,9 +351,9 @@ function GpuRow({ gpu, host, interactive, now, reserving, timeline }) {
   if (!reserving) return row;
   return (
     <div
-      className={`flex items-start md:items-center ${
-        mine ? 'bg-[#8478D6]/[0.06]' : ''
-      } ${meClashing ? 'shadow-[inset_3px_0_0_#E8B14F]' : mine ? 'shadow-[inset_3px_0_0_#8478D6]' : ''}`}
+      className={`flex items-start md:items-center ${overheated ? '' : mine ? 'bg-[#8478D6]/[0.06]' : ''} ${
+        overheated ? '' : meClashing ? 'shadow-[inset_3px_0_0_#E8B14F]' : mine ? 'shadow-[inset_3px_0_0_#8478D6]' : ''
+      } ${shading}`}
     >
       <div className="min-w-0 flex-1">{row}</div>
       <ReserveCell gpu={gpu} host={host} reservation={reservation} reserving={reserving} now={now} />

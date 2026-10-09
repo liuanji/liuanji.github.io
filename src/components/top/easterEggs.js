@@ -428,6 +428,40 @@ const PRESSURE = {
       ],
     },
   ],
+  // How many of a server's GPUs are in use, for its GPU box's footer.
+  gpu: [
+    {
+      from: 0,
+      lines: [
+        'Plenty of free ovens',
+        'Most GPUs are cooling on the rack',
+        '{host} has room for more dough',
+        'GPUs waiting for a baker',
+        'A quiet morning in the bakery',
+        'Ovens warm, benches empty',
+      ],
+    },
+    {
+      from: 0.4,
+      lines: [
+        'A steady bake on {host}',
+        'Half the ovens are busy',
+        'The GPUs are warming up nicely',
+        'Trays going in and out',
+        'A good rhythm in the kitchen',
+      ],
+    },
+    {
+      from: 0.8,
+      lines: [
+        'Every oven is full',
+        '{host} is baking at full tilt',
+        'No free ovens for now',
+        'The whole bakery is busy',
+        'Trays stacked to the ceiling',
+      ],
+    },
+  ],
   ram: [
     {
       from: 0,

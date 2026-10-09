@@ -415,7 +415,7 @@ export default function Top() {
                 </SectionLabel>
                 <LiveTiles hosts={selectedHosts} allHosts={host === 'all'} now={now} />
                 {host === 'all' && compact ? (
-                  <CompactHosts hosts={selectedHosts} now={now} onOpen={openHost} reserving={reserving} />
+                  <CompactHosts hosts={selectedHosts} now={now} onOpen={openHost} reserving={reserving} token={token} />
                 ) : (
                   <div className="space-y-6">
                     {selectedHosts.map((item) => (

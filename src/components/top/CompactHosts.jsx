@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { ThermometerSun } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { GpuOverview, RackGlyph } from './GpuOverview';
 import { HostStatus } from './HostPacking';
 import {
   LEVEL_SERIES,
@@ -353,7 +354,9 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
 // in the rings' soft colours, and its percentage. A warm or hot level takes
 // over the picture and the value, as in the full view. On wider screens it is
 // a button that opens the part's box, like a GPU tile.
-function HeaderMeter({ label, Glyph, share, title, series, level = null, details = null }) {
+// count, when given, shows the reading as how many of count (as the GPUs in
+// use) instead of a percentage.
+function HeaderMeter({ label, Glyph, share, title, series, level = null, details = null, count = null }) {
   const clamped = Math.min(1, Math.max(0, share));
   // Like the rings, the meter and its number rise from 0 when the page loads
   // and glide to each new reading on a refresh.
@@ -363,13 +366,19 @@ function HeaderMeter({ label, Glyph, share, title, series, level = null, details
     <>
       <span aria-hidden="true">{label}</span>
       {/* Alive like the boxes' own: the CPU's cores and the RAM's chips pulse with the load. */}
-      <Glyph share={shown} pace={clamped} color={(LEVEL_SERIES[level] ?? series).color} animated />
+      <Glyph
+        share={shown}
+        pace={clamped}
+        color={(LEVEL_SERIES[level] ?? series).color}
+        count={count ?? undefined}
+        animated
+      />
       <span
         className={`w-8 text-left tabular-nums ${level ? 'font-medium' : 'text-inkwell'}`}
         style={level ? { color: READING_STYLES[level].color } : undefined}
         aria-hidden="true"
       >
-        {percent}%
+        {count == null ? `${percent}%` : `${Math.round(shown * count)}/${count}`}
       </span>
     </>
   );
@@ -394,7 +403,8 @@ function HeaderMeter({ label, Glyph, share, title, series, level = null, details
   );
 }
 
-function SystemMeters({ system, host, interactive }) {
+function SystemMeters({ system, host, gpus, interactive, token }) {
+  const busy = gpus.filter((gpu) => gpu.busy).length;
   const ramKnown = system.memory_used_mb != null && system.memory_total_mb;
   const ram = ramKnown ? ramLevel(system.memory_used_mb, system.memory_total_mb) : null;
   return (
@@ -420,11 +430,22 @@ function SystemMeters({ system, host, interactive }) {
           details={interactive ? <RamDetails host={host} system={system} level={ram} /> : null}
         />
       )}
+      {gpus.length > 0 && (
+        <HeaderMeter
+          label="GPU"
+          Glyph={RackGlyph}
+          share={busy / gpus.length}
+          count={gpus.length}
+          title={`GPUs ${busy} of ${gpus.length} in use`}
+          series={RING_SERIES.compute}
+          details={interactive ? <GpuOverview host={{ name: host, gpus }} token={token} /> : null}
+        />
+      )}
     </span>
   );
 }
 
-function CompactHost({ host, now, interactive, onOpen, reserving }) {
+function CompactHost({ host, now, interactive, onOpen, reserving, token }) {
   const busy = host.gpus.filter((gpu) => gpu.busy).length;
   const compute = host.gpus.length
     ? host.gpus.reduce((total, gpu) => total + gpu.utilization, 0) / host.gpus.length
@@ -448,7 +469,13 @@ function CompactHost({ host, now, interactive, onOpen, reserving }) {
         <span className="order-4 flex w-full flex-wrap items-center gap-x-5 gap-y-2 font-mono text-xs text-data-grey sm:order-3 sm:ml-auto sm:w-auto">
           {host.system && (
             <span className={outdated ? 'opacity-50' : undefined}>
-              <SystemMeters system={host.system} host={host.name} interactive={interactive} />
+              <SystemMeters
+                system={host.system}
+                host={host.name}
+                gpus={host.gpus}
+                interactive={interactive}
+                token={token}
+              />
             </span>
           )}
         </span>
@@ -637,7 +664,7 @@ function LegendItem({ children }) {
 
 // onOpen(name) switches the page to that server's own panel. reserving, when
 // the Worker supports reservations, is { reservations, me, held, reserve, release }.
-export default function CompactHosts({ hosts, now, onOpen, reserving = null }) {
+export default function CompactHosts({ hosts, now, onOpen, reserving = null, token = null }) {
   // The details box needs room beside the tiles, so phones keep plain tiles.
   const interactive = !useIsMobile();
   return (
@@ -651,6 +678,7 @@ export default function CompactHosts({ hosts, now, onOpen, reserving = null }) {
             interactive={interactive}
             onOpen={onOpen}
             reserving={reserving}
+            token={token}
           />
         ))}
       </div>
