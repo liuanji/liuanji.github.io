@@ -90,8 +90,8 @@ module.exports = {
   			// The temperature key heating up: the mercury rises, the thermometer slides
   			// aside and sun rays appear one by one at the peak, then all reverses.
   			'key-mercury': {
-  				'0%, 100%': { strokeDashoffset: '9' },
-  				'50%': { strokeDashoffset: '0' }
+  				'0%, 100%': { transform: 'translateY(16px)' },
+  				'50%': { transform: 'translateY(0)' }
   			},
   			'key-slide': {
   				'0%, 22%, 78%, 100%': { transform: 'translateX(0)' },
@@ -119,15 +119,16 @@ module.exports = {
   			},
   			// /top's all-clear croissant: a sparkle growing, turning and fading, and a
   			// little hop when the mouse arrives.
-  			// A full tile bolt's sparkles, moving as the power key's do: twisting in
-  			// once, then every few seconds twisting out and back.
+  			// A full tile bolt's sparkles: twisting in once as the power key's do, then
+  			// each now and then blinking, a quick shrink and spring back in the same colour.
   			'sparkle-in': {
   				'0%': { opacity: '0', transform: 'scale(0) rotate(-60deg)' },
   				'100%': { opacity: '1', transform: 'scale(1) rotate(0)' }
   			},
   			'sparkle-again': {
-  				'0%, 60%, 100%': { opacity: '1', transform: 'scale(1) rotate(0)' },
-  				'80%': { opacity: '0.3', transform: 'scale(0.3) rotate(-60deg)' }
+  				'0%, 72%, 100%': { transform: 'scale(1)' },
+  				'80%': { transform: 'scale(0.15)' },
+  				'88%': { transform: 'scale(1.2)' }
   			},
   			twinkle: {
   				'0%, 60%, 100%': { opacity: '0', transform: 'scale(0) rotate(0deg)' },

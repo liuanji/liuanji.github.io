@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { ThermometerSun } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
@@ -143,20 +143,48 @@ const ICON_PROPS = {
 };
 const heatStyle = (amount) => ({ color: heatColor(amount), transition: 'color 900ms ease-in-out' });
 
-// Even at the bottom of its range the mercury shows a little, so it reads as a reading.
+// The thermometer's mercury: a lighter fill inside its outline, up from the
+// bottom of the bulb to y = top (22 empty, 6 full).
+const THERMOMETER = 'M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z';
+
+function Mercury({ top, className }) {
+  const clip = `mercury${useId().replace(/:/g, '')}`;
+  return (
+    <>
+      <clipPath id={clip}>
+        <path d={THERMOMETER} />
+      </clipPath>
+      <g clipPath={`url(#${clip})`}>
+        <rect
+          x="0"
+          y={top}
+          width="24"
+          height={24 - top}
+          fill="currentColor"
+          fillOpacity="0.45"
+          stroke="none"
+          className={className}
+        />
+      </g>
+    </>
+  );
+}
+
+// Even at the bottom of its range the bulb is full and the mercury shows a
+// little up the tube, so it reads as a reading.
 function TileThermometer({ amount }) {
-  const level = useGrowingShare(0.25 + 0.75 * amount);
+  const level = useGrowingShare(0.4 + 0.6 * amount);
   return (
     <svg {...ICON_PROPS} style={heatStyle(amount)}>
-      <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
-      {level > 0.02 && <path d={`M12 17V${17 - 9 * level}`} />}
+      {level > 0 && <Mercury top={22 - 16 * level} />}
+      <path d={THERMOMETER} />
     </svg>
   );
 }
 
 // Moving as the power key does: the bolt fills in as its colour deepens, and
-// once full its sparkles twinkle in one by one, the biggest first, then now and
-// then twinkle out and back.
+// once full its sparkles twinkle in one by one, the biggest first. After that
+// each blinks now and then, in turn, keeping the bolt's colour.
 function TileBolt({ amount, charge }) {
   const fill = useGrowingShare(charge);
   return (
@@ -172,7 +200,7 @@ function TileBolt({ amount, charge }) {
             style={{
               transformBox: 'fill-box',
               transformOrigin: 'center',
-              animationDelay: `${0.9 + index * 0.14}s, ${1.5 + index * 0.14}s`,
+              animationDelay: `${0.9 + index * 0.14}s, ${1.5 + index * 1.3}s`,
             }}
           />
         ))}
@@ -459,8 +487,8 @@ function TemperatureScale() {
         />
       ))}
       <g className="motion-safe:animate-key-slide">
-        <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
-        <path d="M12 17V8" strokeDasharray="9" strokeDashoffset="9" className="motion-safe:animate-key-mercury" />
+        <Mercury top={6} className="translate-y-[16px] motion-safe:animate-key-mercury" />
+        <path d={THERMOMETER} />
       </g>
     </svg>
   );
