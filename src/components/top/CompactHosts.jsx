@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { ThermometerSun } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { HostStatus } from './BakeryStatus';
 import {
   LEVEL_SERIES,
   POWER_ICON_RANGE,
@@ -9,7 +10,7 @@ import {
   RESERVATION_CLASH,
   TEMPERATURE_ICON_RANGE,
 } from './config';
-import { DownNotice, ServerLink, StatusPill } from './controls';
+import { DownNotice, ServerLink } from './controls';
 import { OVERHEAT_DEEPEST_C, isOverheated, overheatColor } from './Overheat';
 import {
   ChipGlyph,
@@ -454,7 +455,7 @@ function CompactHost({ host, now, interactive, onOpen, reserving }) {
         {/* A pill's box sits a little below its text, so it rises a pixel to
             centre on the text and glyphs beside it. */}
         <span className="order-2 ml-auto -translate-y-px sm:order-4 sm:ml-0">
-          <StatusPill status={host.status} />
+          <HostStatus host={host} now={now} />
         </span>
       </header>
       {host.gpus.length ? (

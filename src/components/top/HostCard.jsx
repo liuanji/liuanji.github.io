@@ -1,7 +1,8 @@
 import { TriangleAlert } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { HostStatus } from './BakeryStatus';
 import { HISTORY_REFRESH_MS, LEVEL_SERIES, READING_STYLES, RESERVATION_CLASH, SERIES } from './config';
-import { DownNotice, StatusPill } from './controls';
+import { DownNotice } from './controls';
 import { OverheatBadge, isOverheated } from './Overheat';
 import { DetailsPopover, RamDetails } from './DetailBoxes';
 import { CpuDeepDetails, GpuDeepDetails, SystemHistory, UsersBreakdown } from './ExpandedBoxes';
@@ -409,7 +410,7 @@ export default function HostCard({ host, now, reserving = null, token }) {
         </div>
         <div className="flex flex-shrink-0 items-center gap-3 font-mono text-xs text-data-grey">
           {host.data_sampled_at && <span>{formatAgo(now - host.data_sampled_at)}</span>}
-          <StatusPill status={host.status} />
+          <HostStatus host={host} now={now} />
         </div>
       </header>
       <div>
