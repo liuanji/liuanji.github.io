@@ -10,7 +10,7 @@ import { PASTRIES } from './pastries';
 // A server's status pill opens a little packing counter for it: a pile of the
 // pastry the server is named after and a bakery box, with the pastries hopping
 // one by one from the pile into the box while the server reports (slower when
-// it is late) and a count on the box's label. When it is unreachable or the
+// it is late). When it is unreachable or the
 // bakery is closed the packing stops, a sign hangs on the box and the pile
 // dozes (under a cloth when closed). Viewers who prefer reduced motion get the
 // still counter.
@@ -36,7 +36,7 @@ function Small({ pastry, at: [x, y] }) {
   );
 }
 
-function PackingScene({ pastry, status, onPacked }) {
+function PackingScene({ pastry, status }) {
   const seconds = PACKING_S[status];
   const asleep = !seconds;
   return (
@@ -82,11 +82,7 @@ function PackingScene({ pastry, status, onPacked }) {
       {/* The box: its inside, the pastry on its way in, then its front. */}
       <rect x="97" y="66" width="30" height="8" rx="1.2" fill={BOX.inside} />
       {seconds && (
-        <g
-          className="opacity-0 motion-safe:animate-pack-fly"
-          style={{ animationDuration: `${seconds}s` }}
-          onAnimationIteration={onPacked}
-        >
+        <g className="opacity-0 motion-safe:animate-pack-fly" style={{ animationDuration: `${seconds}s` }}>
           <Small pastry={pastry} at={TOP} />
         </g>
       )}
@@ -164,26 +160,16 @@ function packingLine(status, host, pastry) {
 function PackingCard({ host, status, reportedAt, now }) {
   const pastry = pastryOf(host);
   const [line] = useState(() => packingLine(status, host, pastry));
-  const [packed, setPacked] = useState(0);
-  const working = Boolean(PACKING_S[status]);
   return (
     <div>
       <div className="flex justify-center rounded-xl px-3 pb-3 pt-4" style={{ backgroundColor: '#FFF7EA' }}>
-        <PackingScene pastry={pastry} status={status} onPacked={() => setPacked((count) => count + 1)} />
+        <PackingScene pastry={pastry} status={status} />
       </div>
       <h4 className="mt-4 font-tight text-base font-semibold leading-tight text-inkwell">
         {(TITLES[status] ?? TITLES.unseen)(host)}
       </h4>
       <p className="mt-1 text-sm leading-relaxed text-data-grey">{line}</p>
       <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-border-light pt-3 font-mono text-[11px]">
-        {working && (
-          <>
-            <dt className="text-data-grey">Packed</dt>
-            <dd className="text-right tabular-nums text-inkwell">
-              {packed} {packed === 1 ? pastry.the.replace(/^the /, '') : many(pastry)}
-            </dd>
-          </>
-        )}
         <dt className="text-data-grey">Last report</dt>
         <dd className="text-right tabular-nums text-inkwell">
           {reportedAt ? (
