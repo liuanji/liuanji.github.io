@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import GhostNav from '../components/layout/GhostNav';
 import CompactHosts from '../components/top/CompactHosts';
-import DiskCard, { CleanupBanner, cleanupColor } from '../components/top/DiskCard';
+import DiskCard, { CleanupBanner, cleanupColor, cleanupIsUrgent } from '../components/top/DiskCard';
 import HostCard from '../components/top/HostCard';
 import LoginCard from '../components/top/LoginCard';
 import LiveTiles from '../components/top/LiveBreakdown';
@@ -255,11 +255,16 @@ export default function Top() {
   // Like clashes, checked on every server's disks.
   const cleanups = cleanupReminders(disks.data?.hosts ?? [], user);
   const heldIdle = myHeldIdle(hosts, user);
-  // The same notices, for the pill in the corner that keeps them within reach.
+  // The viewer's notices, for the pill in the corner.
   const notes = [
     clashes.length && { key: 'clash', color: RESERVATION_CLASH.color, label: 'On a GPU someone reserved' },
     heldIdle.length && { key: 'idle', color: SERIES.compute.color, label: 'A GPU of yours is resting' },
-    cleanups.length && { key: 'cleanup', color: cleanupColor(cleanups), label: 'Scratch space to tidy' },
+    cleanups.length && {
+      key: 'cleanup',
+      color: cleanupColor(cleanups),
+      label: 'Scratch space to tidy',
+      urgent: cleanupIsUrgent(cleanups),
+    },
   ].filter(Boolean);
 
   return (
@@ -312,10 +317,9 @@ export default function Top() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
             >
-              {notes.length > 0 && (
-                <div className="mb-10 space-y-3">
-                  <ClashBanner clashes={clashes} onOpen={hosts.length > 1 ? showHost : undefined} />
-                  <IdleBanner items={heldIdle} onOpen={hosts.length > 1 ? showHost : undefined} />
+              {/* Notices live in the pill in the corner; only a nearly full disk also gets a banner here. */}
+              {cleanupIsUrgent(cleanups) && (
+                <div className="mb-10">
                   <CleanupBanner reminders={cleanups} onOpen={showStorage} />
                 </div>
               )}

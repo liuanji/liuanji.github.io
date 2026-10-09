@@ -91,13 +91,19 @@ module.exports = {
   			breathe: {
   				'0%, 100%': { opacity: '0.45', boxShadow: '0 0 0 0 transparent' },
   				'50%': { opacity: '1', boxShadow: '0 0 4px 1px currentColor' }
+  			},
+  			// /top's notes pill: its usual shadow with a soft ring in --glow swelling and fading.
+  			glow: {
+  				'0%, 100%': { boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1), 0 0 0 0 var(--glow)' },
+  				'50%': { boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1), 0 0 0 6px var(--glow)' }
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			heat: 'heat 4s ease-in-out infinite',
-  			breathe: 'breathe 2.4s ease-in-out infinite'
+  			breathe: 'breathe 2.4s ease-in-out infinite',
+  			glow: 'glow 3.2s ease-in-out infinite'
   		}
   	}
   },

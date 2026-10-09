@@ -14,7 +14,7 @@ import { allClearPhrase } from './easterEggs';
 // still there after that it grows back, and new ones bring it back at once.
 // With no notices it is a little croissant in a circle, which shows a happy
 // phrase under the mouse and a few kind words on a click.
-// notes are { key, color, label }.
+// notes are { key, color, label, urgent }.
 const HIDE_FOR_MS = 60 * 60 * 1000;
 const HIDDEN_KEY = 'gpu-status-notes-hidden';
 const SPRING = { type: 'spring', stiffness: 420, damping: 36 };
@@ -33,7 +33,7 @@ function Dots({ notes }) {
   return (
     <span className="flex items-center gap-1.5" aria-hidden="true">
       {notes.map((note) => (
-        <span key={note.key} className="h-2 w-2 rounded-full" style={{ backgroundColor: note.color }} />
+        <span key={note.key} className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: note.color }} />
       ))}
     </span>
   );
@@ -51,7 +51,17 @@ export default function NotesPill({ notes, me = null, children }) {
   const any = notes.length > 0;
   const quiet = any && hidden?.signature === signature && Date.now() < hidden.until;
   const count = notes.length === 1 ? '1 note' : `${notes.length} notes`;
+  // Waiting notices tint the pill and give it a slow glow in the colour of the
+  // most pressing one, so they are hard to miss without being loud.
+  const calling = any && !open && !quiet;
+  const lead = (notes.find((note) => note.urgent) ?? notes[0])?.color;
   const minutesLeft = quiet ? Math.max(1, Math.ceil((hidden.until - Date.now()) / 60000)) : 0;
+
+  // Back to the smallest form: the circle, not the phrase it shows under the mouse.
+  const minimize = () => {
+    setOpen(false);
+    setPeek(false);
+  };
 
   const unhide = () => {
     setHidden(null);
@@ -85,9 +95,9 @@ export default function NotesPill({ notes, me = null, children }) {
   useEffect(() => {
     if (!open) return undefined;
     const outside = (event) => {
-      if (!card.current?.contains(event.target)) setOpen(false);
+      if (!card.current?.contains(event.target)) minimize();
     };
-    const escape = (event) => event.key === 'Escape' && setOpen(false);
+    const escape = (event) => event.key === 'Escape' && minimize();
     document.addEventListener('pointerdown', outside);
     document.addEventListener('keydown', escape);
     return () => {
@@ -128,8 +138,17 @@ export default function NotesPill({ notes, me = null, children }) {
         onPointerLeave={hoverOut}
         layout
         transition={SPRING}
-        style={{ borderRadius: open ? 18 : 999 }}
-        className={`overflow-hidden border border-border-light bg-white/95 backdrop-blur-sm ${open ? 'shadow-xl' : 'shadow-md'}`}
+        style={{
+          borderRadius: open ? 18 : 999,
+          ...(calling && {
+            borderColor: `${lead}66`,
+            backgroundImage: `linear-gradient(${lead}12, ${lead}12)`,
+            '--glow': `${lead}2E`,
+          }),
+        }}
+        className={`overflow-hidden border border-border-light bg-white/95 backdrop-blur-sm ${open ? 'shadow-xl' : 'shadow-md'} ${
+          calling ? 'motion-safe:animate-glow' : ''
+        }`}
       >
         <AnimatePresence initial={false} mode="popLayout">
           {open && !any ? (
@@ -153,7 +172,7 @@ export default function NotesPill({ notes, me = null, children }) {
                   type="button"
                   aria-label="Minimize"
                   title="Minimize"
-                  onClick={() => setOpen(false)}
+                  onClick={minimize}
                   className="flex h-6 w-6 items-center justify-center rounded-full text-data-grey/70 transition-colors hover:bg-paper hover:text-inkwell"
                 >
                   <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.25} />
@@ -202,7 +221,7 @@ export default function NotesPill({ notes, me = null, children }) {
                     type="button"
                     aria-label="Minimize"
                     title="Minimize"
-                    onClick={() => setOpen(false)}
+                    onClick={minimize}
                     className="flex h-6 w-6 items-center justify-center rounded-full text-data-grey/70 transition-colors hover:bg-paper hover:text-inkwell"
                   >
                     <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.25} />
@@ -239,7 +258,7 @@ export default function NotesPill({ notes, me = null, children }) {
               aria-expanded={false}
               onClick={() => setOpen(true)}
               title={notes.map((note) => note.label).join(' · ')}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-data-grey transition-colors hover:text-inkwell focus-visible:outline-none"
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-inkwell focus-visible:outline-none"
             >
               <Dots notes={notes} />
               {count} for you

@@ -382,6 +382,12 @@ function cleanupUrgency(reminders) {
   return levels.includes('hot') ? 'hot' : levels.includes('warm') ? 'warm' : 'calm';
 }
 
+// Whether a disk the viewer is asked to tidy is nearly full (95% and up), the
+// one notice urgent enough to stay at the top of the page as well.
+export function cleanupIsUrgent(reminders) {
+  return reminders.length > 0 && cleanupUrgency(reminders) === 'hot';
+}
+
 // The cleanup notice's colour, for the reminder pill that stands in for it.
 export function cleanupColor(reminders) {
   return URGENCY[cleanupUrgency(reminders)].color;
