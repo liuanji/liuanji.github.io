@@ -51,21 +51,24 @@ function Dots({ notes, breathing = false }) {
 
 // The all-clear croissant: a few tiny sparkles twinkle around it, as if it
 // were fresh and shiny, each at its own random pace and, after every twinkle,
-// at a new random spot on a ring around it; it hops when the mouse arrives.
+// at a new random spot around it; it hops when the mouse arrives.
 // Still for viewers who prefer reduced motion.
 const SPARKLE = '#E3B655';
 const SPARKLE_COUNT = 4;
 
-// A spot on a ring 9-12px from the croissant's centre (in its 20px box), so a
-// sparkle never sits on the croissant nor leaves the circle, and a size.
-function sparkleSpot() {
-  const angle = Math.random() * 2 * Math.PI;
+// A spot in one quarter of a ring 9-12px from the croissant's centre (in its
+// 20px box), so a sparkle never sits on the croissant nor leaves the circle,
+// and a size. Each sparkle moves on to the next quarter after every twinkle,
+// so every side gets its share of sparkles.
+function sparkleSpot(quarter) {
+  const angle = ((quarter % 4) + Math.random()) * (Math.PI / 2);
   const radius = 9 + Math.random() * 3;
   return { x: 10 + radius * Math.cos(angle), y: 10 + radius * Math.sin(angle), size: 5 + Math.random() * 3 };
 }
 
 function Sparkle({ index }) {
-  const [spot, setSpot] = useState(sparkleSpot);
+  const [quarter, setQuarter] = useState(index);
+  const [spot, setSpot] = useState(() => sparkleSpot(index));
   const [timing] = useState(() => ({
     delay: index * 0.8 + Math.random() * 0.8,
     duration: 2.2 + Math.random() * 1.6,
@@ -73,7 +76,10 @@ function Sparkle({ index }) {
   return (
     <svg
       viewBox="0 0 10 10"
-      onAnimationIteration={() => setSpot(sparkleSpot())}
+      onAnimationIteration={() => {
+        setQuarter(quarter + 1);
+        setSpot(sparkleSpot(quarter + 1));
+      }}
       className="pointer-events-none absolute scale-0 motion-safe:animate-twinkle"
       style={{
         left: spot.x - spot.size / 2,
@@ -104,8 +110,10 @@ function FreshCroissant({ hopping }) {
 
 export default function NotesPill({ notes, me = null, children }) {
   const [open, setOpen] = useState(false);
-  // With no notices: the croissant circle shows its phrase while the mouse rests on it.
+  // With no notices: the croissant circle shows its phrase while the mouse rests
+  // on it, a new one each time.
   const [peek, setPeek] = useState(false);
+  const [clearTurn, setClearTurn] = useState(0);
   // { signature, until }: which notices were quieted, and until when.
   const [hidden, setHidden] = useState(readHidden);
   const card = useRef(null);
@@ -182,7 +190,10 @@ export default function NotesPill({ notes, me = null, children }) {
     if (event.pointerType !== 'mouse' || quiet) return;
     clearTimeout(leaveTimer.current);
     if (any) setOpen(true);
-    else setPeek(true);
+    else if (!peek && !open) {
+      setClearTurn((turn) => turn + 1);
+      setPeek(true);
+    }
   };
   const hoverOut = (event) => {
     if (event.pointerType !== 'mouse') return;
@@ -244,7 +255,7 @@ export default function NotesPill({ notes, me = null, children }) {
               <div className="mt-1">
                 <PlainBanners.Provider value>
                   <Banner icon={Croissant} color={CRUST}>
-                    <p className="text-inkwell">{allClearPhrase()}.</p>
+                    <p className="text-inkwell">{allClearPhrase(clearTurn)}.</p>
                     <p className="text-data-grey">
                       Nothing needs you right now: none of your GPUs is resting, nobody’s oven is borrowed, and your
                       scratch space is tidy. Happy baking{me ? `, ${me}` : ''}!
@@ -335,13 +346,13 @@ export default function NotesPill({ notes, me = null, children }) {
               animate={{ opacity: 1, transition: { delay: 0.06, duration: 0.15 } }}
               exit={{ opacity: 0, transition: { duration: 0.06 } }}
               onClick={() => setOpen(true)}
-              aria-label={`All clear: ${allClearPhrase()}`}
+              aria-label={`All clear: ${allClearPhrase(clearTurn)}`}
               className={`flex items-center justify-center text-sm text-data-grey focus-visible:outline-none ${
                 peek ? 'gap-2 px-4 py-2.5' : 'h-10 w-10'
               }`}
             >
               <FreshCroissant hopping={peek} />
-              {peek && <span className="whitespace-nowrap">{allClearPhrase()}</span>}
+              {peek && <span className="whitespace-nowrap">{allClearPhrase(clearTurn)}</span>}
             </motion.button>
           )}
         </AnimatePresence>

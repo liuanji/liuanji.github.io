@@ -959,8 +959,10 @@ const ALL_CLEAR = [
   'All quiet at the bakery',
 ];
 
-export function allClearPhrase() {
-  return ALL_CLEAR[hash('clear') % ALL_CLEAR.length];
+// turn counts the viewer's hovers, so each one brings the next line, starting
+// somewhere different every visit.
+export function allClearPhrase(turn = 0) {
+  return ALL_CLEAR[(hash('clear') + turn) % ALL_CLEAR.length];
 }
 
 // One of a milestone's lines, the same all visit long.

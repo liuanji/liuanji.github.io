@@ -219,7 +219,9 @@ function LabRow({ rows, uptime, rangeAgo, focus }) {
   const subject =
     parts.length &&
     [...parts].sort((a, b) => STATE_RANK[b.state] - STATE_RANK[a.state] || a.name.localeCompare(b.name))[0];
-  const featured = subject && subject.state === 'up' ? parts[start % parts.length] : subject;
+  // Bars start on whole periods, so their times would always pick the same
+  // server; their positions take turns instead.
+  const featured = subject && subject.state === 'up' ? parts[active % parts.length] : subject;
   // The box follows the bar but stays inside the card.
   const left = active == null ? 0 : ((active + 0.5) / bars) * 100;
 
