@@ -1,6 +1,6 @@
 import { TriangleAlert } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { HostStatus } from './BakeryStatus';
+import { HostStatus } from './HostPacking';
 import { HISTORY_REFRESH_MS, LEVEL_SERIES, READING_STYLES, RESERVATION_CLASH, SERIES } from './config';
 import { DownNotice } from './controls';
 import { OverheatBadge, isOverheated } from './Overheat';

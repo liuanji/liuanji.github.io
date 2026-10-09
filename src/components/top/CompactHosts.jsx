@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { ThermometerSun } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { HostStatus } from './BakeryStatus';
+import { HostStatus } from './HostPacking';
 import {
   LEVEL_SERIES,
   POWER_ICON_RANGE,

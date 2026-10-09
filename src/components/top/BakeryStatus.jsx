@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { DetailsPopover, GLYPH } from './DetailBoxes';
-import { StatusPill } from './controls';
+import { GLYPH } from './DetailBoxes';
 import { HOST_STATUS } from './config';
-import { bakeryStateLine, hostDownPhrase, pastryLine } from './easterEggs';
+import { bakeryStateLine, pastryLine } from './easterEggs';
 import { formatAgo, formatFullTime } from './format';
 import { PASTRIES, RAW_COLORS } from './pastries';
 
@@ -38,7 +37,7 @@ const STEAM = ['M68 24c-3-4 3-7 0-11s3-7 0-11', 'M80 22c-3-4 3-7 0-11s3-7 0-11',
 // doneness runs from 0, raw dough, to 1, baked: the colours warm from their
 // raw shades through every shade between, the pastry rises a little, and the
 // toppings go on over the last fifth.
-function Pastry({ pastry, doneness = 1 }) {
+export function Pastry({ pastry, doneness = 1 }) {
   const cook = (color) => (RAW_COLORS[color] ? mixColor(RAW_COLORS[color], color, doneness) : color);
   const topping = Math.max(0, (doneness - 0.8) / 0.2);
   const rise = `translate(80 83) scale(${0.9 + 0.1 * doneness} ${0.7 + 0.3 * doneness}) translate(-80 -83)`;
@@ -352,17 +351,12 @@ function useDoneness(on, bake) {
   return { value, current: current.current };
 }
 
-// host, when given, makes it that server's own oven: it bakes only the pastry
-// the server is named after (another of the same each time one is collected),
-// and its words are about the server, its status (hostStatus) and when it last
-// reported (generatedAt).
-export function BakeryCard({ state, generatedAt, now, host = null, hostStatus = null }) {
-  const own = host ? pastryOf(host) : null;
+export function BakeryCard({ state, generatedAt, now }) {
   // A random pastry when the card opens, and a different one each time a
   // baked one is taken out through the door. bake counts the swaps, leaving is
   // the pastry on its way out, and rattle counts tries of the locked door.
   const [batch, setBatch] = useState(() => ({
-    index: own ?? Math.floor(Math.random() * PASTRIES.length),
+    index: Math.floor(Math.random() * PASTRIES.length),
     bake: 0,
     leaving: null,
     rattle: 0,
@@ -372,7 +366,7 @@ export function BakeryCard({ state, generatedAt, now, host = null, hostStatus = 
   const doneness = useDoneness(batch.on, batch.bake);
   const swap = (current) => ({
     ...current,
-    index: own ?? (current.index + 1 + Math.floor(Math.random() * (PASTRIES.length - 1))) % PASTRIES.length,
+    index: (current.index + 1 + Math.floor(Math.random() * (PASTRIES.length - 1))) % PASTRIES.length,
     bake: current.bake + 1,
     leaving: { pastry: PASTRIES[current.index], doneness: doneness.current },
     line: bakeryStateLine(state, current.line),
@@ -407,8 +401,7 @@ export function BakeryCard({ state, generatedAt, now, host = null, hostStatus = 
   if (state === 'live' && stageLine.key !== lineKey) {
     setStageLine({ key: lineKey, text: pastryLine(stage, pastry, stageLine.text) });
   }
-  const { panel } = SCENE[state];
-  const title = host ? (HOST_TITLES[hostStatus]?.(host) ?? HOST_TITLES.closed(host)) : SCENE[state].title;
+  const { title, panel } = SCENE[state];
   const age = now - generatedAt;
   return (
     <div>
@@ -460,20 +453,9 @@ export function BakeryCard({ state, generatedAt, now, host = null, hostStatus = 
       </div>
       <h4 className="mt-4 font-tight text-base font-semibold leading-tight text-inkwell">{title}</h4>
       <p className="mt-1 text-sm leading-relaxed text-data-grey">
-        {state === 'live' ? (
-          stageLine.text
-        ) : host && hostStatus === 'error' ? (
-          <>{hostDownPhrase(host)}. The monitor could not reach it on its last check.</>
-        ) : (
-          <>
-            {batch.line}
-            {state === 'delayed' && ' Fresh readings should be along soon.'}
-            {state === 'closed' &&
-              (host
-                ? ' The server itself may be running just fine.'
-                : ' The servers themselves may be running just fine.')}
-          </>
-        )}
+        {state === 'live' ? stageLine.text : batch.line}
+        {state === 'delayed' && ' Fresh readings should be along soon.'}
+        {state === 'closed' && ' The servers themselves may be running just fine.'}
       </p>
       <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-border-light pt-3 font-mono text-[11px]">
         {state !== 'closed' && (
@@ -492,70 +474,15 @@ export function BakeryCard({ state, generatedAt, now, host = null, hostStatus = 
             </dd>
           </>
         )}
-        <dt className="text-data-grey">{host ? 'Last report' : 'Last batch'}</dt>
+        <dt className="text-data-grey">Last batch</dt>
         <dd className="text-right tabular-nums text-inkwell">
-          {generatedAt ? (
-            <>
-              {formatFullTime(generatedAt)} <span className="text-data-grey">· {formatAgo(age)}</span>
-            </>
-          ) : (
-            'Not yet'
-          )}
+          {formatFullTime(generatedAt)} <span className="text-data-grey">· {formatAgo(age)}</span>
         </dd>
-        {!host && (
-          <>
-            <dt className="text-data-grey">Next batch</dt>
-            <dd className="text-right text-inkwell">
-              {state === 'live' ? 'Every minute' : state === 'delayed' ? 'Running late' : 'When the chefs are back'}
-            </dd>
-          </>
-        )}
+        <dt className="text-data-grey">Next batch</dt>
+        <dd className="text-right text-inkwell">
+          {state === 'live' ? 'Every minute' : state === 'delayed' ? 'Running late' : 'When the chefs are back'}
+        </dd>
       </dl>
     </div>
-  );
-}
-
-// A server's oven bakes the pastry it is named after, or for any other name a
-// pastry of its own, the same each time.
-function pastryOf(host) {
-  const named = PASTRIES.findIndex((pastry) => pastry.the === `the ${host}`);
-  if (named >= 0) return named;
-  let sum = 0;
-  for (const character of host) sum = (sum * 31 + character.codePointAt(0)) % 9973;
-  return sum % PASTRIES.length;
-}
-
-const HOST_TITLES = {
-  online: (host) => `Fresh from ${host}`,
-  stale: (host) => `${host} is running a little late`,
-  error: (host) => `${host} is not answering`,
-  closed: (host) => `${host}'s oven is closed for now`,
-  unseen: (host) => `Waiting for ${host}`,
-};
-
-// A server's status pill, which opens the server's own little bakery.
-export function HostStatus({ host, now }) {
-  const state = host.status === 'online' ? 'live' : host.status === 'stale' ? 'delayed' : 'closed';
-  return (
-    <DetailsPopover
-      content={
-        <BakeryCard
-          state={state}
-          generatedAt={host.data_sampled_at}
-          now={now}
-          host={host.name}
-          hostStatus={host.status}
-        />
-      }
-      width="w-[340px]"
-    >
-      <button
-        type="button"
-        aria-label={`${host.name}: ${(HOST_STATUS[host.status] ?? HOST_STATUS.unseen).label}. Show its oven.`}
-        className="rounded-full transition-shadow hover:shadow-[0_0_0_3px_#F1F3F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20 data-[state=open]:shadow-[0_0_0_3px_#ECEFF3]"
-      >
-        <StatusPill status={host.status} />
-      </button>
-    </DetailsPopover>
   );
 }

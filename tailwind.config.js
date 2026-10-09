@@ -181,6 +181,19 @@ module.exports = {
   				'0%': { opacity: '0.7', transform: 'scale(1)' },
   				'100%': { opacity: '0', transform: 'scale(2.4)' }
   			},
+  			// A server's packing counter: a pastry hopping from the pile into the box,
+  			// and the pile's top one restocked once it has gone.
+  			'pack-fly': {
+  				'0%': { opacity: '1', transform: 'translate(0, 0)' },
+  				'30%': { transform: 'translate(30px, -20px)' },
+  				'58%': { transform: 'translate(60px, -6px)' },
+  				'72%': { opacity: '1', transform: 'translate(60px, 10px)' },
+  				'76%, 100%': { opacity: '0', transform: 'translate(60px, 10px)' }
+  			},
+  			'pile-restock': {
+  				'0%, 80%': { opacity: '0', transform: 'scale(0.4)' },
+  				'100%': { opacity: '1', transform: 'scale(1)' }
+  			},
   			steam: {
   				'0%': { opacity: '0', transform: 'translateY(4px)' },
   				'35%': { opacity: '0.9' },
@@ -242,6 +255,8 @@ module.exports = {
   			'pastry-in': 'pastry-in 0.6s ease-out both',
   			'power-breathe': 'power-breathe 1.8s ease-in-out infinite',
   			'power-nudge': 'power-nudge 0.7s ease-out 2',
+  			'pack-fly': 'pack-fly 3s ease-in-out infinite',
+  			'pile-restock': 'pile-restock 3s ease-out infinite',
   			steam: 'steam 2.1s ease-out infinite',
   			'sign-swing': 'sign-swing 2.8s ease-in-out infinite',
   			snooze: 'snooze 2.7s ease-out infinite',
