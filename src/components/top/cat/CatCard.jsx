@@ -237,9 +237,8 @@ function CatDetails({ meal, roaming, onRoam, quiet, onQuiet }) {
         {roaming && <ActionsMenu quiet={quiet} />}
       </div>
       {/* Quiet mode: it plays without moving or shaking anything of the page's. */}
-      <div className="mt-2 flex items-center gap-2">
-        <Switch label="Quiet mode" checked={Boolean(quiet)} onChange={onQuiet} />
-        <span className="font-mono text-[10px] text-data-grey/70">leaves the cards be</span>
+      <div className="mt-2 flex items-center">
+        <Switch label="Quiet mode: no moving cards" checked={Boolean(quiet)} onChange={onQuiet} />
       </div>
     </div>
   );
