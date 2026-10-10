@@ -48,18 +48,20 @@ function CatDetails({ meal, roaming, onRoam }) {
       <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-border-light pt-3 font-mono text-[11px]">
         <dt className="text-data-grey">Fed this week</dt>
         <dd className="text-right tabular-nums text-inkwell">{cookies(meal?.week)} cookies</dd>
-        <dt className="text-data-grey">Today</dt>
-        <dd className="text-right tabular-nums text-inkwell">
-          {cookies(today)}
-          <span className="text-data-grey">{today >= APPETITE ? ' · full' : ` of ${APPETITE}`}</span>
-        </dd>
-        <dd className="col-span-2">
-          <div className="h-1.5 overflow-hidden rounded-full bg-[#F3E6D6]">
-            <div
-              className="h-full rounded-full bg-[#E39A55]"
+        <dt className="text-data-grey">Eaten today</dt>
+        <dd className="text-right tabular-nums text-inkwell">{cookies(today)} cookies</dd>
+        {/* How full its tummy is today, against its appetite. */}
+        <dt className="text-data-grey">Tummy</dt>
+        <dd className="flex items-center justify-end gap-2 tabular-nums text-inkwell">
+          <span className="h-1.5 w-24 overflow-hidden rounded-full bg-[#F3E6D6]">
+            <span
+              className="block h-full rounded-full bg-[#E39A55]"
               style={{ width: `${Math.min(100, (today / APPETITE) * 100)}%` }}
             />
-          </div>
+          </span>
+          <span className="w-[4ch] text-right">
+            {today >= APPETITE ? 'full' : `${Math.round((today / APPETITE) * 100)}%`}
+          </span>
         </dd>
         <dt className="text-data-grey">Age</dt>
         <dd className="text-right text-inkwell">{stage.label}</dd>

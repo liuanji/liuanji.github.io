@@ -227,6 +227,15 @@ module.exports = {
   				'0%, 100%': { transform: 'translateY(0)' },
   				'50%': { transform: 'translateY(-3px)' }
   			},
+  			'cat-tremble': {
+  				'0%, 100%': { transform: 'translateX(0)' },
+  				'25%': { transform: 'translateX(-0.8px)' },
+  				'75%': { transform: 'translateX(0.8px)' }
+  			},
+  			'cat-flap': {
+  				'0%, 100%': { transform: 'scaleX(1)' },
+  				'50%': { transform: 'scaleX(0.35)' }
+  			},
   			'cat-breathe': {
   				'0%, 100%': { transform: 'scaleY(1)' },
   				'50%': { transform: 'scaleY(1.04)' }
@@ -307,6 +316,8 @@ module.exports = {
   			'cat-step': 'cat-step 0.4s ease-in-out infinite',
   			'cat-climb': 'cat-climb 0.5s ease-in-out infinite',
   			'cat-knead': 'cat-knead 0.7s ease-in-out infinite',
+  			'cat-tremble': 'cat-tremble 0.16s linear infinite',
+  			'cat-flap': 'cat-flap 0.22s ease-in-out infinite',
   			'cat-breathe': 'cat-breathe 3.2s ease-in-out infinite',
   			'cat-float': 'cat-float 1.6s ease-out both',
   			steam: 'steam 2.1s ease-out infinite',
