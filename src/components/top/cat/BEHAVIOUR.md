@@ -179,6 +179,25 @@ Then she ignores the pointer for 3 s. Other reactions:
 | Dance | Equal pick (never the same twice running): happy paws, shuffle, twirl, moonwalk |
 | Send home | She leaps back into your name and roaming turns off |
 
+## A pop-up from her panel
+
+When you click something on the panel she is on (resting, sitting, walking,
+busy with a little doing, or asleep) and it opens a pop-up card (a GPU's
+details, a disk, a baker), she reacts **65%** of the time. A pop-up that opens
+on hover alone, or from another panel, she ignores, and in quiet mode she
+ignores them all.
+
+| Reaction | Chance | What happens |
+|---|---|---|
+| Read | Equal pick (never the same twice running) | Hops on top and reads it through little round glasses ("hmm") |
+| Peek | ″ | Hops on and peeks over its top edge, ducks, peeks again |
+| Swat | ″ | Hops on and swats at it twice; the card jiggles |
+| Nap | ″ | Hops on, purrs and falls asleep on it |
+| Startle | ″ | Jumps where she is ("!") and stares at it |
+
+If the pop-up is too narrow, or its top would put her under the navigation
+bar, she stays put. When it closes under her, she drops onto the panel below.
+
 ## Trapped in a card
 
 Held still (moving no more than 6 px) for at least 2 s over a card, well
@@ -207,7 +226,8 @@ out.
 A switch on her card (remembered in this browser). While it is on she moves
 and shakes nothing of the page's: no wobbling, stealing or kicking a GPU card,
 no spinning, running on or swinging from its ring (a visit that would becomes
-one of the calm ones: the warm nap, peekaboo or adding oil), no shaking her
+one of the calm ones: the warm nap, peekaboo or adding oil), no reacting to a
+pop-up card opened from her panel, no shaking her
 panel when she knocks, no jiggling things while trapped, no humming shake when
 an idle card runs. Everything else is as usual, and the card-moving visits are
 greyed out in her card's list.

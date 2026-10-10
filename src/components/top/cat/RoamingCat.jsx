@@ -33,6 +33,14 @@ const SCRUFF = { x: (60 - VIEW.x) * UNIT, y: (30 - VIEW.y) * UNIT };
 // site's navigation bar sits) and from its sides.
 const MARGIN = 58;
 const TOP_CLEAR = 120;
+// How far down the window a panel's top edge must be for the cat to sit on it
+// with its head clear of the site's navigation bar (which stays put at the
+// top), and at least TOP_CLEAR.
+function topClear() {
+  const bar = document.querySelector('nav')?.getBoundingClientRect();
+  const under = bar && bar.bottom > 0 && bar.top <= 0 ? bar.bottom : 0;
+  return Math.max(TOP_CLEAR, under + HEIGHT + 6);
+}
 const SIDE_CLEAR = 16;
 // Paces, in pixels a second, and how long things take, in milliseconds.
 const STROLL = 36;
@@ -223,7 +231,7 @@ const page = (rect) => ({
 function visiblePerches() {
   return [...document.querySelectorAll('[data-cat-perch]')].filter((element) => {
     const rect = element.getBoundingClientRect();
-    return rect.width > 2 * MARGIN + 40 && rect.top > TOP_CLEAR && rect.top < window.innerHeight - 24;
+    return rect.width > 2 * MARGIN + 40 && rect.top > topClear() && rect.top < window.innerHeight - 24;
   });
 }
 
@@ -277,7 +285,7 @@ function perchBelow(x, y) {
 // The running GPUs' tiles in view, to visit.
 function tileInView(element) {
   const rect = element.getBoundingClientRect();
-  return rect.width > 40 && rect.top > TOP_CLEAR && rect.bottom < window.innerHeight - 10;
+  return rect.width > 40 && rect.top > topClear() && rect.bottom < window.innerHeight - 10;
 }
 function runningGpus() {
   return [...document.querySelectorAll('[data-cat-gpu][data-busy]')].filter(tileInView);
@@ -1885,7 +1893,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         return;
       }
       const to = spotOn(perch, state.x);
-      const screenTop = window.scrollY + TOP_CLEAR - 60;
+      const screenTop = window.scrollY + topClear() - 60;
       const screenBottom = window.scrollY + window.innerHeight;
       const side = to.x < window.scrollX + window.innerWidth / 2 ? -1 : 1;
       Object.assign(state, {
@@ -1913,6 +1921,87 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       const edge = page(perch.getBoundingClientRect());
       state.along = state.x - edge.left;
     };
+    // A pop-up card opened from the panel it is resting on (its owner clicked
+    // something there): now and then it reacts. It hops on and reads it through
+    // little glasses, peeks over its top, jumps in surprise, hops on and swats
+    // at it (it jiggles), or hops on and naps. Not in quiet mode. When the pop-up
+    // closes under it, it drops back down onto a panel.
+    const POPUP_CHANCE = 0.65;
+    const popupReactions = {
+      read: () => [
+        { pose: 'read', ms: 3600, start: () => say('hmm') },
+        { pose: 'sit', mood: 'purring', ms: 900, start: () => say('!') },
+      ],
+      peek: () => [
+        { pose: 'peek', ms: 2400 },
+        { pose: 'lurk', ms: 700 },
+        { pose: 'peek', ms: 1400, start: () => say('?') },
+      ],
+      swat: (card) => [
+        { pose: 'sit', mood: 'hungry', ms: 400 },
+        ...[0, 1].flatMap(() => [
+          {
+            pose: 'reach',
+            ms: 300,
+            start: () =>
+              card.animate(
+                [{ transform: 'none' }, { transform: 'translateY(2px) rotate(-1deg)' }, { transform: 'none' }],
+                { duration: 260 },
+              ),
+          },
+          { pose: 'sit', mood: 'hungry', ms: 300 },
+        ]),
+        { pose: 'sit', mood: 'purring', ms: 900, start: () => say('!') },
+      ],
+      nap: () => [
+        { pose: 'rest', mood: 'purring', ms: 1500, start: () => say('prr') },
+        { pose: 'sleep', ms: 6000, frame: () => Math.random() < 0.004 && say('z') },
+      ],
+    };
+    const onPopup = (card) => {
+      const time = performance.now();
+      const press = state.lastPress;
+      const fromItsPanel = press && time - press.at < 1500 && state.perch?.contains?.(press.target);
+      if (!fromItsPanel || !['rest', 'sit', 'walk', 'act', 'sleep'].includes(state.mode) || onSide()) return;
+      if (quietRef.current || (!state.forcePopup && Math.random() > POPUP_CHANCE)) return;
+      const ways = [...Object.keys(popupReactions), 'startle'].filter((way) => way !== state.lastPopup);
+      const way = state.forcePopup ?? ways[Math.floor(Math.random() * ways.length)];
+      state.lastPopup = way;
+      if (way === 'startle') {
+        // A jump where it is, and a stare at the thing.
+        play(
+          [
+            {
+              pose: 'startle',
+              ms: 520,
+              start: () => say('!'),
+              frame: (step, now, k) => (state.lift = 26 * Math.sin(Math.PI * k)),
+            },
+            { pose: 'sit', mood: 'hungry', ms: 1200, start: () => say('?') },
+          ],
+          time,
+        );
+        return;
+      }
+      const rect = card.getBoundingClientRect();
+      if (rect.width < 2 * MARGIN + 20 || rect.top < topClear()) return;
+      state.resume = { steps: () => popupReactions[way](card) };
+      leapTo(card, state.x);
+    };
+    const popupWatch = new MutationObserver((changes) => {
+      for (const change of changes) {
+        for (const node of change.addedNodes) {
+          const wrapper =
+            node.nodeType === 1 &&
+            (node.matches?.('[data-radix-popper-content-wrapper]')
+              ? node
+              : node.querySelector?.('[data-radix-popper-content-wrapper]'));
+          const card = wrapper?.firstElementChild;
+          if (card && !card.closest('[role="menu"]')) setTimeout(() => card.isConnected && onPopup(card), 150);
+        }
+      }
+    });
+    popupWatch.observe(document.body, { childList: true });
     // Mishaps along a walk (each carries on to where it was going).
     const mishaps = {
       sniff: (goal) => [{ pose: 'sniff', ms: 1400, start: () => say('sniff') }, { to: goal }],
@@ -2774,6 +2863,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     window.addEventListener('pointerup', onPointerUp);
     // The menu closes on a press anywhere else, or Escape; its options act here.
     const onPressAway = (event) => {
+      state.lastPress = { target: event.target, at: performance.now() };
       if (
         state.mode === 'tease' &&
         !state.dart &&
@@ -2823,7 +2913,14 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         else if (name.startsWith('toss:')) play(tossed[name.slice(5)](), performance.now());
         else if (name.startsWith('gpu:')) return visitGpu(name.slice(4));
         else if (name === 'run') stroll(true);
-        else if (name === 'plummet') {
+        else if (name.startsWith('popup:')) {
+          state.lastPress = { target: state.perch, at: performance.now() };
+          const card = document.querySelector('[data-radix-popper-content-wrapper]')?.firstElementChild;
+          if (!card) return false;
+          state.forcePopup = name.slice(6);
+          onPopup(card);
+          state.forcePopup = null;
+        } else if (name === 'plummet') {
           Object.assign(state, {
             mode: 'plummet',
             started: performance.now(),
@@ -2910,6 +3007,19 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       // Seconds since the last frame, so its pace is the same at any frame rate.
       const dt = Math.min(0.05, Math.max(0, time - last) / 1000);
       last = time;
+      // Perched on a pop-up card that has closed: it drops down onto a panel.
+      if (state.perch && !state.perch.isConnected && !state.inside) {
+        state.perch = null;
+        say('!');
+        const perches = visiblePerches();
+        const below = perches
+          .map((element) => ({ element, edge: page(element.getBoundingClientRect()) }))
+          .filter(({ edge }) => edge.top > state.y - 20)
+          .sort((a, b) => a.edge.top - b.edge.top)[0]?.element;
+        const to = below ?? perches[0];
+        if (to) leapTo(to, state.x, DROP_MS);
+        else state.mode = 'idle';
+      }
       // Trapped in a panel: it keeps to the panel's floor, between its walls.
       if (state.inside) {
         const edge = page(state.inside.getBoundingClientRect());
@@ -2953,13 +3063,14 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         state.x = spot.x;
         state.y = spot.y;
         const onScreen = spot.y - window.scrollY;
-        const above = onScreen < TOP_CLEAR - 30;
+        // Gone when its head would be under the navigation bar.
+        const above = onScreen < topClear() - 12;
         if ((above || onScreen > window.innerHeight - 10 || !rect.width) && time - state.scrolledAt > SETTLE_MS) {
           const perches = visiblePerches();
           const perch = above ? perches[0] : perches[perches.length - 1];
           if (perch) {
             state.x = Math.min(window.scrollX + window.innerWidth - MARGIN, Math.max(window.scrollX + MARGIN, state.x));
-            state.y = above ? window.scrollY + TOP_CLEAR - 40 : window.scrollY + window.innerHeight + 20;
+            state.y = above ? window.scrollY + topClear() - 40 : window.scrollY + window.innerHeight + 20;
             state.perch = null;
             comeBack(perch, above, time);
           }
@@ -4041,6 +4152,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       window.removeEventListener('bakery-cat-treat', onTreat);
       window.removeEventListener('bakery-cat-toy', onToy);
       window.removeEventListener('bakery-cat-do', onDo);
+      popupWatch.disconnect();
       window.removeEventListener('pointerdown', onPressAway);
       window.removeEventListener('keydown', onKey);
     };

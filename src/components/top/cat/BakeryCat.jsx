@@ -445,6 +445,8 @@ export const ROAM_POSES = {
   // and with its owner: squirming belly-up for a rub, leaning into a brush,
   // posing for photos (a wink, and lounging like a film star).
   chatter: () => <Chattering />,
+  // Reading something below it through little round glasses, head bent.
+  read: () => <Reading />,
   // Pushing something along (to its left): leaning in, front paws braced flat
   // against it, hind legs digging in, straining.
   push: () => <Pushing />,
@@ -1807,6 +1809,33 @@ function Pouring() {
           style={{ animationDelay: `${-delay}s` }}
         />
       ))}
+    </g>
+  );
+}
+
+// Reading: sat up, head bent over what is below it, little round glasses on
+// its nose, a paw raised as if to turn a page.
+function Reading() {
+  return (
+    <g>
+      <Sitting mood="content" stage={STAGES[2]} raised />
+      <g transform="translate(0 4)">
+        <circle cx="53" cy="46" r="4.6" fill="#FFFFFF" fillOpacity="0.35" stroke="#5B6474" strokeWidth="1.2" />
+        <circle cx="67" cy="46" r="4.6" fill="#FFFFFF" fillOpacity="0.35" stroke="#5B6474" strokeWidth="1.2" />
+        <path d="M57.6 46h4.8M48.4 45l-6-2M71.6 45l6-2" stroke="#5B6474" strokeWidth="1.1" strokeLinecap="round" />
+      </g>
+      <path d="M47 74Q42 68 44 62" fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
+      <path d="M47 74Q42 68 44 62" fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+      <ellipse
+        cx="44.5"
+        cy="60.5"
+        rx="4"
+        ry="3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(-20 44.5 60.5)"
+      />
     </g>
   );
 }
