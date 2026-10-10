@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { BoxFooter, GLYPH, RING_SERIES } from './DetailBoxes';
-import { HISTORY_REFRESH_MS } from './config';
+import { HISTORY_REFRESH_MS, LIVE_REFRESH_MS } from './config';
+import { Segmented } from './controls';
 import { pressurePhrase } from './easterEggs';
 import { formatAxisTime, formatFullTime, gpuModels } from './format';
 import { useGrowingShare, useMorphedSeries } from './useGrowingShare';
@@ -160,10 +162,16 @@ function Stat({ label, value, note }) {
 }
 
 // The box the GPU meter opens: the rack and how many are in use on the left;
-// on the right the last 24 hours of GPUs in use, with the share computing as a
+// on the right the last hour or day of GPUs in use, with the share computing as a
 // denser fade inside, and its average, utilization and busiest moment.
 export function GpuOverview({ host, token }) {
-  const history = useStatusFile(`history-${host.name}-24h`, HISTORY_REFRESH_MS, token).data;
+  // The last hour (refreshed with the live readings) or the last day.
+  const [range, setRange] = useState('24h');
+  const history = useStatusFile(
+    `history-${host.name}-${range}`,
+    range === '1h' ? LIVE_REFRESH_MS : HISTORY_REFRESH_MS,
+    token,
+  ).data;
   const total = host.gpus.length;
   const busy = host.gpus.filter((gpu) => gpu.busy).length;
   const shown = useGrowingShare(total ? busy / total : 0);
@@ -220,25 +228,23 @@ export function GpuOverview({ host, token }) {
           <p className="mt-0.5 truncate font-mono text-[11px] text-data-grey">
             {total} × {gpuModels(host.gpus) || 'GPU'}
           </p>
-          {/* The period, and what the line and the fade below it show. */}
-          <div className="mt-3 flex items-center justify-between gap-2 font-mono text-[11px] text-data-grey">
-            <span>Last 24 hours</span>
-            <span className="flex items-center gap-3 text-[10px]">
-              <span className="flex items-center gap-1">
-                <span className="h-0.5 w-3 rounded-full" style={{ backgroundColor: INK }} aria-hidden="true" />
-                In use
-              </span>
-              <span className="flex items-center gap-1">
-                <span
-                  className="h-2 w-3 rounded-sm border-t"
-                  style={{ backgroundColor: `${INK_SOFT}66`, borderColor: INK_SOFT }}
-                  aria-hidden="true"
-                />
-                Computing
-              </span>
-            </span>
+          {/* Which period the chart shows. */}
+          <div className="mt-3 flex items-center font-mono text-[11px] text-data-grey">
+            <Segmented
+              label="Period shown"
+              options={[
+                ['1h', '1 hour'],
+                ['24h', '24 hours'],
+              ]}
+              value={range}
+              onChange={setRange}
+            />
           </div>
-          <div className="mt-1 h-[92px]" role="img" aria-label="GPUs in use over the last 24 hours">
+          <div
+            className="mt-1 h-[92px]"
+            role="img"
+            aria-label={`GPUs in use over the last ${range === '1h' ? 'hour' : '24 hours'}`}
+          >
             {rows.length < 2 ? (
               <p className="pt-8 text-center text-xs text-data-grey">{history ? 'Not enough data yet.' : 'Loading…'}</p>
             ) : (
@@ -249,7 +255,7 @@ export function GpuOverview({ host, token }) {
                     type="number"
                     domain={[start, end]}
                     ticks={[start, start + (end - start) / 2, end]}
-                    tickFormatter={(time) => formatAxisTime(time, '24h')}
+                    tickFormatter={(time) => formatAxisTime(time, range)}
                     axisLine={{ stroke: '#EEF2F6' }}
                     tickLine={false}
                     tick={{ fill: '#94A3B8', fontSize: 10, fontFamily: 'JetBrains Mono, monospace' }}
@@ -291,6 +297,21 @@ export function GpuOverview({ host, token }) {
                 </AreaChart>
               </ResponsiveContainer>
             )}
+          </div>
+          {/* What the line and the fade below it show. */}
+          <div className="mt-1.5 flex items-center gap-3 font-mono text-[10px] text-data-grey">
+            <span className="flex items-center gap-1">
+              <span className="h-0.5 w-3 rounded-full" style={{ backgroundColor: INK }} aria-hidden="true" />
+              In use
+            </span>
+            <span className="flex items-center gap-1">
+              <span
+                className="h-2 w-3 rounded-sm border-t"
+                style={{ backgroundColor: `${INK_SOFT}66`, borderColor: INK_SOFT }}
+                aria-hidden="true"
+              />
+              Computing
+            </span>
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2">
             <Stat label="Average" value={average == null ? '—' : `${average.toFixed(1)} of ${total}`} note="in use" />
