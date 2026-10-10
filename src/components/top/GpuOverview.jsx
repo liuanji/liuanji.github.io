@@ -233,8 +233,8 @@ export function GpuOverview({ host, token }) {
             <Segmented
               label="Period shown"
               options={[
-                ['1h', '1 hour'],
-                ['24h', '24 hours'],
+                ['1h', '1 h'],
+                ['24h', '24 h'],
               ]}
               value={range}
               onChange={setRange}
