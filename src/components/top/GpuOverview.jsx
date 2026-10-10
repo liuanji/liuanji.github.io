@@ -228,8 +228,8 @@ export function GpuOverview({ host, token }) {
           <p className="mt-0.5 truncate font-mono text-[11px] text-data-grey">
             {total} × {gpuModels(host.gpus) || 'GPU'}
           </p>
-          {/* Which period the chart shows. */}
-          <div className="mt-3 flex items-center font-mono text-[11px] text-data-grey">
+          {/* Which period the chart shows, and what its line and fade show. */}
+          <div className="mt-3 flex items-center justify-between gap-2 font-mono text-[11px] text-data-grey">
             <Segmented
               label="Period shown"
               options={[
@@ -239,6 +239,20 @@ export function GpuOverview({ host, token }) {
               value={range}
               onChange={setRange}
             />
+            <span className="flex items-center gap-3 whitespace-nowrap text-[10px]">
+              <span className="flex items-center gap-1">
+                <span className="h-0.5 w-3 rounded-full" style={{ backgroundColor: INK }} aria-hidden="true" />
+                In use
+              </span>
+              <span className="flex items-center gap-1">
+                <span
+                  className="h-2 w-3 rounded-sm border-t"
+                  style={{ backgroundColor: `${INK_SOFT}66`, borderColor: INK_SOFT }}
+                  aria-hidden="true"
+                />
+                Computing
+              </span>
+            </span>
           </div>
           <div
             className="mt-1 h-[92px]"
@@ -297,21 +311,6 @@ export function GpuOverview({ host, token }) {
                 </AreaChart>
               </ResponsiveContainer>
             )}
-          </div>
-          {/* What the line and the fade below it show. */}
-          <div className="mt-1.5 flex items-center gap-3 font-mono text-[10px] text-data-grey">
-            <span className="flex items-center gap-1">
-              <span className="h-0.5 w-3 rounded-full" style={{ backgroundColor: INK }} aria-hidden="true" />
-              In use
-            </span>
-            <span className="flex items-center gap-1">
-              <span
-                className="h-2 w-3 rounded-sm border-t"
-                style={{ backgroundColor: `${INK_SOFT}66`, borderColor: INK_SOFT }}
-                aria-hidden="true"
-              />
-              Computing
-            </span>
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2">
             <Stat label="Average" value={average == null ? '—' : `${average.toFixed(1)} of ${total}`} note="in use" />
