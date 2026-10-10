@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ROAM_POSES, moodOf } from './BakeryCat';
+import { MORPH_MS, ROAM_POSES, moodOf } from './BakeryCat';
 import { CatThing, TOYS, ToyIcon } from './CatThings';
 
 // The bakery cat let out to roam the page. It lives on the edges of the panels
@@ -20,7 +20,7 @@ import { CatThing, TOYS, ToyIcon } from './CatThings';
 // The drawing's box (its 120 x 100 frame cropped round the cat) and how big it
 // is drawn.
 const VIEW = { x: 10, y: 30, width: 100, height: 62 };
-const WIDTH = 72;
+const WIDTH = 86;
 const UNIT = WIDTH / VIEW.width;
 const HEIGHT = VIEW.height * UNIT;
 // Where its feet are, and where it is held when picked up, in that box.
@@ -30,8 +30,8 @@ const BUBBLE = { x: (83 - VIEW.x) * UNIT, y: (23 - VIEW.y) * UNIT };
 const SCRUFF = { x: (60 - VIEW.x) * UNIT, y: (30 - VIEW.y) * UNIT };
 // Room it keeps from a panel's ends, from the top of the window (where the
 // site's navigation bar sits) and from its sides.
-const MARGIN = 50;
-const TOP_CLEAR = 110;
+const MARGIN = 58;
+const TOP_CLEAR = 120;
 const SIDE_CLEAR = 16;
 // Paces, in pixels a second, and how long things take, in milliseconds.
 const STROLL = 36;
@@ -130,11 +130,15 @@ const BORED_AFTER = 2 * 60 * 1000;
 const BETWEEN = {
   'sleep>': ['stretch', 900],
   'rest>walk': ['crouch', 180],
-  'rest>sit': ['crouch', 160],
   'rest>reach': ['crouch', 160],
-  'sit>rest': ['crouch', 200],
   'walk>rest': ['crouch', 200],
 };
+// Its everyday poses, which it moves between (rather than fading): sitting up,
+// lying down as a loaf, curled asleep, peeking over an edge, and coming up
+// from behind one.
+const MORPHS = new Set(['sit', 'rest', 'sleep', 'peek', 'emerge']);
+// The face each of those wears whatever its mood.
+const MORPH_FACE = { sleep: 'asleep', peek: 'content', emerge: 'content' };
 
 // Poses it swaps between too quickly to blend: batting at the pointer.
 const SWIPE = new Set(['sit', 'reach']);
@@ -225,6 +229,10 @@ const NOTE_COLORS = {
   '✦': ['#E3B655', '#F2B8C2', '#9FB4E8'],
 };
 
+// How long the dot a click shows, and the menu it opens, stay up untouched.
+const DOT_MS = 3500;
+const MENU_MS = 6000;
+
 // What a click on the cat offers.
 const OPTIONS = [
   ['treat', 'Give a treat'],
@@ -300,6 +308,39 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       // mirrored for a left side; elsewhere it faces the way it is going.
       const flip = side === 'left' ? -1 : side === 'right' ? 1 : -state.facing;
       if (pose === shown.pose && flip === shown.flip && mood === shown.mood && side === shown.side) return;
+      // Between two everyday poses, facing the same way: it moves from one to
+      // the other, then settles into the new pose.
+      if (
+        pose !== shown.pose &&
+        MORPHS.has(pose) &&
+        MORPHS.has(shown.pose) &&
+        flip === shown.flip &&
+        side === shown.side &&
+        time - (shown.since ?? 0) > 300 &&
+        !(shown.pose === 'sleep' && pose !== 'rest')
+      ) {
+        const morph = {
+          from: shown.pose,
+          to: pose,
+          fromMood: MORPH_FACE[shown.pose] ?? shown.mood,
+          toMood: MORPH_FACE[pose] ?? mood,
+        };
+        between = { until: time + MORPH_MS };
+        setLook((current) => ({
+          pose: 'morph',
+          morph,
+          flip,
+          mood,
+          side,
+          previous: current.pose,
+          previousMorph: current.morph,
+          previousFlip: current.flip,
+          previousMood: current.mood,
+          change: current.change + 1,
+        }));
+        shown = { pose: 'morph', flip, mood, side, since: time };
+        return;
+      }
       const step = shown.pose && pose !== shown.pose && (BETWEEN[`${shown.pose}>${pose}`] ?? BETWEEN[`${shown.pose}>`]);
       const next = step ? step[0] : pose;
       if (step) between = { until: time + step[1] };
@@ -318,6 +359,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         mood,
         side,
         previous: blend ? current.pose : null,
+        previousMorph: current.morph,
         previousFlip: current.flip,
         previousMood: current.mood,
         change: current.change + (blend ? 1 : 0),
@@ -355,14 +397,23 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       }
     };
     // The menu a click opens; while it is open the cat stays where it is.
+    // A click on it first shows just a small dot; the dot opens the menu.
+    // Either goes away by itself after a while (the menu not while the
+    // pointer is on it).
     const closeMenu = () => {
+      clearTimeout(state.menuTimer);
       state.menu = false;
       setMenu(false);
     };
-    const openMenu = () => {
-      state.menu = true;
-      setMenu(true);
+    const menuFor = (phase, ms) => {
+      clearTimeout(state.menuTimer);
+      state.menu = phase;
+      setMenu(phase);
+      if (ms) state.menuTimer = setTimeout(closeMenu, ms);
     };
+    const openMenu = () => menuFor('dot', DOT_MS);
+    state.expandMenu = () => menuFor('open', MENU_MS);
+    state.holdMenu = (holding) => menuFor('open', holding ? 0 : MENU_MS / 2);
     // Sent home: a last leap back into its owner's name, fading as it goes.
     const goHome = () => {
       closeMenu();
@@ -1810,6 +1861,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
     return () => {
       cancelAnimationFrame(frame);
       clearTimeout(state.clickTimer);
+      clearTimeout(state.menuTimer);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
@@ -1859,12 +1911,15 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
               {Previous && (
                 <g key={`out-${look.change}`} className="motion-safe:animate-cat-pose-out opacity-0">
                   <g transform={mirror(look.previousFlip)}>
-                    <Previous mood={look.previousMood} />
+                    <Previous
+                      mood={look.previousMood}
+                      morph={look.previousMorph && { ...look.previousMorph, settled: true }}
+                    />
                   </g>
                 </g>
               )}
               <g key={`in-${look.change}`} className="motion-safe:animate-cat-pose-in">
-                <g transform={mirror(look.flip)}>{Pose && <Pose mood={look.mood} />}</g>
+                <g transform={mirror(look.flip)}>{Pose && <Pose mood={look.mood} morph={look.morph} />}</g>
               </g>
             </g>
           </g>
@@ -1921,11 +1976,26 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           </button>
         )}
         {/* What can be done for it, popped up above it by a click. */}
-        {menu && (
+        {menu === 'dot' && (
+          <button
+            type="button"
+            ref={menuBox}
+            aria-label="What to do with Mochi"
+            onClick={() => cat.current?.expandMenu?.()}
+            className="pointer-events-auto absolute bottom-full left-1/2 mb-1.5 flex h-4 -translate-x-1/2 items-center gap-[3px] rounded-full border border-border-light bg-white px-1.5 shadow-sm transition-colors hover:bg-[#F1F3F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20 motion-safe:animate-cat-pose-in"
+          >
+            {[0, 1, 2].map((dot) => (
+              <span key={dot} className="h-[3px] w-[3px] rounded-full bg-[#A3ADBB]" />
+            ))}
+          </button>
+        )}
+        {menu === 'open' && (
           <div
             ref={menuBox}
             role="menu"
             aria-label="Mochi"
+            onPointerEnter={() => cat.current?.holdMenu?.(true)}
+            onPointerLeave={() => cat.current?.holdMenu?.(false)}
             className="pointer-events-auto absolute bottom-full left-1/2 mb-2 flex -translate-x-1/2 items-center gap-0.5 whitespace-nowrap rounded-full border border-border-light bg-white p-0.5 shadow-sm motion-safe:animate-cat-pose-in"
           >
             {OPTIONS.map(([kind, label]) => (

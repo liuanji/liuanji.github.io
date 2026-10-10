@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 // The bakery cat: a small ginger tabby each user keeps on /top. It eats one
 // fish-shaped cookie per GPU-hour their jobs spend computing (GPU time weighted
 // by load, so GPUs held idle feed it nothing), shows how well it has eaten over
@@ -387,6 +389,8 @@ export const ROAM_POSES = {
   peek: () => <Peeking />,
   // Coming out: its head rising from behind an edge, then a look round.
   emerge: () => <Peeking emerging />,
+  // On its way from one of its everyday poses to another (see Morph).
+  morph: ({ morph }) => (morph ? <Morph {...morph} /> : null),
   // Clinging to a card's side, upright, the card's edge the line x = 60.
   cling: ({ mood = 'content' }) => <Clinging mood={mood} />,
   // Climbing up or down a card's side, paws taking turns.
@@ -970,6 +974,137 @@ function BellyUp() {
           strokeWidth="1.2"
           transform="rotate(-10 61.5 65)"
         />
+      </g>
+    </g>
+  );
+}
+
+// Where the parts of the cat are in its everyday poses, to move between them:
+// its head (centre, size, tilt), its body and belly (as ellipses: centre and
+// radii), its front paws (centre and radii, or none), and its tail.
+const SHAPES = {
+  sit: {
+    head: [60, 46, 1, 0],
+    body: [60, 72.5, 23, 17],
+    belly: [60, 81, 8, 8],
+    paws: [
+      [52, 88.5, 5.6, 3.4],
+      [68, 88.5, 5.6, 3.4],
+    ],
+    tail: 'sit',
+  },
+  rest: {
+    head: [60, 69, 0.7, 0],
+    body: [60, 77.5, 28, 11],
+    belly: [60, 84, 6, 3],
+    paws: [
+      [54.5, 87, 3.8, 2.1],
+      [65.5, 87, 3.8, 2.1],
+    ],
+    tail: 'rest',
+  },
+  sleep: {
+    head: [45, 75, 0.66, -10],
+    body: [60, 78.5, 30, 10],
+    belly: [58, 84, 6, 2],
+    paws: [
+      [52, 87, 1, 0.6],
+      [60, 87, 1, 0.6],
+    ],
+    tail: 'sleep',
+  },
+  peek: {
+    head: [60, 79, 0.85, 0],
+    body: [60, 104, 19, 12],
+    belly: [60, 106, 6, 6],
+    paws: [
+      [48.5, 86.6, 4.8, 2.8],
+      [71.5, 86.6, 4.8, 2.8],
+    ],
+    tail: null,
+    // Cut off at the edge it peeks over.
+    edge: 88,
+  },
+};
+SHAPES.emerge = { ...SHAPES.peek, head: [60, 88, 0.85, 0], paws: SHAPES.sleep.paws };
+const TAILS = {
+  sit: ['M76 84c14 1 20-8 15-17-2-4-6-4-7 0', 7.4, 5],
+  rest: ['M86 84c-2 3.5-9 4.5-14 3.6', 5, 3],
+  sleep: ['M88 83c-3 5-24 6-36 4', 5.4, 3.2],
+};
+export const MORPH_MS = 520;
+
+// On the move from one everyday pose to another (sitting, lying down as a
+// loaf, curled asleep, peeking over an edge): its head, body, paws and tail
+// glide from where they were to where they will be, the head sinking or
+// rising, the body settling or straightening, its face changing halfway.
+function Morph({ from, to, fromMood = 'content', toMood = 'content', settled = false }) {
+  const [arrived, setArrived] = useState(settled);
+  const [halfway, setHalfway] = useState(settled);
+  useEffect(() => {
+    if (settled) return undefined;
+    // Drawn where it was first, then let glide; its face changes halfway.
+    let frame = requestAnimationFrame(() => (frame = requestAnimationFrame(() => setArrived(true))));
+    const timer = setTimeout(() => setHalfway(true), MORPH_MS / 2);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, [settled]);
+  const a = SHAPES[from] ?? SHAPES.sit;
+  const b = SHAPES[to] ?? SHAPES.sit;
+  const at = arrived ? b : a;
+  const glide = { transition: `transform ${MORPH_MS}ms ease-in-out, opacity ${MORPH_MS / 2}ms ease-in-out` };
+  const blob = ([cx, cy, rx, ry], unit = 10) => ({
+    ...glide,
+    transform: `translate(${cx}px, ${cy}px) scale(${rx / unit}, ${ry / unit})`,
+  });
+  const [hx, hy, hs, hr] = at.head;
+  const tails = [a.tail, b.tail].filter((tail, index, all) => tail && all.indexOf(tail) === index);
+  return (
+    <g>
+      <clipPath id="cat-morph-edge">
+        <rect x="0" y="0" width="120" style={{ ...glide, height: `${at.edge ?? 92}px` }} />
+      </clipPath>
+      <g clipPath="url(#cat-morph-edge)">
+        {tails.map((tail) => (
+          <g key={tail} style={{ ...glide, opacity: at.tail === tail ? 1 : 0 }}>
+            <path d={TAILS[tail][0]} fill="none" stroke={EDGE} strokeWidth={TAILS[tail][1]} strokeLinecap="round" />
+            <path d={TAILS[tail][0]} fill="none" stroke={FUR} strokeWidth={TAILS[tail][2]} strokeLinecap="round" />
+          </g>
+        ))}
+        <ellipse
+          rx="10"
+          ry="10"
+          fill={FUR}
+          stroke={EDGE}
+          strokeWidth="1.6"
+          vectorEffect="non-scaling-stroke"
+          style={blob(at.body)}
+        />
+        <ellipse rx="10" ry="10" fill={BELLY} style={blob(at.belly)} />
+        <g style={{ ...glide, transform: `translate(${hx}px, ${hy}px) rotate(${hr}deg) scale(${hs})` }}>
+          <g transform="translate(-60 -46)">
+            <Head mood={halfway ? toMood : fromMood} />
+          </g>
+        </g>
+        {at.paws.map((paw, index) => (
+          <ellipse
+            key={index}
+            rx="5"
+            ry="3"
+            fill={BELLY}
+            stroke={EDGE}
+            strokeWidth="1.4"
+            vectorEffect="non-scaling-stroke"
+            style={{
+              ...blob(paw, 1),
+              transform: `translate(${paw[0]}px, ${paw[1]}px) scale(${paw[2] / 5}, ${paw[3] / 3})`,
+              // Tucked away out of sight when lying asleep or coming up from behind an edge.
+              opacity: paw[2] < 1.5 ? 0 : 1,
+            }}
+          />
+        ))}
       </g>
     </g>
   );
