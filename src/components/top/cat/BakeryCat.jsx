@@ -389,6 +389,8 @@ export const ROAM_POSES = {
   peek: () => <Peeking />,
   // Coming out: its head rising from behind an edge, then a look round.
   emerge: () => <Peeking emerging />,
+  // Back down to just its eyes after a look over the edge, without rising again.
+  lurk: () => <Peeking emerging risen />,
   // On its way from one of its everyday poses to another (see Morph).
   morph: ({ morph }) => (morph ? <Morph {...morph} /> : null),
   // Clinging to a card's side, upright, the card's edge the line x = 60.
@@ -489,14 +491,17 @@ function Stretching() {
 // below its eyes, front paws hooked over it. Emerging, only its head comes up
 // from behind the edge, ear tips first, to just its eyes, and stays so, looking
 // this way and that now and then.
-function Peeking({ emerging = false }) {
+function Peeking({ emerging = false, risen = false }) {
   return (
     <g>
       <clipPath id="cat-peek-edge">
         <rect x="0" y="0" width="120" height="88" />
       </clipPath>
       <g clipPath="url(#cat-peek-edge)">
-        <g className={emerging ? 'motion-safe:animate-cat-emerge' : undefined}>
+        <g
+          className={emerging && !risen ? 'motion-safe:animate-cat-emerge' : undefined}
+          transform={risen ? 'translate(0 9)' : undefined}
+        >
           <g
             className={emerging ? 'motion-safe:animate-cat-look' : undefined}
             style={{ transformBox: 'fill-box', transformOrigin: 'center bottom' }}
@@ -1027,6 +1032,7 @@ const SHAPES = {
   },
 };
 SHAPES.emerge = { ...SHAPES.peek, head: [60, 88, 0.85, 0], paws: SHAPES.sleep.paws };
+SHAPES.lurk = SHAPES.emerge;
 const TAILS = {
   sit: ['M76 84c14 1 20-8 15-17-2-4-6-4-7 0', 7.4, 5],
   rest: ['M86 84c-2 3.5-9 4.5-14 3.6', 5, 3],

@@ -163,6 +163,48 @@ function Bubble() {
   );
 }
 
+// A treat: one of its fish-shaped cookies, full size, centred on (0, 0).
+function Treat() {
+  return (
+    <g transform="scale(1.7)">
+      <path
+        d="M-4.5 0q4.5-3.4 9 0q-4.5 3.4-9 0zm9 0 2.4-2v4z"
+        fill="#E39A55"
+        stroke="#C47A35"
+        strokeWidth="0.6"
+        transform="translate(-1.2 0)"
+      />
+      <circle cx="-3" cy="-0.5" r="0.45" fill="#7A4A22" />
+    </g>
+  );
+}
+
+// A little bowl of treats, with up to three left in it.
+function TreatBowl({ count = 3 }) {
+  return (
+    <g>
+      {[-5, 4, -0.5].slice(0, count).map((x, index) => (
+        <g key={index} transform={`translate(${x} ${index === 2 ? -11.5 : -9}) rotate(${index ? -14 : 12})`}>
+          <Treat />
+        </g>
+      ))}
+      <path d="M-13-8h26l-3.4 8h-19.2z" fill="#9FB4E8" stroke="#7E95CF" strokeWidth="1.1" strokeLinejoin="round" />
+      <path d="M-11-5.4h22" stroke="#C9D6F4" strokeWidth="1" strokeLinecap="round" />
+    </g>
+  );
+}
+
+// A bouncy rubber ball, centred on (0, 0).
+function Ball() {
+  return (
+    <g>
+      <circle r="4.6" fill="#F2B8C2" stroke="#D98E9C" strokeWidth="0.9" />
+      <path d="M-4.4 1.2q4.4-2.6 8.8 0" fill="none" stroke="#FCE3E7" strokeWidth="1.1" />
+      <circle cx="-1.6" cy="-1.8" r="0.9" fill="white" opacity="0.8" />
+    </g>
+  );
+}
+
 const THINGS = {
   yarn: Yarn,
   butterfly: Butterfly,
@@ -174,6 +216,9 @@ const THINGS = {
   laser: Laser,
   mouse: ToyMouse,
   bubble: Bubble,
+  treat: Treat,
+  ball: Ball,
+  bowl: TreatBowl,
 };
 // How far each reaches round its base, for the box it is drawn in.
 const REACH = {
@@ -187,6 +232,9 @@ const REACH = {
   laser: 8,
   mouse: 16,
   bubble: 9,
+  treat: 12,
+  ball: 7,
+  bowl: 20,
 };
 
 // The toys, by what it calls them, for the thought bubble's label.
@@ -245,7 +293,7 @@ export function ToyIcon({ kind }) {
 }
 
 // A thing at (x, y) on the page, turned and scaled and faded as it moves.
-export function CatThing({ kind, x, y, rotate = 0, scale = 1, flip = 1, opacity = 1 }) {
+export function CatThing({ kind, x, y, rotate = 0, scale = 1, flip = 1, opacity = 1, count, string }) {
   const Thing = THINGS[kind];
   const reach = REACH[kind];
   if (!Thing) return null;
@@ -262,7 +310,7 @@ export function CatThing({ kind, x, y, rotate = 0, scale = 1, flip = 1, opacity 
       }}
     >
       <g transform={`rotate(${rotate}) scale(${scale * flip} ${scale})`}>
-        <Thing />
+        <Thing count={count} string={string} />
       </g>
     </svg>
   );

@@ -136,9 +136,9 @@ const BETWEEN = {
 // Its everyday poses, which it moves between (rather than fading): sitting up,
 // lying down as a loaf, curled asleep, peeking over an edge, and coming up
 // from behind one.
-const MORPHS = new Set(['sit', 'rest', 'sleep', 'peek', 'emerge']);
+const MORPHS = new Set(['sit', 'rest', 'sleep', 'peek', 'emerge', 'lurk']);
 // The face each of those wears whatever its mood.
-const MORPH_FACE = { sleep: 'asleep', peek: 'content', emerge: 'content' };
+const MORPH_FACE = { sleep: 'asleep', peek: 'content', emerge: 'content', lurk: 'content' };
 
 // Poses it swaps between too quickly to blend: batting at the pointer.
 const SWIPE = new Set(['sit', 'reach']);
@@ -231,6 +231,8 @@ const NOTE_COLORS = {
 
 // How long the dot a click shows, and the menu it opens, stay up untouched.
 const DOT_MS = 3500;
+// How long a thought bubble with a toy it wishes for waits to be clicked.
+const WISH_MS = 20000;
 const MENU_MS = 6000;
 
 // What a click on the cat offers.
@@ -567,7 +569,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
     const startGame = (kind, time) => {
       if (!state.perch || onSide()) return;
       if (kind === 'yarn') {
-        onToy();
+        rollYarn();
         return;
       }
       const dir = roomy();
@@ -755,6 +757,226 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         ];
       },
     };
+    // Ways of having a treat: tossed, caught in the air; held up, begged for;
+    // dropped somewhere, hunted for; or a little bowl of them.
+    const munch = () => [
+      { pose: 'crouch', ms: 900, start: () => (putThing(null), say('nom')) },
+      { pose: 'sit', mood: 'purring', ms: 900, start: () => say('crunch') },
+      { pose: 'groom', ms: 1300, start: () => say('heart') },
+    ];
+    // Toys tossed to it (besides the yarn): a bouncy ball, a loose feather, a
+    // toy mouse.
+    const tossed = {
+      // It bounces off along the edge, lower each time; it gives chase,
+      // pounces, and bats it.
+      ball: () => {
+        const dir = roomy();
+        const from = state.x + dir * 30;
+        const end = onEdge(state.x + dir * 170);
+        const ball = (x, y, extra = {}) => putThing({ kind: 'ball', x, y, ...extra });
+        return [
+          { pose: 'sit', ms: 300, start: () => ((state.facing = dir), say('!')) },
+          {
+            pose: 'walk',
+            ms: 1600,
+            start: (step) => (step.from = state.x),
+            frame: (step, time, k) => {
+              ball(from + (end - from) * k, state.y - 4.6 - Math.abs(Math.sin(Math.PI * 3 * k)) * 60 * (1 - k));
+              state.x = step.from + (end - dir * 44 - step.from) * k;
+            },
+          },
+          { ...hop(end - dir * 10, 22), start: (step) => hop(end - dir * 10, 22).start(step) },
+          {
+            pose: 'reach',
+            ms: 420,
+            start: () => say('!'),
+            frame: (step, time, k) => ball(end + dir * 26 * k, state.y - 4.6, { rotate: dir * 360 * k }),
+          },
+          { pose: 'sit', mood: 'purring', ms: 900, start: () => say('heart') },
+          { pose: 'sit', mood: 'purring', ms: 500, start: () => ball(end + dir * 26, state.y - 4.6, { opacity: 0 }) },
+        ];
+      },
+      // A feather drifts down, swaying; it watches, swats, and leaps to catch it.
+      feather: () => {
+        const at = onEdge(state.x + roomy() * 40);
+        const top = state.y - 190;
+        const feather = (x, y, rotate) => putThing({ kind: 'feather', string: false, x, y: y - 34, rotate });
+        return [
+          {
+            pose: 'sit',
+            ms: 2400,
+            frame: (step, time, k) => {
+              const x = at + Math.sin(k * 5 * Math.PI) * 24;
+              feather(x, top + (state.y - 78 - top) * k, Math.sin(k * 5 * Math.PI) * 30);
+              state.facing = x < state.x ? -1 : 1;
+            },
+          },
+          { pose: 'reach', ms: 260 },
+          { pose: 'sit', ms: 240 },
+          { pose: 'reach', ms: 260, frame: (step, time, k) => feather(at, state.y - 78 + 10 * k, 15) },
+          {
+            ...hop(at, 30),
+            pose: 'reach',
+            start: (step) => hop(at, 30).start(step),
+            frame: (step, time, k) => {
+              hop(at, 30).frame(step, time, k);
+              if (k > 0.5 && things.current) {
+                putThing(null);
+                say('!');
+              }
+            },
+          },
+          { pose: 'sit', mood: 'purring', ms: 1100, start: () => say('heart') },
+        ];
+      },
+      // A toy mouse lands on the edge: it wiggles, pounces, flings it into the
+      // air, runs after it, and flings it back.
+      mouse: () => {
+        const dir = roomy();
+        const at = onEdge(state.x + dir * 100);
+        const far = onEdge(at + dir * 60);
+        const mouse = (x, y, extra = {}) => putThing({ kind: 'mouse', x, y, flip: -dir, ...extra });
+        const fling = (from, to) => ({
+          pose: 'sit',
+          ms: 700,
+          start: () => say('!'),
+          frame: (step, time, k) =>
+            mouse(from + (to - from) * k, state.y - 80 * Math.sin(Math.PI * k), {
+              rotate: (to > from ? 1 : -1) * 360 * k,
+            }),
+        });
+        return [
+          {
+            pose: 'sit',
+            ms: 500,
+            frame: (step, time, k) => mouse(at, state.y - 140 * (1 - k) ** 2, { rotate: 200 * (1 - k) }),
+          },
+          { pose: 'crouch', ms: 750, rock: { amp: 3.5, freq: 5.5, decay: 0 }, start: () => (state.facing = dir) },
+          { ...hop(at - dir * 12, 26), start: (step) => hop(at - dir * 12, 26).start(step) },
+          { pose: 'reach', ms: 300 },
+          fling(at, far),
+          { to: far - dir * 26, speed: STROLL * 2.4 },
+          { pose: 'reach', ms: 300, start: () => (state.facing = dir) },
+          fling(far, at),
+          { pose: 'sit', mood: 'purring', ms: 1000, start: () => (state.facing = -dir) },
+          { pose: 'sit', mood: 'purring', ms: 500, start: () => (mouse(at, state.y, { opacity: 0 }), say('heart')) },
+        ];
+      },
+    };
+    const treats = {
+      // Tossed from the pointer (or from above): it races to where it will
+      // come down and leaps to catch it.
+      toss: () => {
+        const dir = roomy();
+        const land = onEdge(state.x + dir * 120);
+        const overhead =
+          state.pointer.y > window.scrollY &&
+          state.pointer.y < state.y - 40 &&
+          Math.abs(state.pointer.x - state.x) < 400;
+        const from = overhead ? { x: state.pointer.x, y: state.pointer.y } : { x: land - dir * 220, y: state.y - 200 };
+        // Where the treat is a share f of the way along its arc, ending at the
+        // height of the cat's head as it leaps.
+        const treatAt = (f) => ({
+          kind: 'treat',
+          x: from.x + (land - from.x) * f,
+          y: from.y + (state.y - 62 - from.y) * f - 90 * f * (1 - f),
+          rotate: f * 540,
+        });
+        return [
+          { pose: 'sit', ms: 350, start: () => ((state.facing = dir), say('!'), putThing(treatAt(0))) },
+          {
+            pose: 'walk',
+            ms: 750,
+            start: (step) => (step.from = state.x),
+            frame: (step, time, k) => {
+              putThing(treatAt(k * 0.75));
+              state.x = step.from + (land - step.from) * Math.min(1, k * 1.15);
+            },
+          },
+          {
+            pose: 'reach',
+            ms: 320,
+            frame: (step, time, k) => {
+              state.lift = 26 * Math.sin(Math.PI * k);
+              if (k < 0.5) putThing(treatAt(0.75 + k * 0.5));
+              else if (things.current) {
+                putThing(null);
+                say('!');
+              }
+            },
+          },
+          ...munch(),
+        ];
+      },
+      // Held up just above it: it sits up and begs, paws at it, and it drops
+      // into its paws.
+      beg: () => {
+        const held = (lower = 0) => putThing({ kind: 'treat', x: state.x, y: state.y - 82 + lower, rotate: -20 });
+        return [
+          { pose: 'sit', ms: 300, start: () => (held(), say('!')) },
+          {
+            pose: 'beg',
+            mood: 'hungry',
+            ms: 1300,
+            frame: (step, time) => held(Math.sin(time / 180) * 2),
+          },
+          { pose: 'reach', ms: 280 },
+          { pose: 'beg', mood: 'hungry', ms: 280 },
+          { pose: 'reach', ms: 380, frame: (step, time, k) => held(30 * k) },
+          ...munch(),
+        ];
+      },
+      // Dropped somewhere along its edge: it looks this way and that, sniffs
+      // it out, and nibbles it up.
+      hunt: () => {
+        const dir = roomy();
+        const at = onEdge(state.x + dir * random(90, 150));
+        return [
+          {
+            pose: 'sit',
+            ms: 600,
+            frame: (step, time, k) =>
+              putThing({ kind: 'treat', x: at, y: state.y - 4 - 150 * (1 - k) ** 2, rotate: 300 * k }),
+          },
+          { pose: 'sit', ms: 450, start: () => ((state.facing = -dir), say('?')) },
+          { pose: 'sit', ms: 450, start: () => ((state.facing = dir), say('sniff')) },
+          { to: at - dir * 24 },
+          {
+            pose: 'crouch',
+            ms: 1100,
+            start: () => say('nom'),
+            frame: (step, time, k) => putThing({ kind: 'treat', x: at, y: state.y - 4, scale: 1 - k }),
+          },
+          { pose: 'sit', mood: 'purring', ms: 900, start: () => (putThing(null), say('crunch')) },
+          { pose: 'groom', ms: 1300, start: () => say('heart') },
+        ];
+      },
+      // A little bowl of them: it trots over and crunches through them one by one.
+      bowl: () => {
+        const dir = roomy();
+        const at = onEdge(state.x + dir * 90);
+        const bowl = (count, extra = {}) => putThing({ kind: 'bowl', x: at, y: state.y, count, ...extra });
+        return [
+          { pose: 'sit', ms: 500, start: () => (bowl(3), say('!')) },
+          { to: at - dir * 30, speed: STROLL * 2.2 },
+          {
+            pose: 'crouch',
+            ms: 2700,
+            start: () => (state.facing = dir),
+            frame: (step, time, k) => {
+              const left = 3 - Math.floor(k * 3);
+              if (left !== step.left) {
+                step.left = left;
+                bowl(left);
+                if (left < 3) say('crunch');
+              }
+            },
+          },
+          { pose: 'groom', ms: 1500, start: () => (bowl(0), say('heart')) },
+          { pose: 'sit', mood: 'purring', ms: 800, start: () => bowl(0, { opacity: 0 }) },
+        ];
+      },
+    };
     const doings = {
       // A butterfly flutters by: it watches, wiggles its rump, and pounces as
       // the butterfly gets away.
@@ -928,7 +1150,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         return [
           {
             pose: 'sit',
-            ms: 9000,
+            ms: WISH_MS,
             start: () => wishFor(toy),
             frame: (step) => !state.wish && (step.done = true),
           },
@@ -991,9 +1213,11 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         setTimeout(onTreat, HOP_MS + 300);
         return;
       }
-      sit(performance.now(), 'purring', 2600);
-      say('treat');
-      setTimeout(() => say('crunch'), 700);
+      // One of several ways of having a treat, at random.
+      const names = Object.keys(treats).filter((name) => name !== state.lastTreat);
+      const name = names[Math.floor(Math.random() * names.length)];
+      state.lastTreat = name;
+      play(treats[name](), performance.now());
     };
     const onToy = () => {
       if (!state.perch) return;
@@ -1002,6 +1226,16 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         setTimeout(onToy, HOP_MS + 300);
         return;
       }
+      // One of several toys, at random.
+      const names = ['yarn', ...Object.keys(tossed)].filter((name) => name !== state.lastTossed);
+      const name = names[Math.floor(Math.random() * names.length)];
+      state.lastTossed = name;
+      state.lastPlay = performance.now();
+      if (name === 'yarn') rollYarn();
+      else play(tossed[name](), performance.now());
+    };
+    // A ball of yarn rolled along its edge, for it to run after and pounce on.
+    const rollYarn = () => {
       const edge = page(state.perch.getBoundingClientRect());
       const goRight = state.x < (edge.left + edge.right) / 2;
       const end = goRight ? edge.right - MARGIN : edge.left + MARGIN;
@@ -1188,6 +1422,8 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         if (!state.perch || onSide() || state.mode !== 'rest') return false;
         if (name === 'tease') startTease(performance.now());
         else if (TOYS[name]) startGame(name, performance.now());
+        else if (name.startsWith('treat:')) play(treats[name.slice(6)](), performance.now());
+        else if (name.startsWith('toss:')) play(tossed[name.slice(5)](), performance.now());
         else if (name.startsWith('dance:')) {
           state.lastDance = null;
           play([{ pose: 'sit', mood: 'purring', ms: 350 }, ...dances[name.slice(6)](), ...bow()], performance.now());
@@ -1679,7 +1915,11 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
             state.x = name.left + window.scrollX + name.width / 2;
             state.y = name.top + window.scrollY + 2;
           }
-          show('emerge');
+          // The pointer near: it raises its head higher and puts its paws up on
+          // the name; gone again, it sinks back to just its eyes.
+          const near = Math.hypot(state.pointer.x - state.x, state.pointer.y - (state.y - 16)) < 70;
+          if (near) state.peeked = true;
+          show(near ? 'peek' : state.peeked ? 'lurk' : 'emerge');
           break;
         }
         case 'game': {
