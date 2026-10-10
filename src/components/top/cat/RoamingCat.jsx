@@ -206,7 +206,7 @@ function heightAbove(x, feet) {
 function runningGpus() {
   return [...document.querySelectorAll('[data-cat-gpu][data-busy]')].filter((element) => {
     const rect = element.getBoundingClientRect();
-    return rect.width > 40 && rect.top > TOP_CLEAR && rect.top < window.innerHeight - 40;
+    return rect.width > 40 && rect.top > TOP_CLEAR && rect.bottom < window.innerHeight - 10;
   });
 }
 
@@ -461,6 +461,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
     const leapTo = (perch, along = null, duration = LEAP_MS, side = 'top') => {
       if (!perch) return;
       closeMenu();
+      if (perch !== state.perch) releaseTile();
       // Off a panel, it crouches to spring first.
       if (state.perch && duration !== DROP_MS && state.mode !== 'spring') {
         state.mode = 'spring';
@@ -780,6 +781,28 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
     // tips (a fright, and off it leaps, the tile springing back); a warm nap
     // on the hottest; or pawing at its ring to spin it. Each ends with a leap
     // back to a panel.
+    // A GPU's tile it has set wobbling or tipped: let go (springing back if
+    // tipped) as it leaves, however it leaves.
+    const releaseTile = () => {
+      const held = state.tileHeld;
+      if (!held) return;
+      state.tileHeld = null;
+      held.tile.style.transform = '';
+      if (!held.tip) return;
+      setTimeout(() => {
+        held.tip.cancel();
+        held.tile
+          .animate(
+            [{ transform: held.tipped }, { transform: `rotate(${-held.side * 1.5}deg)` }, { transform: 'none' }],
+            {
+              duration: 800,
+              easing: 'ease-out',
+            },
+          )
+          .finished.then(() => (held.tile.style.transformOrigin = ''))
+          .catch(() => {});
+      }, 450);
+    };
     const leaveTile = () => ({
       pose: 'sit',
       ms: 1,
@@ -789,7 +812,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       wobble: (tile) => {
         const side = Math.random() < 0.5 ? -1 : 1;
         const tipped = `translateY(5px) rotate(${side * 6}deg)`;
-        let tip = null;
+        state.tileHeld = { tile, side, tipped, tip: null };
         return [
           { pose: 'sit', mood: 'purring', ms: 400, start: () => say('♪') },
           {
@@ -807,7 +830,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
             start: () => {
               tile.style.transform = '';
               tile.style.transformOrigin = side < 0 ? 'left bottom' : 'right bottom';
-              tip = tile.animate([{ transform: 'none' }, { transform: tipped }], {
+              state.tileHeld.tip = tile.animate([{ transform: 'none' }, { transform: tipped }], {
                 duration: 360,
                 easing: 'cubic-bezier(.3,1.7,.6,1)',
                 fill: 'forwards',
@@ -815,23 +838,8 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
               say('!');
             },
           },
-          {
-            ...leaveTile(),
-            start: () => {
-              leapTo(otherPerch() ?? visiblePerches()[0]);
-              // The tile springs back once it is off.
-              setTimeout(() => {
-                tip?.cancel();
-                tile
-                  .animate([{ transform: tipped }, { transform: `rotate(${-side * 1.5}deg)` }, { transform: 'none' }], {
-                    duration: 800,
-                    easing: 'ease-out',
-                  })
-                  .finished.then(() => (tile.style.transformOrigin = ''))
-                  .catch(() => {});
-              }, 450);
-            },
-          },
+          // Off it leaps; the tile springs back once it is off.
+          leaveTile(),
         ];
       },
       warm: () => [
@@ -1388,6 +1396,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         state.mode = 'held';
         if (state.wish) wishFor(null);
         state.resume = null;
+        releaseTile();
         state.side = 'top';
         state.perch = null;
       }
@@ -1746,7 +1755,11 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           if (time > state.until) {
             // Landed mid-game of keep-away: the game goes on here.
             if (state.resume?.steps) {
-              play(state.resume.steps(), time);
+              // Only on the GPU's tile it set off for, still in view; else it
+              // just rests where it landed.
+              if (state.perch?.hasAttribute('data-cat-gpu') && runningGpus().includes(state.perch))
+                play(state.resume.steps(), time);
+              else rest(time);
             } else if (state.resume === 'tease' && !onSide()) {
               const { teasePace: pace, teaseFrom: from } = state;
               startTease(time);
