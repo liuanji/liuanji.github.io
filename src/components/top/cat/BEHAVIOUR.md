@@ -76,12 +76,16 @@ back to a panel.
 
 | Visit | Starving | Hungry | Content | Well fed | Full |
 |---|---|---|---|---|---|
-| Warm nap (on the hottest card: loaf, then melts flat asleep) | 100% | 60% | 20% | 7% | 7% |
-| Ring spin (dangles a paw; the ring spins twice) | – | 20% | 15% | 15% | 15% |
-| Peekaboo (peeks over the card, ducks, pops up) | – | 20% | 10% | 8% | 8% |
-| Wobble (hops on it till it tips, reserve button and all; arches in fright; leaps off) | – | – | 20% | 25% | 25% |
-| Hamster wheel (runs on the ring, flung off, lands dizzy) | – | – | 20% | 25% | 25% |
-| Ring swing (hangs from the top of the ring by her front paws and swings; lets go) | – | – | 15% | 20% | 20% |
+| Warm nap (on the hottest card: loaf, then melts flat asleep) | 100% | 60% | 18% | 6% | 6% |
+| Ring spin (dangles a paw; the ring spins twice) | – | 20% | 14% | 13% | 13% |
+| Peekaboo (peeks over the card, ducks, pops up) | – | 20% | 10% | 7% | 7% |
+| Wobble (hops on it till it tips, reserve button and all; arches in fright; leaps off) | – | – | 18% | 22% | 22% |
+| Hamster wheel (runs on the ring, flung off, lands dizzy) | – | – | 18% | 22% | 22% |
+| Ring swing (hangs from the top of the ring by her front paws and swings; lets go) | – | – | 12% | 18% | 18% |
+| Steal (pushes the card off the nearer edge of the screen and comes back pleased; 6–9 s later a helicopter brings it back) | – | – | 10% | 12% | 12% |
+
+Only one card is stolen at a time (another steal becomes a wobble until it is
+back). Picked up mid-push, the helicopter comes after 2.5 s instead.
 
 ### (iii) Thought bubbles
 
@@ -113,15 +117,17 @@ of all stirs on a top edge is the kind's chance spread over the list.
 |---|---|---|
 | Starving | yawn, sunbeam nap, crumb, sneeze, sleep, beg | ~8% |
 | Hungry | crumb, yawn, sneeze, butterfly, box, bird watching, beg, groom | 5% |
-| Content | butterfly, box, croissant, sunbeam nap, tail chase, yawn, sneeze, crumb, dance, bird watching, scratching, dough, groom, knead | 2.5% |
-| Well fed | butterfly, box, croissant, tail chase, dance, sneeze, crumb, sunbeam nap, bird watching, scratching, dough, knead, zoomies, groom | ~2% |
-| Full | sunbeam nap, box, yawn, croissant, dance, sneeze, scratching, dough, belly-up, groom, knead | ~2.5% |
+| Content | butterfly, box, croissant, sunbeam nap, tail chase, yawn, sneeze, crumb, dance, bird watching, scratching, dough, backflip, groom, knead | ~2.3% |
+| Well fed | butterfly, box, croissant, tail chase, dance, sneeze, crumb, sunbeam nap, bird watching, scratching, dough, backflip, knead, zoomies, groom | 2% |
+| Full | sunbeam nap, box, yawn, croissant, dance, sneeze, scratching, dough, backflip, belly-up, groom, knead | ~2.2% |
 
 - **Bird watching:** a bird flutters in and lands nearby; she chatters at it
   ("ek ek"), wiggles, pounces, and it flies off ("?").
 - **Scratching:** a good scratch at the edge, leaving claw marks that fade.
 - **Dough:** she pats a ball of dough into shape, paws in turn, and it bakes
   into a golden bun.
+- **Backflip:** a crouch and a wiggle, a spring into a tucked backward
+  somersault, and a landing stuck with both paws up.
 
 So in every mood a GPU card visit (15–30%) is likelier than any single other
 interaction (2–8%).
@@ -175,7 +181,7 @@ inside it (40 px or more below its top, the card 120 px tall or more), then let
 go: Mochi is trapped inside the card, shown only within its walls. She falls to
 its floor, looks round ("?"), trots to the nearer wall and paws at it, bats
 twice at something in the card (a picture or a block of text, which jiggles),
-slumps ("…"), and escapes one of three ways, an equal pick, never the same
+slumps ("…"), and escapes one of seven ways, an equal pick, never the same
 twice running:
 
 | Escape | What happens |
@@ -183,11 +189,29 @@ twice running:
 | Over the top | A crouch, a wiggle, and a big leap up out onto the card's top edge |
 | Breaking the glass | Paws pressed on the glass, two taps cracking it, a crash, shards flying, and a jump out |
 | Squeezing out | Flat against the nearer wall, she slides out through it, then hops up onto the top edge |
+| Wall climb | Up the inside of the nearer wall, paw over paw, a scramble over the top, and a hop onto the edge |
+| Balloon | A balloon drifts down; she takes its string and floats up and out, steps onto the edge and lets go |
+| Digging out | She digs at the floor (dirt flying), sinks out of sight, and pops up peeking over the top edge |
+| Vanishing | A wiggle, "poof!" in a puff of smoke, and she reappears in another puff on the top edge |
 
 Clicks while she is trapped only get a puzzled "?"; picking her up takes her
 out.
 
+## Her card
+
+Opened by clicking your name: how she has eaten, and the switch letting her
+roam. While she roams, a barely-there "•••" button beside the switch lists
+everything she can be asked to do that needs nothing in particular about the
+page: the moves (walk, run, sniff, spook, pounce), her other interactions, the
+things to do with you (belly rub, brushing, photo shoot, the five toy games),
+the four treat moments and the three tossed toys. Picked, she does it at once
+(hopping up first off a side or a GPU card). GPU card visits, trips, slips and
+being trapped are not in the list.
+
 ## Coming out
+
+- **Dropped on your name:** she goes back to hiding behind it, peeking over,
+  as when the page loads.
 
 - **Already roaming when the page loads** (and your name is in view): she
   peeks over your name and waits. When the pointer comes near she looks up

@@ -119,7 +119,7 @@ const FEELS = {
     tease: 0.2,
     plan: { move: 0.3, card: 0.25, bubble: 0.1, other: 0.35 },
     moves: { walk: 0.45, run: 0.2, leap: 0.2, side: 0.15 },
-    gpus: { warm: 0.2, spin: 0.15, wobble: 0.2, wheel: 0.2, peekaboo: 0.1, swing: 0.15 },
+    gpus: { warm: 0.18, spin: 0.14, wobble: 0.18, wheel: 0.18, peekaboo: 0.1, swing: 0.12, steal: 0.1 },
     acts: ['groom', 'knead'],
   },
   purring: {
@@ -133,7 +133,7 @@ const FEELS = {
     tease: 0.4,
     plan: { move: 0.3, card: 0.28, bubble: 0.12, other: 0.3 },
     moves: { walk: 0.35, run: 0.3, leap: 0.2, side: 0.15 },
-    gpus: { wobble: 0.25, wheel: 0.25, swing: 0.2, spin: 0.15, peekaboo: 0.08, warm: 0.07 },
+    gpus: { wobble: 0.22, wheel: 0.22, swing: 0.18, spin: 0.13, peekaboo: 0.07, warm: 0.06, steal: 0.12 },
     acts: ['knead', 'zoom', 'groom'],
   },
   loaf: {
@@ -147,7 +147,7 @@ const FEELS = {
     tease: 0.15,
     plan: { move: 0.3, card: 0.3, bubble: 0.14, other: 0.26 },
     moves: { walk: 0.3, run: 0.35, leap: 0.2, side: 0.15 },
-    gpus: { wobble: 0.25, wheel: 0.25, swing: 0.2, spin: 0.15, peekaboo: 0.08, warm: 0.07 },
+    gpus: { wobble: 0.22, wheel: 0.22, swing: 0.18, spin: 0.13, peekaboo: 0.07, warm: 0.06, steal: 0.12 },
     acts: ['belly', 'groom', 'knead'],
   },
 };
@@ -286,6 +286,7 @@ const IDLE = {
     'birdwatch',
     'scratch',
     'dough',
+    'backflip',
   ],
   purring: [
     'butterfly',
@@ -299,8 +300,9 @@ const IDLE = {
     'birdwatch',
     'scratch',
     'dough',
+    'backflip',
   ],
-  loaf: ['sunbeam', 'box', 'yawn', 'croissant', 'dance', 'sneeze', 'scratch', 'dough'],
+  loaf: ['sunbeam', 'box', 'yawn', 'croissant', 'dance', 'sneeze', 'scratch', 'dough', 'backflip'],
 };
 const BUNT_EVERY = 15 * 1000;
 
@@ -349,6 +351,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
   const [effects, setEffects] = useState([]);
   const [things, setThings] = useState([]);
   const [wish, setWish] = useState(null);
+  const [heli, setHeli] = useState(null);
 
   // Hearts, "prr", z's or a crunch rising off the cat for a moment.
   const say = (kind) => {
@@ -460,6 +463,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         const left = state.x - anchor.x;
         const top = state.y - anchor.y - lift;
         box.current.style.transform = `translate(${left}px, ${top}px)`;
+        box.current.style.opacity = state.hidden ? '0' : '';
         // Trapped in a panel, only what is within its walls shows.
         if (state.inside && !state.escaping) {
           const edge = page(state.inside.getBoundingClientRect());
@@ -485,7 +489,10 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           tilt.current.style.transformOrigin = origin;
           tilt.current.style.transform = angle ? `rotate(${angle}deg)` : '';
         };
-        if (state.mode === 'held') {
+        if (state.mode === 'script' && state.spin != null) {
+          // Turning head over heels (a backflip), round its middle.
+          turn('fill-box', 'center', state.spin);
+        } else if (state.mode === 'held') {
           // Swinging from its scruff (60, 30 in the drawing).
           turn('view-box', '60px 30px', state.swing ?? 0);
         } else if (rocking) {
@@ -595,6 +602,8 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
     const rest = (time, seconds = feel().rest) => {
       if (things.current) putThing(null);
       if (state.wish) wishFor(null);
+      state.spin = null;
+      state.hidden = false;
       state.lift = 0;
       state.rock = null;
       state.mode = 'rest';
@@ -1030,6 +1039,13 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           },
         ];
       },
+      // Stealing it: down beside it, braced against its side, pushing it along
+      // and off the edge of the screen, going with it; then back, pleased.
+      // A helicopter brings the tile back later.
+      steal: (tile) => [
+        { pose: 'sit', mood: 'hungry', ms: 500, start: () => say('!') },
+        { pose: 'crouch', ms: 1, start: () => startSteal(tile) },
+      ],
       // Peekaboo: hiding behind the tile, peeking over its top, ducking down
       // and popping up again.
       peekaboo: () => [
@@ -1145,10 +1161,35 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         },
       ];
     };
+    // The steal: pushing a GPU's tile off the nearer edge of the screen.
+    const PAW_REACH = (60 - 34) * UNIT;
+    const startSteal = (tile) => {
+      const rect = tile.getBoundingClientRect();
+      const base = page(rect);
+      const dir = (rect.left + rect.right) / 2 < window.innerWidth / 2 ? -1 : 1;
+      Object.assign(state, {
+        mode: 'steal',
+        steal: { tile, base, dir, dx: 0, speed: 90, started: performance.now(), from: { x: state.x, y: state.y } },
+      });
+      state.facing = dir;
+    };
+    // A stolen tile, to be brought back by helicopter in a while.
+    const stolenAway = (steal, heliIn) => {
+      state.stolen = {
+        tile: steal.tile,
+        base: steal.base,
+        dx: steal.dx,
+        dir: steal.dir,
+        heliAt: performance.now() + heliIn,
+      };
+      state.steal = null;
+    };
     // Off to a running GPU's tile (the hottest, for a nap), and the visit once there.
-    const visitGpu = (kind) => {
+    const visitGpu = (asked) => {
       const tiles = runningGpus();
       if (!tiles.length || !state.perch) return false;
+      // One tile stolen at a time.
+      const kind = asked === 'steal' && state.stolen ? 'wobble' : asked;
       const tile =
         kind === 'warm'
           ? tiles.sort((a, b) => Number(b.dataset.heat ?? 0) - Number(a.dataset.heat ?? 0))[0]
@@ -1401,6 +1442,150 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           ];
         },
       };
+      // More ways out: climbing up the inside of a wall and over the top; a
+      // balloon floating it up and out; digging down through the floor and
+      // popping up over the top edge; or vanishing in a puff of smoke and
+      // reappearing on the top edge.
+      const wallSide = state.x < (edge.left + edge.right) / 2 ? -1 : 1;
+      const climbHeight = () => floor - page(panel.getBoundingClientRect()).top - 4;
+      Object.assign(escapes, {
+        climb: () => [
+          { to: wallSide < 0 ? edge.left + 40 : edge.right - 40, speed: TRAPPED_PACE },
+          {
+            pose: 'climb',
+            ms: 1800,
+            start: () => {
+              state.facing = wallSide < 0 ? -1 : 1;
+              state.squeezing = true;
+            },
+            frame: (step, now, k) => {
+              // Paws on the inside of the wall, climbing.
+              const walls = page(panel.getBoundingClientRect());
+              state.x = wallSide < 0 ? walls.left + 3 : walls.right - 3;
+              state.lift = (climbHeight() - 20) * k;
+            },
+          },
+          {
+            pose: 'scramble',
+            ms: 700,
+            start: () => {
+              state.escaping = true;
+              state.lift = climbHeight();
+            },
+          },
+          {
+            pose: 'leap',
+            ms: 380,
+            start: (step) => (step.from = state.x),
+            frame: (step, now, k) => {
+              const walls = page(panel.getBoundingClientRect());
+              const onto = wallSide < 0 ? walls.left + MARGIN : walls.right - MARGIN;
+              state.x = step.from + (onto - step.from) * k;
+              state.lift = climbHeight() + 4 + 14 * Math.sin(Math.PI * k);
+            },
+          },
+          { pose: 'crouch', ms: 300, start: out },
+        ],
+        balloon: () => {
+          // The balloon by how high its string's end is above the floor.
+          const balloon = (high, extra = {}) => putThing({ kind: 'balloon', x: state.x, y: floor - high, ...extra });
+          return [
+            {
+              pose: 'sit',
+              mood: 'hungry',
+              ms: 1300,
+              start: () => say('!'),
+              frame: (step, now, k) => balloon(50 + 140 * (1 - k)),
+            },
+            {
+              pose: 'hang',
+              mood: 'purring',
+              ms: 2600,
+              start: () => say('♪'),
+              frame: (step, now, k) => {
+                const top = climbHeight() + 40;
+                state.lift = top * (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
+                if (state.lift > top - 60) state.escaping = true;
+                balloon(state.lift + 1);
+              },
+            },
+            {
+              pose: 'leap',
+              ms: 420,
+              start: () => say('heart'),
+              frame: (step, now, k) => {
+                state.lift = climbHeight() + 40 - 36 * k;
+                balloon(climbHeight() + 41 + 140 * k, { opacity: 1 - k });
+              },
+            },
+            { pose: 'crouch', ms: 300, start: () => (putThing(null), out()) },
+          ];
+        },
+        dig: () => [
+          {
+            pose: 'scratch',
+            ms: 1600,
+            start: () => say('scritch'),
+            frame: (step, now, k) =>
+              putThing({
+                kind: 'dirt',
+                x: state.x + state.facing * (20 + 30 * (k % 0.25) * 4),
+                y: floor - 30 * Math.sin(Math.PI * ((k * 4) % 1)),
+              }),
+          },
+          {
+            pose: 'scratch',
+            ms: 900,
+            frame: (step, now, k) => {
+              // Sinking down through the floor, out of sight.
+              state.lift = -60 * k;
+              putThing({ kind: 'dirt', x: state.x, y: floor, opacity: 1 - k });
+            },
+          },
+          {
+            pose: 'emerge',
+            ms: 1400,
+            start: () => {
+              putThing(null);
+              out();
+              state.mode = 'script';
+              say('!');
+            },
+          },
+          { pose: 'peek', ms: 600 },
+          { pose: 'sit', mood: 'purring', ms: 700, start: () => say('heart') },
+        ],
+        poof: () => {
+          const puff = (x, y, k) => ({ kind: 'puff', front: true, x, y, scale: 0.6 + k, opacity: 1 - k });
+          return [
+            { pose: 'crouch', ms: 700, rock: { amp: 4, freq: 6, decay: 0 }, start: () => say('✦') },
+            {
+              pose: 'crouch',
+              ms: 700,
+              start: (step) => {
+                step.at = { x: state.x, y: floor - 20 };
+                state.hidden = true;
+                say('poof!');
+              },
+              frame: (step, now, k) => putThing(puff(step.at.x, step.at.y, k)),
+            },
+            {
+              pose: 'sit',
+              mood: 'purring',
+              ms: 900,
+              start: (step) => {
+                out();
+                state.mode = 'script';
+                step.at = { x: state.x, y: state.y - 20 };
+                state.hidden = false;
+                say('✦');
+              },
+              frame: (step, now, k) => putThing(puff(step.at.x, step.at.y, k)),
+            },
+            { pose: 'sit', mood: 'purring', ms: 600, start: () => (putThing(null), say('heart')) },
+          ];
+        },
+      });
       const escape = () => {
         const ways = Object.keys(escapes).filter((way) => way !== state.lastEscape);
         const way = ways[Math.floor(Math.random() * ways.length)];
@@ -1957,6 +2142,26 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           },
         ];
       },
+      // A backflip: a crouch and a wiggle, a spring high into the air, tucked
+      // into a ball, turning head over heels backwards, and a landing stuck
+      // with both paws up.
+      backflip: () => {
+        // Backwards: head up and over towards its tail.
+        const over = state.facing < 0 ? 360 : -360;
+        return [
+          { pose: 'crouch', ms: 550, rock: { amp: 3.5, freq: 5.5, decay: 0 }, start: () => say('!') },
+          {
+            pose: 'tuck',
+            ms: 700,
+            frame: (step, now, k) => {
+              state.lift = 50 * Math.sin(Math.PI * k);
+              state.spin = over * (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
+            },
+          },
+          { pose: 'cheer', ms: 900, start: () => ((state.spin = null), say('✦')) },
+          { pose: 'sit', mood: 'purring', ms: 800, start: () => say('heart') },
+        ];
+      },
       // A dance, one of several, picked at random.
       dance: () => {
         const names = Object.keys(dances).filter((name) => name !== state.lastDance);
@@ -2050,6 +2255,38 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
     };
     window.addEventListener('bakery-cat-treat', onTreat);
     window.addEventListener('bakery-cat-toy', onToy);
+    // Asked from its card to do something in particular: it does it, from its
+    // panel's top edge (hopping up off a side, or off a GPU's tile, first).
+    const onDo = (event) => {
+      const [group, name] = String(event.detail).split(':');
+      const busy = ['held', 'leap', 'fall', 'spring', 'steal', 'emerge', 'popout', 'home', 'slip', 'trip'];
+      if (!state.perch || state.inside || busy.includes(state.mode)) return;
+      const retry = () => setTimeout(() => onDo(event), SPRING_MS + LEAP_MS + 500);
+      if (onSide()) {
+        leapTo(state.perch, null, HOP_MS);
+        retry();
+        return;
+      }
+      if (state.perch.closest?.('[data-cat-gpu]')) {
+        leapTo(otherPerch() ?? visiblePerches()[0]);
+        retry();
+        return;
+      }
+      const time = performance.now();
+      closeMenu();
+      if (state.wish) wishFor(null);
+      if (things.current) putThing(null);
+      state.lastPlay = time;
+      if (group === 'move') stroll(name === 'run');
+      else if (group === 'mishap' && mishaps[name]) play(mishaps[name](state.x), time);
+      else if (group === 'doing' && doings[name]) play(doings[name](), time);
+      else if (group === 'act') act(name, time);
+      else if (group === 'wish' && wanted[name]) play(wanted[name](), time);
+      else if (group === 'game') startGame(name, time);
+      else if (group === 'treat' && treats[name]) play(treats[name](), time);
+      else if (group === 'toss' && tossed[name]) play(tossed[name](), time);
+    };
+    window.addEventListener('bakery-cat-do', onDo);
 
     const onPointerMove = (event) => {
       const time = performance.now();
@@ -2066,6 +2303,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       const press = state.press;
       if (press && state.mode !== 'held' && Math.hypot(event.pageX - press.x, event.pageY - press.y) > 5) {
         clearTimeout(press.timer);
+        if (state.mode === 'steal' && state.steal) stolenAway(state.steal, 2500);
         state.mode = 'held';
         Object.assign(state, {
           swing: 0,
@@ -2112,6 +2350,19 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         state.y += FEET.y - SCRUFF.y;
         // It stays put where it was put a moment, before it plays again.
         state.chaseRest = time + 2500;
+        // Dropped on its owner's name: back to hiding behind it, peeking over.
+        const name = document.querySelector('[data-cat-home]')?.getBoundingClientRect();
+        if (
+          name &&
+          event.clientX > name.left - 24 &&
+          event.clientX < name.right + 24 &&
+          event.clientY > name.top - 30 &&
+          event.clientY < name.bottom + 30
+        ) {
+          Object.assign(state, { mode: 'emerge', perch: null, side: 'top', peeked: false, inside: null });
+          say('heart');
+          return;
+        }
         // Held still over well inside a panel a while, then let go: trapped in
         // it, till it finds a way out.
         const stillLongEnough = time - (state.stillSince ?? time) >= TRAP_HOLD_MS;
@@ -2443,6 +2694,32 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         play(doings.bunt(), time);
       }
 
+      // A helicopter bringing a stolen tile back: rising with it off screen,
+      // carrying it across, lowering it into its place, and flying off.
+      const stolen = state.stolen;
+      if (stolen && time > stolen.heliAt) {
+        stolen.heliFrom = stolen.heliFrom ?? time;
+        const k = (time - stolen.heliFrom) / 4200;
+        const across = Math.min(1, Math.max(0, (k - 0.15) / 0.55));
+        const eased = across < 0.5 ? 2 * across * across : 1 - (-2 * across + 2) ** 2 / 2;
+        const up = k < 0.15 ? k / 0.15 : k > 0.75 ? Math.max(0, (1 - k) / 0.25) : 1;
+        const ox = stolen.dx * (1 - eased);
+        const oy = -150 * up;
+        const middle = (stolen.base.left + stolen.base.right) / 2;
+        if (k < 1) {
+          stolen.tile.style.transform = `translate(${ox}px, ${oy}px)`;
+          setHeli({ x: middle + ox, y: stolen.base.top + oy - 46 });
+        } else {
+          stolen.tile.style.transform = '';
+          const away = Math.min(1, (k - 1) / 0.3);
+          setHeli({ x: middle - stolen.dir * 260 * away, y: stolen.base.top - 46 - 300 * away, opacity: 1 - away });
+          if (away >= 1) {
+            state.stolen = null;
+            setHeli(null);
+          }
+        }
+      }
+
       switch (state.mode) {
         case 'leap': {
           // Nearly a steady pace across, an arc up and down, and the cat tilted
@@ -2527,6 +2804,67 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
               ],
               time,
             );
+          }
+          break;
+        }
+        case 'steal': {
+          // Down beside the tile, braced against it, then pushing it along
+          // (faster and faster) till it and the cat are off the screen; then
+          // back in from that edge, pleased with itself.
+          const steal = state.steal;
+          const t = time - steal.started;
+          const { base, dir } = steal;
+          const side = (dx) => (dir < 0 ? base.right + dx + PAW_REACH : base.left + dx - PAW_REACH);
+          state.facing = dir;
+          if (t < 450) {
+            const k = t / 450;
+            state.x = steal.from.x + (side(0) - steal.from.x) * k;
+            state.y = steal.from.y + (base.bottom - steal.from.y) * k - 24 * Math.sin(Math.PI * k);
+            show('leap');
+          } else if (t < 1050) {
+            state.x = side(0);
+            state.y = base.bottom;
+            if (!steal.braced) {
+              steal.braced = true;
+              say('!');
+            }
+            show('push');
+          } else {
+            steal.speed = Math.min(300, steal.speed + 140 * dt);
+            steal.dx += dir * steal.speed * dt;
+            steal.tile.style.transform = `translateX(${steal.dx}px)`;
+            state.x = side(steal.dx);
+            state.y = base.bottom;
+            if (Math.floor(t / 900) !== steal.beat) {
+              steal.beat = Math.floor(t / 900);
+              say('hup');
+            }
+            show('push');
+            const gone =
+              dir < 0
+                ? base.right + steal.dx < window.scrollX - 10
+                : base.left + steal.dx > window.scrollX + window.innerWidth + 10;
+            if (gone) steal.goneAt = steal.goneAt ?? time;
+            if (steal.goneAt && time - steal.goneAt > 700) {
+              stolenAway(steal, random(6000, 9000));
+              // Back in from that edge onto the nearest panel in view.
+              state.x = dir < 0 ? window.scrollX - 40 : window.scrollX + window.innerWidth + 40;
+              state.perch = null;
+              state.resume = {
+                steps: () => [
+                  { pose: 'sit', mood: 'purring', ms: 900, start: () => say('✦') },
+                  { pose: 'groom', ms: 1400 },
+                ],
+              };
+              const perches = visiblePerches();
+              const back = perches.sort(
+                (a, b) =>
+                  Math.abs(page(a.getBoundingClientRect()).top - state.y) -
+                  Math.abs(page(b.getBoundingClientRect()).top - state.y),
+              )[0];
+              if (back) leapTo(back, dir < 0 ? window.scrollX + 120 : window.scrollX + window.innerWidth - 120);
+              else rest(time);
+            }
           }
           break;
         }
@@ -3077,6 +3415,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
     });
     return () => {
       cancelAnimationFrame(frame);
+      for (const tile of [state.steal?.tile, state.stolen?.tile]) if (tile) tile.style.transform = '';
       clearTimeout(state.clickTimer);
       clearTimeout(state.menuTimer);
       window.removeEventListener('scroll', onScroll);
@@ -3084,6 +3423,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('bakery-cat-treat', onTreat);
       window.removeEventListener('bakery-cat-toy', onToy);
+      window.removeEventListener('bakery-cat-do', onDo);
       window.removeEventListener('pointerdown', onPressAway);
       window.removeEventListener('keydown', onKey);
     };
@@ -3277,6 +3617,8 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           </span>
         ))}
       </div>
+      {/* A helicopter bringing back a GPU's tile it stole. */}
+      {heli && <CatThing kind="heli" rope={40} {...heli} />}
       {/* Things in front of it: cracks and shards of the glass it is trapped behind. */}
       {things
         .filter((item) => item.front)

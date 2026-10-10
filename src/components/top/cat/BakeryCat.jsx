@@ -443,6 +443,11 @@ export const ROAM_POSES = {
   // and with its owner: squirming belly-up for a rub, leaning into a brush,
   // posing for photos (a wink, and lounging like a film star).
   chatter: () => <Chattering />,
+  // Pushing something along (to its left): leaning in, front paws braced flat
+  // against it, hind legs digging in, straining.
+  push: () => <Pushing />,
+  // Mid-backflip: tucked into a tight ball, paws pulled in, happy.
+  tuck: () => <Tucked />,
   // Trapped in a panel: up on its hind legs, front paws pressed flat on the
   // glass in front of it.
   press: () => <Pressing />,
@@ -1543,6 +1548,141 @@ function Pressing() {
         <circle cx="71.4" cy="57" r="1.1" fill={PINK} />
         <circle cx="74" cy="56.2" r="1.1" fill={PINK} />
         <circle cx="76.6" cy="57" r="1.1" fill={PINK} />
+      </g>
+    </g>
+  );
+}
+
+// Tucked into a tight ball mid-backflip: paws pulled in under its chin, tail
+// wrapped round, eyes shut with glee.
+function Tucked() {
+  return (
+    <g>
+      <path d="M71 79c8 2 13-4 11-11-1-3-4-3-5 0" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M71 79c8 2 13-4 11-11-1-3-4-3-5 0" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <circle cx="60" cy="70" r="14.5" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <ellipse cx="60" cy="75" rx="8" ry="6.5" fill={BELLY} />
+      <g transform="translate(60 61) scale(0.64) translate(-60 -46)">
+        <Head mood="purring" />
+      </g>
+      <ellipse
+        cx="53"
+        cy="73"
+        rx="3.4"
+        ry="2.4"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(20 53 73)"
+      />
+      <ellipse
+        cx="67"
+        cy="73"
+        rx="3.4"
+        ry="2.4"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(-20 67 73)"
+      />
+      <ellipse
+        cx="55"
+        cy="81"
+        rx="3.4"
+        ry="2.4"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(10 55 81)"
+      />
+      <ellipse
+        cx="65"
+        cy="81"
+        rx="3.4"
+        ry="2.4"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(-10 65 81)"
+      />
+    </g>
+  );
+}
+
+// Pushing something along to its left: leaning right in, front paws braced
+// flat against it (at x = 34), hind legs digging in behind, tail out straight,
+// face screwed up with effort.
+function Pushing() {
+  return (
+    <g>
+      <path d="M80 70c6 0 11-2 15-6" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M80 70c6 0 11-2 15-6" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <g className="motion-safe:animate-cat-step" style={{ animationDuration: '0.36s' }}>
+        <path d="M74 77l8 10" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M74 77l8 10" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <ellipse
+          cx="83"
+          cy="87.6"
+          rx="3.4"
+          ry="2.3"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(20 83 87.6)"
+        />
+      </g>
+      <g className="motion-safe:animate-cat-step" style={{ animationDuration: '0.36s', animationDelay: '-0.18s' }}>
+        <path d="M70 79l5 8" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M70 79l5 8" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <ellipse
+          cx="76"
+          cy="87.8"
+          rx="3.4"
+          ry="2.3"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(20 76 87.8)"
+        />
+      </g>
+      <ellipse
+        cx="62"
+        cy="72"
+        rx="20"
+        ry="10"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        transform="rotate(14 62 72)"
+      />
+      <ellipse cx="60" cy="77" rx="11" ry="3.6" fill={BELLY} transform="rotate(14 60 77)" />
+      <path d="M62 62l1.6 3.8M69 64l1 4M76 67.6l-.2 3.8" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M50 70 36 66" fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
+      <path d="M50 70 36 66" fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+      <path d="M51 75 36 74" fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
+      <path d="M51 75 36 74" fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+      <ellipse
+        cx="34.6"
+        cy="65.6"
+        rx="3.8"
+        ry="2.4"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(80 34.6 65.6)"
+      />
+      <ellipse
+        cx="34.6"
+        cy="74"
+        rx="3.8"
+        ry="2.4"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(80 34.6 74)"
+      />
+      <g transform="translate(46 64) rotate(10) scale(0.7) translate(-60 -46)">
+        <Head mood="sneeze" />
       </g>
     </g>
   );

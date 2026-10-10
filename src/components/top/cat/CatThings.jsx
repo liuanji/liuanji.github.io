@@ -284,6 +284,73 @@ function Shard() {
   return <path d="M-4-3l7-1-2 6z" fill="#E6EEF8" stroke="#A9B6C8" strokeWidth="0.8" strokeLinejoin="round" />;
 }
 
+// A balloon on a string, the string's end at (0, 0).
+function Balloon() {
+  return (
+    <g>
+      <path d="M0 0c-3-8 3-14 0-22" fill="none" stroke="#A3ADBB" strokeWidth="0.9" />
+      <path d="M0-22l-2.4 3h4.8z" fill="#E79AA8" />
+      <ellipse cx="0" cy="-34" rx="10" ry="12" fill="#F2B8C2" stroke="#D98E9C" strokeWidth="1" />
+      <path d="M-5-40q2-4 6-4" fill="none" stroke="white" strokeWidth="1.6" strokeLinecap="round" opacity="0.8" />
+    </g>
+  );
+}
+
+// A few specks of dirt, dug up.
+function Dirt() {
+  return (
+    <g fill="#B98B5A">
+      <circle cx="-4" cy="-2" r="1.6" />
+      <circle cx="2" cy="-4" r="1.2" />
+      <circle cx="5" cy="-1" r="1.4" />
+      <circle cx="-1" cy="-6" r="1" />
+    </g>
+  );
+}
+
+// A puff of smoke, for a vanishing trick, centred on (0, 0).
+function Puff() {
+  return (
+    <g fill="#EEF1F6" stroke="#C5CDD9" strokeWidth="1">
+      <circle cx="-9" cy="2" r="7" />
+      <circle cx="8" cy="3" r="7.5" />
+      <circle cx="0" cy="-5" r="9" />
+      <circle cx="1" cy="6" r="7" />
+    </g>
+  );
+}
+
+// A little helicopter, rotor whirring, a rope hanging from it to a hook at
+// (0, rope) below; its middle at (0, 0).
+function Helicopter({ rope = 40 }) {
+  return (
+    <g>
+      <path d={`M0 6V${rope}`} stroke="#A3ADBB" strokeWidth="1" />
+      <path d={`M-3 ${rope}q0 4 3 4t3-4`} fill="none" stroke="#8E98A8" strokeWidth="1.4" />
+      <path d="M14 -1h18l3-6" fill="none" stroke="#D9A066" strokeWidth="3" strokeLinecap="round" />
+      <circle
+        cx="35"
+        cy="-7"
+        r="3.4"
+        fill="none"
+        stroke="#A3ADBB"
+        strokeWidth="1"
+        className="motion-safe:animate-spin"
+      />
+      <ellipse cx="0" cy="-1" rx="16" ry="10" fill="#F2C27D" stroke="#C9973D" strokeWidth="1.2" />
+      <path d="M-14-3a14 9 0 0 1 12-8v12h-12z" fill="#BFD3F2" stroke="#8EA6DF" strokeWidth="0.9" />
+      <path d="M-10 10l-3 4h26M8 10l-2 4" fill="none" stroke="#8E98A8" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M0-11v-4" stroke="#8E98A8" strokeWidth="1.6" />
+      <g
+        className="motion-safe:animate-cat-flap"
+        style={{ transformBox: 'fill-box', transformOrigin: 'center', animationDuration: '0.12s' }}
+      >
+        <path d="M-26-15h52" stroke="#5B6474" strokeWidth="2" strokeLinecap="round" />
+      </g>
+    </g>
+  );
+}
+
 const THINGS = {
   yarn: Yarn,
   butterfly: Butterfly,
@@ -303,6 +370,10 @@ const THINGS = {
   claws: Claws,
   cracks: Cracks,
   shard: Shard,
+  balloon: Balloon,
+  dirt: Dirt,
+  puff: Puff,
+  heli: Helicopter,
   bowl: TreatBowl,
 };
 // How far each reaches round its base, for the box it is drawn in.
@@ -325,6 +396,10 @@ const REACH = {
   claws: 8,
   cracks: 38,
   shard: 7,
+  balloon: 48,
+  dirt: 8,
+  puff: 18,
+  heli: 60,
   bowl: 20,
 };
 
@@ -441,7 +516,20 @@ export function ToyIcon({ kind }) {
 }
 
 // A thing at (x, y) on the page, turned and scaled and faded as it moves.
-export function CatThing({ kind, x, y, rotate = 0, scale = 1, flip = 1, opacity = 1, count, string, flying, bake }) {
+export function CatThing({
+  kind,
+  x,
+  y,
+  rotate = 0,
+  scale = 1,
+  flip = 1,
+  opacity = 1,
+  count,
+  string,
+  flying,
+  bake,
+  rope,
+}) {
   const Thing = THINGS[kind];
   const reach = REACH[kind];
   if (!Thing) return null;
@@ -458,7 +546,7 @@ export function CatThing({ kind, x, y, rotate = 0, scale = 1, flip = 1, opacity 
       }}
     >
       <g transform={`rotate(${rotate}) scale(${scale * flip} ${scale})`}>
-        <Thing count={count} string={string} flying={flying} bake={bake} />
+        <Thing count={count} string={string} flying={flying} bake={bake} rope={rope} />
       </g>
     </svg>
   );

@@ -1,6 +1,14 @@
 import { CatScene, MOODS, STAGES, APPETITE, moodOf, stageOf } from './BakeryCat';
 import { DetailsPopover } from '../shared/DetailBoxes';
 import { Switch } from '../shared/controls';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // The bakery cat's name until it can be changed.
 const NAME = 'Mochi';
@@ -26,6 +34,114 @@ function moodLine(mood, meal) {
     default:
       return `${NAME} is as full as a cat gets${source}.`;
   }
+}
+
+// Things it can be asked to do while it roams (those that need nothing in
+// particular about the page), as the roaming cat knows them.
+const ACTIONS = [
+  [
+    'Moves',
+    [
+      ['move:walk', 'Walk'],
+      ['move:run', 'Run'],
+      ['mishap:sniff', 'Stop to sniff'],
+      ['mishap:spook', 'Get spooked'],
+      ['mishap:pounce', 'Pounce on a speck'],
+    ],
+  ],
+  [
+    'By itself',
+    [
+      ['doing:butterfly', 'Watch a butterfly'],
+      ['doing:box', 'Sit in a box'],
+      ['doing:croissant', 'Knock off a croissant'],
+      ['doing:sunbeam', 'Nap in a sunbeam'],
+      ['doing:tail', 'Chase its tail'],
+      ['doing:yawn', 'Yawn'],
+      ['doing:sneeze', 'Sneeze'],
+      ['doing:crumb', 'Find a crumb'],
+      ['doing:dance', 'Dance'],
+      ['doing:birdwatch', 'Watch a bird'],
+      ['doing:scratch', 'Scratch'],
+      ['doing:dough', 'Pat some dough'],
+      ['doing:backflip', 'Backflip'],
+      ['act:groom', 'Groom'],
+      ['act:knead', 'Knead'],
+      ['act:belly', 'Roll belly-up'],
+      ['act:beg', 'Beg'],
+      ['act:sleep', 'Nap'],
+      ['act:zoom', 'Zoomies'],
+    ],
+  ],
+  [
+    'With you',
+    [
+      ['wish:rub', 'Belly rub'],
+      ['wish:brush', 'Brushing'],
+      ['wish:photo', 'Photo shoot'],
+      ['game:yarn', 'Yarn'],
+      ['game:feather', 'Feather wand'],
+      ['game:laser', 'Laser pointer'],
+      ['game:mouse', 'Wind-up mouse'],
+      ['game:bubbles', 'Bubbles'],
+    ],
+  ],
+  [
+    'Treats',
+    [
+      ['treat:toss', 'Toss and catch'],
+      ['treat:beg', 'Hand-feed'],
+      ['treat:hunt', 'Treat hunt'],
+      ['treat:bowl', 'A little bowl'],
+    ],
+  ],
+  [
+    'Toys',
+    [
+      ['toss:ball', 'Bouncy ball'],
+      ['toss:feather', 'Drifting feather'],
+      ['toss:mouse', 'Toy mouse'],
+    ],
+  ],
+];
+
+// A barely-there button beside the roam switch with everything it can be
+// asked to do; picked, it does it.
+function ActionsMenu() {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label={`Ask ${NAME} to do something`}
+          className="flex h-5 items-center gap-[3px] rounded-full px-1.5 opacity-30 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20 data-[state=open]:opacity-100"
+        >
+          {[0, 1, 2].map((dot) => (
+            <span key={dot} className="h-[3px] w-[3px] rounded-full bg-data-grey" />
+          ))}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="max-h-80 w-52 overflow-y-auto font-mono text-[11px]">
+        {ACTIONS.map(([group, actions], index) => (
+          <div key={group}>
+            {index > 0 && <DropdownMenuSeparator />}
+            <DropdownMenuLabel className="py-1 text-[10px] font-normal uppercase tracking-wide text-data-grey">
+              {group}
+            </DropdownMenuLabel>
+            {actions.map(([code, label]) => (
+              <DropdownMenuItem
+                key={code}
+                className="py-1 text-[11px]"
+                onSelect={() => window.dispatchEvent(new CustomEvent('bakery-cat-do', { detail: code }))}
+              >
+                {label}
+              </DropdownMenuItem>
+            ))}
+          </div>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 // The card the cat button opens: the cat in its mood and at its age, how much
@@ -75,26 +191,10 @@ function CatDetails({ meal, roaming, onRoam }) {
           </>
         )}
       </dl>
-      {/* Letting it out to roam the page, and while it roams, a treat or a toy. */}
+      {/* Letting it out to roam the page (treats and toys are in its menu, a click on it away). */}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border-light pt-3">
         <Switch label={`Let ${NAME} roam the page`} checked={roaming} onChange={onRoam} />
-        {roaming && (
-          <span className="flex gap-1.5">
-            {[
-              ['treat', 'Give a treat'],
-              ['toy', 'Toss a toy'],
-            ].map(([kind, label]) => (
-              <button
-                key={kind}
-                type="button"
-                onClick={() => window.dispatchEvent(new Event(`bakery-cat-${kind}`))}
-                className="rounded-full border border-border-light px-2.5 py-0.5 font-mono text-[11px] text-data-grey transition-colors hover:bg-[#F1F3F6] hover:text-inkwell focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20"
-              >
-                {label}
-              </button>
-            ))}
-          </span>
-        )}
+        {roaming && <ActionsMenu />}
       </div>
     </div>
   );
