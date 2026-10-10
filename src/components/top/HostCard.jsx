@@ -411,7 +411,7 @@ export default function HostCard({ host, now, reserving = null, token }) {
   const down = outdated || host.status === 'error';
   const dim = outdated ? 'opacity-50' : undefined;
   return (
-    <article className="bg-white rounded-2xl border border-border-light overflow-hidden">
+    <article data-cat-perch className="bg-white rounded-2xl border border-border-light overflow-hidden">
       <header className="flex flex-col gap-3 border-b border-border-light px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h3 className="font-tight font-semibold text-lg text-inkwell leading-tight">{host.name}</h3>

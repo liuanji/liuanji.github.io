@@ -335,7 +335,7 @@ export default function UptimeCard({ uptime, hosts, range, onOpen }) {
   const labChecked = sum(rows.map((series) => sum(series.checked)));
   const labDown = sum(rows.map((series) => sum(series.down)));
   return (
-    <div className="bg-white rounded-2xl border border-border-light">
+    <div data-cat-perch className="bg-white rounded-2xl border border-border-light">
       {/* The title and its subtitle as one block on the left; the key and the
           view switch stacked on the right, with room between them. */}
       <div className="flex flex-col gap-3 border-b border-border-light px-6 pb-4 pt-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">

@@ -201,6 +201,21 @@ module.exports = {
   				'0%': { opacity: '0', transform: 'translateY(-8px)' },
   				'100%': { opacity: '1', transform: 'translateY(0)' }
   			},
+  			// The roaming bakery cat: its steps while walking, its breathing at rest,
+  			// and hearts or z's rising off it.
+  			'cat-step': {
+  				'0%, 100%': { transform: 'translateY(0)' },
+  				'50%': { transform: 'translateY(-2px)' }
+  			},
+  			'cat-breathe': {
+  				'0%, 100%': { transform: 'scaleY(1)' },
+  				'50%': { transform: 'scaleY(1.04)' }
+  			},
+  			'cat-float': {
+  				'0%': { opacity: '0', transform: 'translateY(4px) scale(0.6)' },
+  				'25%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+  				'100%': { opacity: '0', transform: 'translateY(-16px) scale(1)' }
+  			},
   			steam: {
   				'0%': { opacity: '0', transform: 'translateY(4px)' },
   				'35%': { opacity: '0.9' },
@@ -266,6 +281,9 @@ module.exports = {
   			'box-lid': 'box-lid 0.35s ease-out both',
   			'box-leave': 'box-leave 1.3s ease-in both',
   			'box-enter': 'box-enter 0.5s ease-out both',
+  			'cat-step': 'cat-step 0.4s ease-in-out infinite',
+  			'cat-breathe': 'cat-breathe 3.2s ease-in-out infinite',
+  			'cat-float': 'cat-float 1.6s ease-out both',
   			steam: 'steam 2.1s ease-out infinite',
   			'sign-swing': 'sign-swing 2.8s ease-in-out infinite',
   			snooze: 'snooze 2.7s ease-out infinite',

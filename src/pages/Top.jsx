@@ -6,6 +6,8 @@ import GhostNav from '../components/layout/GhostNav';
 import CompactHosts from '../components/top/CompactHosts';
 import { BakeryCard } from '../components/top/BakeryStatus';
 import { CatButton } from '../components/top/CatCard';
+import RoamingCat from '../components/top/RoamingCat';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { ClosedBanner } from '../components/top/ClosedBakery';
 import { DetailsPopover } from '../components/top/DetailBoxes';
 import DiskCard, { CleanupBanner, cleanupColor, cleanupIsUrgent } from '../components/top/DiskCard';
@@ -154,6 +156,10 @@ export default function Top() {
   const { token, user, signIn, signOut } = useSession();
   const { reserve, release } = useReservations(token, signOut);
   const [compact, setCompact] = useStoredFlag('gpu-status-compact', true);
+  // Whether the viewer's bakery cat is out roaming the page, remembered in this
+  // browser. It stays home on phones and for viewers who prefer reduced motion.
+  const [catRoaming, setCatRoaming] = useStoredFlag('gpu-status-cat-roam', false);
+  const catCanRoam = !useIsMobile() && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   // The range a link names wins; otherwise the one last picked in this browser.
   const [savedRange, setSavedRange] = useStoredChoice('gpu-status-range');
   const overview = useStatusFile('overview', LIVE_REFRESH_MS, token);
@@ -339,7 +345,7 @@ export default function Top() {
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                 <Freshness overview={overview} now={now} />
                 <span className="font-mono text-xs text-data-grey">
-                  <CatButton user={user} meal={stats.data?.cats?.[user]} />
+                  <CatButton user={user} meal={stats.data?.cats?.[user]} roaming={catRoaming} onRoam={setCatRoaming} />
                   <span aria-hidden="true"> · </span>
                   <button type="button" onClick={signOut} className="transition-colors hover:text-inkwell">
                     Sign out
@@ -384,6 +390,7 @@ export default function Top() {
                   )}
                 </div>
               )}
+              {catRoaming && catCanRoam && <RoamingCat />}
               <NotesPill notes={notes} me={user}>
                 {closed && <ClosedBanner since={overview.data.generated_at} now={now} />}
                 <OverheatBanner items={overheated} onOpen={hosts.length > 1 ? showHost : undefined} />

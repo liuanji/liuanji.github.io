@@ -81,7 +81,7 @@ export default function UserRanking({
       ? cloudEstimate(totalHours, null, who)
       : null;
   return (
-    <div className="bg-white rounded-2xl border border-border-light overflow-hidden">
+    <div data-cat-perch className="bg-white rounded-2xl border border-border-light overflow-hidden">
       {/* The milestone badge sits at the right, centred on the title and subtitle. */}
       <div className="flex items-center justify-between gap-4 border-b border-border-light px-6 pb-4 pt-5">
         <div className="min-w-0">

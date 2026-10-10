@@ -535,7 +535,7 @@ export default function DiskCard({ host, now, stacked, range }) {
   const checkedAgo = host.checked_at ? formatAgo(now - host.checked_at) : null;
   const countedAgo = host.usage_checked_at ? formatAgo(now - host.usage_checked_at) : null;
   return (
-    <article className="bg-white rounded-2xl border border-border-light p-6">
+    <article data-cat-perch className="bg-white rounded-2xl border border-border-light p-6">
       <header className="mb-5 flex items-baseline justify-between gap-3">
         <h3 className="font-tight font-semibold text-lg text-inkwell leading-tight">{host.name}</h3>
         {checkedAgo && <span className="whitespace-nowrap font-mono text-xs text-data-grey">checked {checkedAgo}</span>}

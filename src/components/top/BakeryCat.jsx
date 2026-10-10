@@ -281,3 +281,138 @@ export function CatScene({ mood, stage, today = 0, className = '' }) {
     </svg>
   );
 }
+
+// The poses of a roaming cat, in the same 120 x 100 box with its feet (or
+// belly) on y = 88, its head to the left; flip it to face right.
+export const ROAM_POSES = {
+  // Resting on a panel's edge: a loaf, breathing.
+  rest: () => <Loaf stage={STAGES[2]} />,
+  // Sitting up, for a purr, a slow blink, petting or a treat.
+  sit: ({ mood = 'content' }) => <Sitting mood={mood} stage={STAGES[2]} />,
+  // Rolling over (the whole drawing turns), purring.
+  roll: () => <Sitting mood="purring" stage={STAGES[2]} />,
+  // Reaching a paw out after the pointer.
+  reach: () => (
+    <>
+      <Sitting mood="content" stage={STAGES[2]} />
+      <ellipse
+        cx="36"
+        cy="58"
+        rx="5.4"
+        ry="3.8"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.4"
+        transform="rotate(-30 36 58)"
+      />
+    </>
+  ),
+  walk: () => <Walking />,
+  crouch: () => (
+    <g transform="translate(0 88) scale(1 0.86) translate(0 -88)">
+      <Loaf stage={STAGES[2]} />
+    </g>
+  ),
+  leap: () => <Leaping />,
+  sleep: () => (
+    <g transform="translate(0 9)">
+      <Curled />
+    </g>
+  ),
+  held: () => <Dangling />,
+};
+
+function Walking() {
+  return (
+    <g>
+      <path d="M82 70c6-4 8-14 4-20" fill="none" stroke={EDGE} strokeWidth="5.4" strokeLinecap="round" />
+      <path d="M82 70c6-4 8-14 4-20" fill="none" stroke={FUR} strokeWidth="3.4" strokeLinecap="round" />
+      <g className="motion-safe:animate-cat-step">
+        <path d="M44 78v10M68 79v9" stroke={EDGE} strokeWidth="5" strokeLinecap="round" />
+        <path d="M44 78v10M68 79v9" stroke={FUR} strokeWidth="3" strokeLinecap="round" />
+      </g>
+      <g className="motion-safe:animate-cat-step" style={{ animationDelay: '-0.2s' }}>
+        <path d="M52 79v9M76 78v10" stroke={EDGE} strokeWidth="5" strokeLinecap="round" />
+        <path d="M52 79v9M76 78v10" stroke={FUR} strokeWidth="3" strokeLinecap="round" />
+      </g>
+      <ellipse cx="62" cy="74" rx="22" ry="9.5" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <path d="M58 66l2 5M66 66l1 5M74 67l-1 5" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+      <path
+        d="M32 60 31 48 40 55zM48 58 50 46 41 52z"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <ellipse cx="40" cy="64" rx="12.5" ry="10.5" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <circle cx="36" cy="63" r="2.2" fill={EYE} />
+      <circle cx="36.7" cy="62.3" r="0.7" fill="white" />
+      <path d="M29.5 66.5h2.4l-1.2 1.4z" fill={PINK} />
+    </g>
+  );
+}
+
+function Leaping() {
+  return (
+    <g transform="translate(60 76) rotate(-10) translate(-60 -74)">
+      <path d="M84 72c8-1 14-6 16-12" fill="none" stroke={EDGE} strokeWidth="5.4" strokeLinecap="round" />
+      <path d="M84 72c8-1 14-6 16-12" fill="none" stroke={FUR} strokeWidth="3.4" strokeLinecap="round" />
+      <path d="M44 76l-12 6M48 78l-10 8M76 76l12 6M72 78l10 8" stroke={EDGE} strokeWidth="5" strokeLinecap="round" />
+      <path d="M44 76l-12 6M48 78l-10 8M76 76l12 6M72 78l10 8" stroke={FUR} strokeWidth="3" strokeLinecap="round" />
+      <ellipse cx="60" cy="74" rx="25" ry="8.5" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <path d="M56 67l2 4M64 66.5l1 4.5M72 67.5l-1 4" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+      <path
+        d="M28 60 26 48 36 55zM44 58 46 46 37 52z"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <ellipse cx="36" cy="64" rx="12" ry="10" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <circle cx="31" cy="63" r="2.3" fill={EYE} />
+      <circle cx="31.7" cy="62.2" r="0.7" fill="white" />
+      <path d="M25 66.5h2.4l-1.2 1.4z" fill={PINK} />
+    </g>
+  );
+}
+
+// Asleep, curled up with its nose tucked in (the nap, without its basket).
+function Curled() {
+  return (
+    <g>
+      <path d="M30 79c0-14 14-21 32-21s30 8 30 21z" fill={FUR} stroke={EDGE} strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M62 63l3 5M72 64l1 5M82 68l-2 4" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M90 78c4-4 1-12-8-10" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M90 78c4-4 1-12-8-10" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <path
+        d="M33 66 31 53 41 60zM53 62 56 50 45 56z"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <ellipse cx="43" cy="69" rx="14" ry="10.5" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <path d="M36 69q2.5 2 5 0M46 69q2.5 2 5 0" fill="none" stroke={EYE} strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M42 72.2h2l-1 1.2z" fill={PINK} />
+    </g>
+  );
+}
+
+// Held up by the scruff, legs and tail dangling; its scruff is at (60, 26).
+function Dangling() {
+  return (
+    <g transform="translate(0 6)">
+      <path d="M66 82c4 6 2 12-2 14" fill="none" stroke={EDGE} strokeWidth="5.4" strokeLinecap="round" />
+      <path d="M66 82c4 6 2 12-2 14" fill="none" stroke={FUR} strokeWidth="3.4" strokeLinecap="round" />
+      <path d="M52 78v10M58 80v9M62 80v9M68 78v10" stroke={EDGE} strokeWidth="5" strokeLinecap="round" />
+      <path d="M52 78v10M58 80v9M62 80v9M68 78v10" stroke={FUR} strokeWidth="3" strokeLinecap="round" />
+      <ellipse cx="60" cy="66" rx="12" ry="16" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <ellipse cx="60" cy="69" rx="6.5" ry="10" fill={BELLY} />
+      <g transform="translate(0 -6)">
+        <Head mood="hungry" />
+      </g>
+    </g>
+  );
+}
+
+export { Bowl };

@@ -163,7 +163,7 @@ export default function UsageChart({ history, range, servers = null, server = 'a
   );
 
   return (
-    <div className="bg-white rounded-2xl border border-border-light p-6">
+    <div data-cat-perch className="bg-white rounded-2xl border border-border-light p-6">
       {/* The title and its summary as one block on the left; the server tabs
           and the view switch stacked on the right, with room between them. */}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">

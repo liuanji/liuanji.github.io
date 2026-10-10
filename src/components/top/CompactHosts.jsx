@@ -462,7 +462,7 @@ function CompactHost({ host, now, interactive, onOpen, reserving, token }) {
   // Not reporting: the GPUs fade back behind a note saying so.
   const down = outdated || host.status === 'error';
   return (
-    <article className="bg-white rounded-2xl border border-border-light px-4 pb-3 pt-4 sm:px-5">
+    <article data-cat-perch className="bg-white rounded-2xl border border-border-light px-4 pb-3 pt-4 sm:px-5">
       {/* One line on wider screens; on phones the status moves up beside the
           name, and the summary and CPU/RAM take a line each. */}
       <header className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-2 px-1">

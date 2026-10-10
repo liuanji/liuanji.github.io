@@ -1,5 +1,6 @@
 import { CatScene, MOODS, STAGES, APPETITE, moodOf, stageOf } from './BakeryCat';
 import { DetailsPopover } from './DetailBoxes';
+import { Switch } from './controls';
 
 // The bakery cat's name until it can be changed.
 const NAME = 'Mochi';
@@ -29,7 +30,7 @@ function moodLine(mood, meal) {
 
 // The card the cat button opens: the cat in its mood and at its age, how much
 // it ate this week and today, and how it grows.
-function CatDetails({ meal }) {
+function CatDetails({ meal, roaming, onRoam }) {
   const mood = moodOf(meal);
   const hours = meal?.lifetime_gpu_hours ?? 0;
   const stage = stageOf(hours);
@@ -70,21 +71,41 @@ function CatDetails({ meal }) {
           </>
         )}
       </dl>
-      <p className="mt-3 font-mono text-[10px] leading-snug text-data-grey/80">
-        One cookie for each GPU-hour your jobs spend computing.
-      </p>
+      {/* Letting it out to roam the page, and while it roams, a treat or a toy. */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border-light pt-3">
+        <Switch label={`Let ${NAME} roam the page`} checked={roaming} onChange={onRoam} />
+        {roaming && (
+          <span className="flex gap-1.5">
+            {[
+              ['treat', 'Give a treat'],
+              ['toy', 'Toss a toy'],
+            ].map(([kind, label]) => (
+              <button
+                key={kind}
+                type="button"
+                onClick={() => window.dispatchEvent(new Event(`bakery-cat-${kind}`))}
+                className="rounded-full border border-border-light px-2.5 py-0.5 font-mono text-[11px] text-data-grey transition-colors hover:bg-[#F1F3F6] hover:text-inkwell focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20"
+              >
+                {label}
+              </button>
+            ))}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
 
 // Its owner's name, which opens the cat's card; on hover a soft underline draws
-// itself in from the left, as on the server names.
-export function CatButton({ user, meal }) {
+// itself in from the left, as on the server names. A roaming cat sets off from
+// here (data-cat-home).
+export function CatButton({ user, meal, roaming, onRoam }) {
   const mood = moodOf(meal);
   return (
-    <DetailsPopover content={<CatDetails meal={meal} />} width="w-[320px]">
+    <DetailsPopover content={<CatDetails meal={meal} roaming={roaming} onRoam={onRoam} />} width="w-[320px]">
       <button
         type="button"
+        data-cat-home
         aria-label={`${user}. ${NAME}, your bakery cat, is ${MOODS[mood].label}. Show it.`}
         className="rounded-sm bg-[linear-gradient(#CBD5E1,#CBD5E1)] bg-[length:0%_1.5px] bg-[position:0_100%] bg-no-repeat pb-0.5 text-inkwell transition-[background-size] duration-300 ease-out hover:bg-[length:100%_1.5px] focus-visible:bg-[length:100%_1.5px] focus-visible:outline-none data-[state=open]:bg-[length:100%_1.5px]"
       >
