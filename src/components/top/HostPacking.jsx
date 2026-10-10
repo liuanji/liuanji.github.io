@@ -9,8 +9,8 @@ import { PASTRIES } from './pastries';
 
 // A server's status pill opens a little packing counter for it: a pile of six
 // of the pastry the server is named after and a bakery box. While the server
-// reports, the six hop one by one from the pile into the box (slower when it is
-// late), dots on the box's label counting them; once all six are in, the lid
+// reports, the six hop one by one from the pile into the box, quicker the more
+// of its GPUs are in use (and slower when it is late), dots on the box's label counting them; once all six are in, the lid
 // goes on, the box is taken away, an empty one comes and six new pastries pop
 // onto the pile. When it is unreachable or the bakery is closed the packing
 // stops, the box says so and the pile dozes (under a cloth when closed).
@@ -30,12 +30,21 @@ const SIZE = 0.5;
 // Where a pastry lands, inside the box.
 const INTO = [112, 81];
 const BOX = { kraft: '#ECD7B2', lid: '#E2C99C', inside: '#D9BE92', edge: '#C9A877', ink: '#A17A3A', dot: '#E8DCC4' };
-// Milliseconds between pastries, by status; and for the box to be closed and
-// taken away, and for a new one and a new pile.
-const PACK_MS = { online: 1100, stale: 2600 };
+// Milliseconds between pastries: from a relaxed pace with none of the server's
+// GPUs in use to a quick one with all of them, and twice as slow while its
+// readings are late (no packing at all when it is unreachable or closed). Then
+// for a pastry's hop into the box, and for the box to be closed and taken
+// away, and for a new one and a new pile.
+const PACK_MS = { idle: 3600, busy: 800 };
+const SLOWER = { online: 1, stale: 2 };
 const FLIGHT_MS = 900;
 const SEND_OFF_MS = 1300;
 const REFILL_MS = 900;
+
+function packEvery(status, load) {
+  if (!SLOWER[status]) return null;
+  return (PACK_MS.idle + (PACK_MS.busy - PACK_MS.idle) * Math.min(1, Math.max(0, load))) * SLOWER[status];
+}
 
 function Small({ pastry, at: [x, y] }) {
   return (
@@ -46,7 +55,7 @@ function Small({ pastry, at: [x, y] }) {
 }
 
 // A pastry on its way from its place in the pile into the box, in an arc.
-function Flying({ pastry, from }) {
+function Flying({ pastry, from, duration }) {
   const element = useRef(null);
   useEffect(() => {
     const [dx, dy] = [INTO[0] - from[0], INTO[1] - from[1]];
@@ -59,9 +68,9 @@ function Flying({ pastry, from }) {
         { transform: `translate(${dx}px, ${dy}px)`, opacity: 1, offset: 0.95 },
         { transform: `translate(${dx}px, ${dy}px)`, opacity: 0 },
       ],
-      { duration: FLIGHT_MS, easing: 'ease-in-out', fill: 'forwards' },
+      { duration, easing: 'ease-in-out', fill: 'forwards' },
     );
-  }, [from]);
+  }, [from, duration]);
   return (
     <g ref={element}>
       <Small pastry={pastry} at={from} />
@@ -71,9 +80,8 @@ function Flying({ pastry, from }) {
 
 // The packing: how many of this round's six are in the box, and whether the
 // box is being sent off or a new round set out.
-function usePacking(status) {
+function usePacking(every, flight) {
   const [packing, setPacking] = useState({ round: 0, packed: 0, phase: 'packing' });
-  const every = PACK_MS[status];
   useEffect(() => {
     if (!every || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
     const { phase, packed } = packing;
@@ -84,16 +92,20 @@ function usePacking(status) {
           ? [SEND_OFF_MS, (current) => ({ round: current.round + 1, packed: 0, phase: 'refill' })]
           : packed < PILE.length
             ? [every, (current) => ({ ...current, packed: current.packed + 1 })]
-            : [FLIGHT_MS + 150, (current) => ({ ...current, phase: 'sending' })];
+            : [flight + 150, (current) => ({ ...current, phase: 'sending' })];
     const timer = setTimeout(() => setPacking(next), wait);
     return () => clearTimeout(timer);
-  }, [packing, every]);
+  }, [packing, every, flight]);
   return packing;
 }
 
-function PackingScene({ pastry, status }) {
-  const asleep = !PACK_MS[status];
-  const { round, packed, phase } = usePacking(status);
+// load is the share of the server's GPUs in use, which sets the pace.
+function PackingScene({ pastry, status, load }) {
+  const every = packEvery(status, load);
+  const asleep = !every;
+  // A hop never outlasts the gap to the next pastry.
+  const flight = every ? Math.min(FLIGHT_MS, every * 0.85) : FLIGHT_MS;
+  const { round, packed, phase } = usePacking(every, flight);
   return (
     <svg viewBox="8 34 144 60" className="h-auto w-[260px] overflow-visible" aria-hidden="true">
       {asleep &&
@@ -156,7 +168,7 @@ function PackingScene({ pastry, status }) {
       >
         <rect x="97" y="66" width="30" height="8" rx="1.2" fill={BOX.inside} />
         {phase === 'packing' && packed > 0 && (
-          <Flying key={`${round}-${packed}`} pastry={pastry} from={PILE[packed - 1]} />
+          <Flying key={`${round}-${packed}`} pastry={pastry} from={PILE[packed - 1]} duration={flight} />
         )}
         <rect x="95" y="72" width="34" height="16.5" rx="2" fill={BOX.kraft} stroke={BOX.edge} strokeWidth="1.2" />
         {phase === 'sending' && (
@@ -203,7 +215,7 @@ function PackingScene({ pastry, status }) {
               cy="80.25"
               r="0.95"
               fill={index < packed ? BOX.ink : BOX.dot}
-              style={{ transition: `fill 0.3s ease ${FLIGHT_MS * 0.8}ms` }}
+              style={{ transition: `fill 0.3s ease ${flight * 0.8}ms` }}
             />
           ))
         )}
@@ -237,11 +249,18 @@ const TITLES = {
 };
 
 // One short line, so it fits on a single line of the card.
-function packingLine(status, host, pastry) {
+// While online it follows the pace: easy when the server is quiet, quick
+// when it is busy.
+function packingLine(status, host, pastry, load) {
   const them = many(pastry);
   const Them = them[0].toUpperCase() + them.slice(1);
   if (status === 'online') {
-    const lines = [`Boxing up fresh ${them}.`, `${Them}, six to a box.`, `Fresh ${them}, still warm.`];
+    const lines =
+      load < 0.25
+        ? [`Packing ${them} at an easy pace.`, `A quiet day: ${them}, one by one.`]
+        : load < 0.75
+          ? [`Boxing up fresh ${them}.`, `${Them}, six to a box.`, `Fresh ${them}, still warm.`]
+          : [`Packing ${them} as fast as the ovens allow.`, `${Them} flying into boxes.`];
     return lines[Math.floor(Math.random() * lines.length)];
   }
   if (status === 'stale') return 'The packing has slowed down for now.';
@@ -250,13 +269,13 @@ function packingLine(status, host, pastry) {
   return `No readings from ${host} yet.`;
 }
 
-function PackingCard({ host, status, reportedAt, now }) {
+function PackingCard({ host, status, reportedAt, now, load }) {
   const pastry = pastryOf(host);
-  const [line] = useState(() => packingLine(status, host, pastry));
+  const [line] = useState(() => packingLine(status, host, pastry, load));
   return (
     <div>
       <div className="flex justify-center rounded-xl px-3 pb-3 pt-4" style={{ backgroundColor: '#F7F5F2' }}>
-        <PackingScene pastry={pastry} status={status} />
+        <PackingScene pastry={pastry} status={status} load={load} />
       </div>
       <h4 className="mt-4 font-tight text-base font-semibold leading-tight text-inkwell">
         {(TITLES[status] ?? TITLES.unseen)(host)}
@@ -282,7 +301,15 @@ function PackingCard({ host, status, reportedAt, now }) {
 export function HostStatus({ host, now }) {
   return (
     <DetailsPopover
-      content={<PackingCard host={host.name} status={host.status} reportedAt={host.data_sampled_at} now={now} />}
+      content={
+        <PackingCard
+          host={host.name}
+          status={host.status}
+          reportedAt={host.data_sampled_at}
+          now={now}
+          load={host.gpus?.length ? host.gpus.filter((gpu) => gpu.busy).length / host.gpus.length : 0}
+        />
+      }
       width="w-[340px]"
     >
       <button

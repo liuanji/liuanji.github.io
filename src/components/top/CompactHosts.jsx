@@ -376,9 +376,14 @@ function HeaderMeter({ label, Glyph, share, title, series, level = null, details
         animated
       />
       <span
-        // Just the reading's width, so the space round it matches the label's.
+        // A fixed width, the same on every server so the meters line up in
+        // columns: three characters for a percentage (wider only at 100%), or
+        // as many as the longest count needs.
         className={`text-left tabular-nums ${level ? 'font-medium' : 'text-inkwell'}`}
-        style={level ? { color: READING_STYLES[level].color } : undefined}
+        style={{
+          minWidth: count == null ? '3ch' : `${String(count).length * 2 + 1}ch`,
+          ...(level ? { color: READING_STYLES[level].color } : {}),
+        }}
         aria-hidden="true"
       >
         {count == null ? `${percent}%` : `${Math.round(shown * count)}/${count}`}
