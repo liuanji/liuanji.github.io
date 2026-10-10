@@ -259,6 +259,14 @@ module.exports = {
   				'16%': { transform: 'rotate(4deg)' },
   				'20%': { transform: 'rotate(-2deg)' }
   			},
+  			'cat-tumble': {
+  				'0%': { transform: 'rotate(0deg)' },
+  				'100%': { transform: 'rotate(360deg)' }
+  			},
+  			'cat-dizzy': {
+  				'0%': { transform: 'rotate(0deg) scaleY(0.45)' },
+  				'100%': { transform: 'rotate(360deg) scaleY(0.45)' }
+  			},
   			'cat-breathe': {
   				'0%, 100%': { transform: 'scaleY(1)' },
   				'50%': { transform: 'scaleY(1.04)' }
@@ -345,6 +353,8 @@ module.exports = {
   			'cat-look': 'cat-look 4.5s ease-in-out 1.6s infinite',
   			'cat-wave': 'cat-wave 0.45s ease-in-out infinite',
   			'cat-nudge': 'cat-nudge 3s ease-in-out 4s infinite',
+  			'cat-tumble': 'cat-tumble 0.45s linear infinite',
+  			'cat-dizzy': 'cat-dizzy 1.4s linear infinite',
   			'cat-breathe': 'cat-breathe 3.2s ease-in-out infinite',
   			'cat-float': 'cat-float 1.6s ease-out both',
   			steam: 'steam 2.1s ease-out infinite',

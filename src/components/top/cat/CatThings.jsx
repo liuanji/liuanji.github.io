@@ -205,6 +205,56 @@ function Ball() {
   );
 }
 
+// A little bird, facing right, its wing beating (when flying), base at (0, 0).
+function Bird({ flying = true }) {
+  return (
+    <g transform="translate(0 -6)">
+      <path d="M-8 0l-5-2 1 3z" fill="#7E95CF" />
+      <ellipse rx="7.5" ry="5.6" fill="#9FB4E8" stroke="#7E95CF" strokeWidth="0.9" />
+      <ellipse cx="1" cy="1.6" rx="4.4" ry="3" fill="#E8EEFB" />
+      <circle cx="6" cy="-3.4" r="3.6" fill="#9FB4E8" stroke="#7E95CF" strokeWidth="0.9" />
+      <path d="M9.2-3.6l3 1-3 1z" fill="#E3B655" />
+      <circle cx="7" cy="-4.2" r="0.8" fill="#3B3346" />
+      <g
+        className={flying ? 'motion-safe:animate-cat-flap' : undefined}
+        style={{ transformBox: 'fill-box', transformOrigin: 'center bottom' }}
+      >
+        <path d="M-3-2c-1-6 4-9 7-7-1 3-3 6-7 7z" fill="#B6C6EE" stroke="#7E95CF" strokeWidth="0.8" />
+      </g>
+      {!flying && <path d="M-1 5.6v1.6M2 5.6v1.6" stroke="#C49A62" strokeWidth="0.9" strokeLinecap="round" />}
+    </g>
+  );
+}
+
+// A ball of dough, patted flatter, baking golden (bake from 0 to 1) into a bun.
+function Dough({ bake = 0 }) {
+  const squash = 1 - 0.35 * Math.min(1, bake * 2);
+  const mix = (a, b) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * Math.max(0, bake * 2 - 1))).join(',')})`;
+  const fill = mix([243, 226, 190], [227, 182, 85]);
+  const edge = mix([205, 172, 120], [201, 151, 61]);
+  return (
+    <g transform={`scale(${2 - squash}, ${squash})`}>
+      <path d="M-9 0c-1-6 3-10 9-10s10 4 9 10z" fill={fill} stroke={edge} strokeWidth="1.2" />
+      {bake > 0.5 && <path d="M-4-5l2 2M1-6l2 2M5-4.6l1.6 1.8" stroke={edge} strokeWidth="1" strokeLinecap="round" />}
+    </g>
+  );
+}
+
+// A little comb, held by the pointer at (0, 0).
+function Comb() {
+  return (
+    <g transform="rotate(-20)">
+      <rect x="-10" y="-3" width="20" height="5" rx="2" fill="#C9A7D6" stroke="#9E7CB3" strokeWidth="0.8" />
+      <path d="M-8 2v5M-5 2v5M-2 2v5M1 2v5M4 2v5M7 2v5" stroke="#9E7CB3" strokeWidth="1.1" strokeLinecap="round" />
+    </g>
+  );
+}
+
+// Claw marks scratched along an edge.
+function Claws() {
+  return <path d="M-6-1l3-3M-2-1l3-3M2-1l3-3" stroke="#C49A62" strokeWidth="1.1" strokeLinecap="round" opacity="0.8" />;
+}
+
 const THINGS = {
   yarn: Yarn,
   butterfly: Butterfly,
@@ -218,6 +268,10 @@ const THINGS = {
   bubble: Bubble,
   treat: Treat,
   ball: Ball,
+  bird: Bird,
+  dough: Dough,
+  comb: Comb,
+  claws: Claws,
   bowl: TreatBowl,
 };
 // How far each reaches round its base, for the box it is drawn in.
@@ -234,16 +288,26 @@ const REACH = {
   bubble: 9,
   treat: 12,
   ball: 7,
+  bird: 16,
+  dough: 22,
+  comb: 14,
+  claws: 8,
   bowl: 20,
 };
 
-// The toys, by what it calls them, for the thought bubble's label.
-export const TOYS = {
-  yarn: 'a ball of yarn',
-  feather: 'the feather wand',
-  laser: 'the laser pointer',
-  mouse: 'the wind-up mouse',
-  bubbles: 'bubbles',
+// What it may wish for in a thought bubble, as its label puts it: a toy to
+// play with, a treat, or a dance.
+export const WISHES = {
+  yarn: 'play with a ball of yarn',
+  feather: 'play with the feather wand',
+  laser: 'play with the laser pointer',
+  mouse: 'play with the wind-up mouse',
+  bubbles: 'play with bubbles',
+  treat: 'have a treat',
+  dance: 'dance',
+  rub: 'have a belly rub',
+  brush: 'be brushed',
+  photo: 'pose for a photo',
 };
 
 // Each toy small, for the thought bubble, in a 24 x 24 box round (0, 0).
@@ -267,6 +331,57 @@ export function ToyIcon({ kind }) {
           <path d="M-8 6-1-1" stroke="#8E98A8" strokeWidth="3.4" strokeLinecap="round" />
           <path d="M1-3 5-7" stroke="#F25C5C" strokeWidth="1" strokeDasharray="1.4 1.4" opacity="0.8" />
           <circle cx="6.5" cy="-8" r="1.9" fill="#E5484D" />
+        </g>
+      );
+    case 'treat':
+      return (
+        <g transform="rotate(-15) scale(1.15)">
+          <Treat />
+        </g>
+      );
+    case 'rub':
+      return (
+        <g>
+          <ellipse cx="0" cy="3" rx="5.4" ry="4.4" fill="#FCEBD6" stroke="#C98A50" strokeWidth="1" />
+          {[-5, -1.6, 1.6, 5].map((x, index) => (
+            <ellipse
+              key={index}
+              cx={x}
+              cy={index % 3 ? -4.6 : -3}
+              rx="1.8"
+              ry="2"
+              fill="#FCEBD6"
+              stroke="#C98A50"
+              strokeWidth="0.9"
+            />
+          ))}
+          <path
+            d="M0 2.4c-1-1.6-3.4-.8-2.8 1 .4 1.4 2.8 2.6 2.8 2.6s2.4-1.2 2.8-2.6c.6-1.8-1.8-2.6-2.8-1z"
+            fill="#F08A93"
+          />
+        </g>
+      );
+    case 'brush':
+      return (
+        <g transform="scale(0.9)">
+          <Comb />
+        </g>
+      );
+    case 'photo':
+      return (
+        <g>
+          <rect x="-9" y="-5" width="18" height="12" rx="2.4" fill="#8E98A8" />
+          <rect x="-4" y="-8" width="6" height="4" rx="1" fill="#8E98A8" />
+          <circle cx="0" cy="1" r="4" fill="#DCE2EA" stroke="#5B6474" strokeWidth="1" />
+          <circle cx="0" cy="1" r="1.6" fill="#5B6474" />
+          <circle cx="6" cy="-2.4" r="1" fill="#F2C94C" />
+        </g>
+      );
+    case 'dance':
+      return (
+        <g fill="#B07AA1">
+          <path d="M-6 5.5a2.6 2 0 1 1-1.6-1.9V-6l7-2v9.4a2.6 2 0 1 1-1.6-1.9v-6.2l-3.8 1.1z" />
+          <path d="M6 1.5a2.2 1.7 0 1 1-1.4-1.6V-8l4.4 1.6-0.6 1.6-2.4-.8z" fill="#E39A55" />
         </g>
       );
     case 'mouse':
@@ -293,7 +408,7 @@ export function ToyIcon({ kind }) {
 }
 
 // A thing at (x, y) on the page, turned and scaled and faded as it moves.
-export function CatThing({ kind, x, y, rotate = 0, scale = 1, flip = 1, opacity = 1, count, string }) {
+export function CatThing({ kind, x, y, rotate = 0, scale = 1, flip = 1, opacity = 1, count, string, flying, bake }) {
   const Thing = THINGS[kind];
   const reach = REACH[kind];
   if (!Thing) return null;
@@ -310,7 +425,7 @@ export function CatThing({ kind, x, y, rotate = 0, scale = 1, flip = 1, opacity 
       }}
     >
       <g transform={`rotate(${rotate}) scale(${scale * flip} ${scale})`}>
-        <Thing count={count} string={string} />
+        <Thing count={count} string={string} flying={flying} bake={bake} />
       </g>
     </svg>
   );

@@ -267,12 +267,17 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
   const mine = Boolean(reservation) && reservation.user === reserving.me;
   const label = describe(gpu, host, reservation);
   const Tile = interactive ? 'button' : 'div';
-  // The bakery cat may visit a running GPU's tile (data-cat-gpu, busy, and how hot).
+  // The bakery cat may visit a running GPU's tile (data-cat-gpu, busy, and how
+  // hot), marked on whatever holds the tile and its reserve button, so that
+  // both move together when it sets the tile wobbling.
+  const catMarks = {
+    'data-cat-gpu': '',
+    'data-busy': gpu.busy ? '' : undefined,
+    'data-heat': gpu.temperature_c ?? undefined,
+  };
   const tile = (
     <Tile
-      data-cat-gpu
-      data-busy={gpu.busy ? '' : undefined}
-      data-heat={gpu.temperature_c ?? undefined}
+      {...(reserving ? {} : catMarks)}
       {...(interactive
         ? { type: 'button', 'aria-label': `${label}. Show details.` }
         : { role: 'img', 'aria-label': label, title: label })}
@@ -343,7 +348,7 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
   if (!reserving) return withDetails;
   // A sibling over the tile's corner, since a button cannot hold another.
   return (
-    <div className="relative min-w-0">
+    <div className="relative min-w-0" {...catMarks}>
       {withDetails}
       <ReserveControl
         host={host}

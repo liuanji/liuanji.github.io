@@ -58,6 +58,8 @@ function Head({ mood, hat }) {
   const asleep = mood === 'asleep';
   const yawning = mood === 'yawn';
   const sneezing = mood === 'sneeze';
+  const chattering = mood === 'chatter';
+  const winking = mood === 'wink';
   return (
     <>
       <path
@@ -79,7 +81,20 @@ function Head({ mood, hat }) {
       <ellipse cx="60" cy="46" rx="20.5" ry="17" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
       <path d="M56 30.5v4.5M60 30v5.5M64 30.5v4.5" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
       <ellipse cx="60" cy="52" rx="8" ry="5.6" fill={BELLY} />
-      {asleep || yawning ? (
+      {winking ? (
+        <>
+          <path d="M50 46q3-3.5 6 0" fill="none" stroke={EYE} strokeWidth="1.8" strokeLinecap="round" />
+          <circle cx="67" cy="45.5" r="2.9" fill={EYE} />
+          <circle cx="68" cy="44.4" r="1" fill="white" />
+        </>
+      ) : chattering ? (
+        <>
+          <circle cx="53" cy="45.5" r="3.4" fill={EYE} />
+          <circle cx="67" cy="45.5" r="3.4" fill={EYE} />
+          <circle cx="54.1" cy="44.3" r="1.2" fill="white" />
+          <circle cx="68.1" cy="44.3" r="1.2" fill="white" />
+        </>
+      ) : asleep || yawning ? (
         <path d="M50 45q3 3 6 0M64 45q3 3 6 0" fill="none" stroke={EYE} strokeWidth="1.8" strokeLinecap="round" />
       ) : sneezing ? (
         <path
@@ -108,7 +123,9 @@ function Head({ mood, hat }) {
         </>
       )}
       <path d="M58.4 50h3.2l-1.6 1.8z" fill={PINK} stroke={EDGE} strokeWidth="0.6" strokeLinejoin="round" />
-      {yawning ? (
+      {chattering ? (
+        <ellipse cx="60" cy="55" rx="2.2" ry="1.8" fill="#9C4A55" stroke={EDGE} strokeWidth="0.6" />
+      ) : yawning ? (
         <>
           <ellipse cx="60" cy="55.6" rx="3.4" ry="4.2" fill="#9C4A55" stroke={EDGE} strokeWidth="0.8" />
           <ellipse cx="60" cy="57.6" rx="2" ry="1.6" fill={PINK} />
@@ -411,6 +428,31 @@ export const ROAM_POSES = {
   startle: () => <Startled />,
   melt: () => <Melted />,
   dangle: () => <Loaf stage={STAGES[2]} mood="hungry" dangling />,
+  // Running: a gallop in two strides (stretched out, then gathered under),
+  // and a skid to a stop.
+  run: ({ mood = 'content' }) => <Galloping mood={mood} />,
+  run2: ({ mood = 'content' }) => <Galloping mood={mood} gathered />,
+  skid: () => <Skidding />,
+  // Hanging by its front paws from an edge (the line y = 88), legs kicking, as
+  // after slipping off a panel's end or swinging from a GPU's ring; pulling
+  // itself back up; and stopping to sniff along its way.
+  hang: ({ mood = 'hungry' }) => <Hanging mood={mood} />,
+  scramble: () => <Scrambling />,
+  sniff: () => <Sniffing />,
+  // Bird watching (chattering at it), scratching the edge, patting dough;
+  // and with its owner: squirming belly-up for a rub, leaning into a brush,
+  // posing for photos (a wink, and lounging like a film star).
+  chatter: () => <Chattering />,
+  scratch: () => <Scratching />,
+  pat: () => <Patting />,
+  squirm: () => <Squirming />,
+  lean: () => <Leaning />,
+  wink: () => <Sitting mood="wink" stage={STAGES[2]} />,
+  glam: () => <Lounging />,
+  // Tripping off its edge: a stumble, a tumble through the air, and a splat.
+  stumble: () => <Stumbling />,
+  tumble: () => <Tumbling />,
+  splat: () => <Splat />,
   // Clinging to a card's side, upright, the card's edge the line x = 60.
   cling: ({ mood = 'content' }) => <Clinging mood={mood} />,
   // Climbing up or down a card's side, paws taking turns.
@@ -1030,6 +1072,982 @@ function Melted() {
       <path d="M58 78l1 3M66 77.5l.5 3M74 78l-1 3" stroke={STRIPE} strokeWidth="1.7" strokeLinecap="round" />
       <g transform="translate(38 80) rotate(-8) scale(0.62) translate(-60 -46)">
         <Head mood="asleep" />
+      </g>
+    </g>
+  );
+}
+
+// Galloping: stretched right out, front legs reaching ahead and hind legs
+// pushing off behind, ears back; or gathered, all four legs bunched under it.
+function Galloping({ mood = 'content', gathered = false }) {
+  return (
+    <g>
+      {gathered ? (
+        <g>
+          <path d="M78 70c7-3 9-11 5-17-1-2-4-1-3 1" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+          <path d="M78 70c7-3 9-11 5-17-1-2-4-1-3 1" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+          <path d="M52 78l6 8" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+          <path d="M52 78l6 8" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+          <path d="M55 78l7 9" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+          <path d="M55 78l7 9" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+          <path d="M72 78l-7 8" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+          <path d="M72 78l-7 8" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+          <path d="M70 79l-9 8" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+          <path d="M70 79l-9 8" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+          <ellipse
+            cx="58.5"
+            cy="87.2"
+            rx="3.4"
+            ry="2.2"
+            fill={BELLY}
+            stroke={EDGE}
+            strokeWidth="1.2"
+            transform="rotate(30 58.5 87.2)"
+          />
+          <ellipse
+            cx="62.5"
+            cy="88"
+            rx="3.4"
+            ry="2.2"
+            fill={BELLY}
+            stroke={EDGE}
+            strokeWidth="1.2"
+            transform="rotate(30 62.5 88)"
+          />
+          <ellipse
+            cx="64.5"
+            cy="87.2"
+            rx="3.4"
+            ry="2.2"
+            fill={BELLY}
+            stroke={EDGE}
+            strokeWidth="1.2"
+            transform="rotate(-30 64.5 87.2)"
+          />
+          <ellipse
+            cx="60.5"
+            cy="88"
+            rx="3.4"
+            ry="2.2"
+            fill={BELLY}
+            stroke={EDGE}
+            strokeWidth="1.2"
+            transform="rotate(-30 60.5 88)"
+          />
+          <ellipse cx="62" cy="72.5" rx="18" ry="11" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+          <ellipse cx="61" cy="78" rx="10" ry="4.2" fill={BELLY} />
+          <path d="M62 62.5l1 4M68.5 63l.4 4M75 65.5l-.8 3.4" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+          <g transform="translate(46 62) scale(0.72) translate(-60 -46)">
+            <Head mood={mood} />
+          </g>
+        </g>
+      ) : (
+        <g>
+          <path d="M84 66c7-1 12-5 15-11" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+          <path d="M84 66c7-1 12-5 15-11" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+          <path d="M48 74 33 80" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+          <path d="M48 74 33 80" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+          <path d="M51 76 37 86" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+          <path d="M51 76 37 86" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+          <path d="M76 74l16 6" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+          <path d="M76 74l16 6" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+          <path d="M73 76l13 10" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+          <path d="M73 76l13 10" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+          <ellipse
+            cx="31.5"
+            cy="80.5"
+            rx="3.4"
+            ry="2.2"
+            fill={BELLY}
+            stroke={EDGE}
+            strokeWidth="1.2"
+            transform="rotate(-15 31.5 80.5)"
+          />
+          <ellipse
+            cx="35.5"
+            cy="86.6"
+            rx="3.4"
+            ry="2.2"
+            fill={BELLY}
+            stroke={EDGE}
+            strokeWidth="1.2"
+            transform="rotate(-30 35.5 86.6)"
+          />
+          <ellipse
+            cx="93.5"
+            cy="80.5"
+            rx="3.4"
+            ry="2.2"
+            fill={BELLY}
+            stroke={EDGE}
+            strokeWidth="1.2"
+            transform="rotate(15 93.5 80.5)"
+          />
+          <ellipse
+            cx="87.5"
+            cy="86.6"
+            rx="3.4"
+            ry="2.2"
+            fill={BELLY}
+            stroke={EDGE}
+            strokeWidth="1.2"
+            transform="rotate(30 87.5 86.6)"
+          />
+          <ellipse
+            cx="62"
+            cy="70"
+            rx="23"
+            ry="9"
+            fill={FUR}
+            stroke={EDGE}
+            strokeWidth="1.6"
+            transform="rotate(-4 62 70)"
+          />
+          <ellipse cx="61" cy="75" rx="13" ry="3.4" fill={BELLY} />
+          <path d="M60 61.5l1 4M67.5 61l.4 4M75 62l-.8 3.6" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+          <g transform="translate(41 62) rotate(-6) scale(0.72) translate(-60 -46)">
+            <Head mood={mood} />
+          </g>
+        </g>
+      )}
+    </g>
+  );
+}
+
+// Skidding to a stop: leaning back, front legs braced out stiff ahead, tail up,
+// eyes wide.
+function Skidding() {
+  return (
+    <g>
+      <path d="M83 64c5-5 6-14 2-21-1-2-4-1-3 1" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M83 64c5-5 6-14 2-21-1-2-4-1-3 1" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <g>
+        <path d="M48 78 36 87" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M48 78 36 87" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <path d="M52 79 42 87.5" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M52 79 42 87.5" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <path d="M76 77l2 10" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M76 77l2 10" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <path d="M80 75l3 12" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M80 75l3 12" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <ellipse
+          cx="34.5"
+          cy="88"
+          rx="3.4"
+          ry="2.2"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(-15 34.5 88)"
+        />
+        <ellipse
+          cx="40.5"
+          cy="88.2"
+          rx="3.4"
+          ry="2.2"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(-15 40.5 88.2)"
+        />
+        <ellipse
+          cx="78.5"
+          cy="88"
+          rx="3.4"
+          ry="2.2"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(0 78.5 88)"
+        />
+        <ellipse
+          cx="83.5"
+          cy="88"
+          rx="3.4"
+          ry="2.2"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(0 83.5 88)"
+        />
+      </g>
+      <ellipse
+        cx="64"
+        cy="72"
+        rx="20"
+        ry="10.5"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        transform="rotate(-12 64 72)"
+      />
+      <ellipse cx="62" cy="77" rx="11" ry="3.8" fill={BELLY} transform="rotate(-12 62 77)" />
+      <path d="M66 61l1.4 3.8M73 61l.8 4M79 63.5l-.4 3.8" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+      <g transform="translate(44 58) rotate(-10) scale(0.72) translate(-60 -46)">
+        <Head mood="hungry" />
+      </g>
+      <path d="M26 87.5h7M24 84h5" stroke="#CBD5E1" strokeWidth="1.2" strokeLinecap="round" />
+    </g>
+  );
+}
+
+// Hanging by its front paws from an edge, its paws hooked over it, its head
+// just below, body dangling, hind legs kicking, tail hanging.
+function Hanging({ mood = 'hungry' }) {
+  return (
+    <g>
+      <path d="M64 128c3 6 2 11-2 14" fill="none" stroke={EDGE} strokeWidth="5.4" strokeLinecap="round" />
+      <path d="M64 128c3 6 2 11-2 14" fill="none" stroke={FUR} strokeWidth="3.4" strokeLinecap="round" />
+      <g className="motion-safe:animate-cat-step" style={{ animationDuration: '0.34s' }}>
+        <path d="M55 127l-2 9" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M55 127l-2 9" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <ellipse
+          cx="52.6"
+          cy="137"
+          rx="3.4"
+          ry="2.3"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(0 52.6 137)"
+        />
+      </g>
+      <g className="motion-safe:animate-cat-step" style={{ animationDuration: '0.34s', animationDelay: '-0.17s' }}>
+        <path d="M65 127l2 9" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M65 127l2 9" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <ellipse
+          cx="67.4"
+          cy="137"
+          rx="3.4"
+          ry="2.3"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(0 67.4 137)"
+        />
+      </g>
+      <ellipse cx="60" cy="120" rx="10.5" ry="13" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <ellipse cx="60" cy="122" rx="5.6" ry="8" fill={BELLY} />
+      <path d="M50 101 46 90" fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
+      <path d="M50 101 46 90" fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+      <path d="M70 101 74 90" fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
+      <path d="M70 101 74 90" fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+      <g transform="translate(60 104) scale(0.72) translate(-60 -46)">
+        <Head mood={mood} />
+      </g>
+      <ellipse
+        cx="45.5"
+        cy="87.4"
+        rx="4"
+        ry="3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 45.5 87.4)"
+      />
+      <ellipse
+        cx="74.5"
+        cy="87.4"
+        rx="4"
+        ry="3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 74.5 87.4)"
+      />
+    </g>
+  );
+}
+
+// Hauling itself back up over an edge, as onto a windowsill: forearms flat
+// along the edge, paws together under its chin, head up and screwed up with
+// effort (a bead of sweat), body hanging below, hind legs kicking in turn.
+function Scrambling() {
+  return (
+    <g>
+      <path d="M64 114c2 6 7 9 11 7" fill="none" stroke={EDGE} strokeWidth="5.4" strokeLinecap="round" />
+      <path d="M64 114c2 6 7 9 11 7" fill="none" stroke={FUR} strokeWidth="3.4" strokeLinecap="round" />
+      <g className="motion-safe:animate-cat-step" style={{ animationDuration: '0.24s' }}>
+        <path d="M55 113l-3 9" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M55 113l-3 9" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <ellipse
+          cx="51.6"
+          cy="123"
+          rx="3.4"
+          ry="2.3"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(15 51.6 123)"
+        />
+      </g>
+      <g className="motion-safe:animate-cat-step" style={{ animationDuration: '0.24s', animationDelay: '-0.12s' }}>
+        <path d="M65 113l3 9" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M65 113l3 9" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <ellipse
+          cx="68.4"
+          cy="123"
+          rx="3.4"
+          ry="2.3"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(-15 68.4 123)"
+        />
+      </g>
+      <ellipse cx="60" cy="98.5" rx="11" ry="17" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <ellipse cx="60" cy="102" rx="5.6" ry="10" fill={BELLY} />
+      <path d="M42 90 52 86.6" fill="none" stroke={EDGE} strokeWidth="7" strokeLinecap="round" />
+      <path d="M42 90 52 86.6" fill="none" stroke={FUR} strokeWidth="4.6" strokeLinecap="round" />
+      <path d="M78 90 68 86.6" fill="none" stroke={EDGE} strokeWidth="7" strokeLinecap="round" />
+      <path d="M78 90 68 86.6" fill="none" stroke={FUR} strokeWidth="4.6" strokeLinecap="round" />
+      <g transform="translate(60 71) scale(0.74) translate(-60 -46)">
+        <Head mood="sneeze" />
+      </g>
+      <ellipse
+        cx="54"
+        cy="86.4"
+        rx="4.2"
+        ry="2.8"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 54 86.4)"
+      />
+      <ellipse
+        cx="66"
+        cy="86.4"
+        rx="4.2"
+        ry="2.8"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 66 86.4)"
+      />
+      <path
+        d="M74 56c-1.6 2.4-2.4 4-1.2 5.2s3 0 2.6-1.8c-.2-1-.8-2-1.4-3.4z"
+        fill="#B9CBF2"
+        stroke="#8EA6DF"
+        strokeWidth="0.7"
+      />
+    </g>
+  );
+}
+
+// Stopping to sniff: nose down to the edge, rump up, tail up, ears forward.
+function Sniffing() {
+  return (
+    <g>
+      <path d="M83 66c5-5 7-14 3-21-1-2-4-1-3 1" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M83 66c5-5 7-14 3-21-1-2-4-1-3 1" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <path d="M48 77l-2 9" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M48 77l-2 9" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M54 78l-1 9" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M54 78l-1 9" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M74 76l1 10" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M74 76l1 10" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M80 74l2 12" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M80 74l2 12" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <ellipse
+        cx="45.6"
+        cy="87.4"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 45.6 87.4)"
+      />
+      <ellipse
+        cx="52.6"
+        cy="87.6"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 52.6 87.6)"
+      />
+      <ellipse
+        cx="75.4"
+        cy="87.6"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 75.4 87.6)"
+      />
+      <ellipse
+        cx="82.4"
+        cy="87.4"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 82.4 87.4)"
+      />
+      <ellipse
+        cx="66"
+        cy="72"
+        rx="19"
+        ry="10"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        transform="rotate(10 66 72)"
+      />
+      <ellipse cx="64" cy="77" rx="10.5" ry="3.6" fill={BELLY} transform="rotate(10 64 77)" />
+      <path d="M64 62.5l1 4M71 64l.4 4M77 67l-.8 3.6" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+      <g transform="translate(42 75) rotate(-14) scale(0.7) translate(-60 -46)">
+        <Head mood="content" />
+      </g>
+    </g>
+  );
+}
+
+// Bird watching: sat up tall, head tipped up after it, eyes wide, jaw going
+// ("ek ek"), the tip of its tail twitching.
+function Chattering() {
+  return (
+    <g>
+      <g className="motion-safe:animate-cat-wave" style={{ transformBox: 'fill-box', transformOrigin: 'left bottom' }}>
+        <path
+          d="M76 84c14 1 20-8 15-17-2-4-6-4-7 0"
+          fill="none"
+          stroke={EDGE}
+          strokeWidth="7.4"
+          strokeLinecap="round"
+        />
+        <path d="M76 84c14 1 20-8 15-17-2-4-6-4-7 0" fill="none" stroke={FUR} strokeWidth="5" strokeLinecap="round" />
+      </g>
+      <path
+        d="M44 89c-6 0-9-6-7.5-14C38.5 62 45 55 60 55s21.5 7 23.5 20c1.5 8-1.5 14-7.5 14z"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M52 89c-3-4-3-14 8-17 11 3 11 13 8 17z" fill={BELLY} />
+      <ellipse
+        cx="52"
+        cy="88.5"
+        rx="5.6"
+        ry="3.4"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 52 88.5)"
+      />
+      <ellipse
+        cx="68"
+        cy="88.5"
+        rx="5.6"
+        ry="3.4"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 68 88.5)"
+      />
+      <g transform="translate(57 44) rotate(-14) translate(-60 -46)">
+        <Head mood="chatter" />
+      </g>
+    </g>
+  );
+}
+
+// Scratching the edge: down on its forearms, rump up, front paws pulling back
+// in turn, claws out.
+function Scratching() {
+  return (
+    <g>
+      <path d="M80 62c5-6 5-15 0-20-2-2-5-1-4 2" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M80 62c5-6 5-15 0-20-2-2-5-1-4 2" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <path d="M74 72v15" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M74 72v15" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M80 68v19" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M80 68v19" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <ellipse
+        cx="74"
+        cy="87.4"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 74 87.4)"
+      />
+      <ellipse
+        cx="80"
+        cy="87.4"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 80 87.4)"
+      />
+      <ellipse
+        cx="64"
+        cy="73"
+        rx="19"
+        ry="9.5"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        transform="rotate(-22 64 73)"
+      />
+      <path d="M64 63.5l2 3.6M71 60.5l2 3.4M77 58.5l1.4 3.6" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+      <g className="motion-safe:animate-cat-knead" style={{ animationDuration: '0.32s' }}>
+        <path d="M50 82h-16" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M50 82h-16" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <ellipse
+          cx="32.5"
+          cy="85.6"
+          rx="3.4"
+          ry="2.3"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(0 32.5 85.6)"
+        />
+        <path
+          d="M29.5 86.6l-1.4 1.6M31.8 87.2l-.8 1.8M34 87.4l-.2 1.8"
+          stroke={EDGE}
+          strokeWidth="0.8"
+          strokeLinecap="round"
+        />
+      </g>
+      <g className="motion-safe:animate-cat-knead" style={{ animationDuration: '0.32s', animationDelay: '-0.16s' }}>
+        <path d="M52 84.5h-11" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M52 84.5h-11" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <ellipse
+          cx="39.5"
+          cy="87.4"
+          rx="3.4"
+          ry="2.3"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(0 39.5 87.4)"
+        />
+      </g>
+      <g transform="translate(46 74) scale(0.68) translate(-60 -46)">
+        <Head mood="purring" />
+      </g>
+    </g>
+  );
+}
+
+// Patting dough (in front of it, to its left): leaning over it, front paws
+// pressing down on it in turn.
+function Patting() {
+  return (
+    <g>
+      <path d="M84 70c6-3 9-11 5-17-1-2-4-1-3 1" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M84 70c6-3 9-11 5-17-1-2-4-1-3 1" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <path d="M76 79v8" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M76 79v8" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M81 77v10" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M81 77v10" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <ellipse
+        cx="76"
+        cy="87.4"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 76 87.4)"
+      />
+      <ellipse
+        cx="81"
+        cy="87.4"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 81 87.4)"
+      />
+      <ellipse
+        cx="66"
+        cy="74"
+        rx="19"
+        ry="10"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        transform="rotate(-8 66 74)"
+      />
+      <ellipse cx="65" cy="79" rx="10" ry="3.6" fill={BELLY} />
+      <path d="M66 64l1 4M73 64l.4 4M79 66l-.8 3.6" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+      <g className="motion-safe:animate-cat-knead" style={{ animationDuration: '0.6s' }}>
+        <path d="M52 77l-10 6" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M52 77l-10 6" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <ellipse
+          cx="40.6"
+          cy="84"
+          rx="3.4"
+          ry="2.3"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(-20 40.6 84)"
+        />
+      </g>
+      <g className="motion-safe:animate-cat-knead" style={{ animationDuration: '0.6s', animationDelay: '-0.3s' }}>
+        <path d="M55 79l-9 6" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M55 79l-9 6" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <ellipse
+          cx="44.6"
+          cy="86"
+          rx="3.4"
+          ry="2.3"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(-20 44.6 86)"
+        />
+      </g>
+      <g transform="translate(47 62) scale(0.72) translate(-60 -46)">
+        <Head mood="purring" />
+      </g>
+    </g>
+  );
+}
+
+// Belly-up and squirming for a rub: paws curled up and pedalling, head tipped
+// back, blissful, tail swishing.
+function Squirming() {
+  return (
+    <g>
+      <g className="motion-safe:animate-cat-wave" style={{ transformBox: 'fill-box', transformOrigin: 'left center' }}>
+        <path d="M81 83c6 1 10-1 12-5" fill="none" stroke={EDGE} strokeWidth="5.4" strokeLinecap="round" />
+        <path d="M81 83c6 1 10-1 12-5" fill="none" stroke={FUR} strokeWidth="3.4" strokeLinecap="round" />
+      </g>
+      <g className="motion-safe:animate-cat-step" style={{ animationDuration: '0.5s' }}>
+        <path d="M50 75q-1-6 3-9" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M50 75q-1-6 3-9" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <path d="M73 76l5-8" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M73 76l5-8" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <ellipse
+          cx="54"
+          cy="65.5"
+          rx="3.4"
+          ry="2.3"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(-20 54 65.5)"
+        />
+        <ellipse
+          cx="79"
+          cy="66.5"
+          rx="3.4"
+          ry="2.3"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(30 79 66.5)"
+        />
+      </g>
+      <g className="motion-safe:animate-cat-step" style={{ animationDuration: '0.5s', animationDelay: '-0.25s' }}>
+        <path d="M56 74q1-6 5-8" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M56 74q1-6 5-8" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <path d="M78 78l8-5" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M78 78l8-5" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <ellipse
+          cx="61.5"
+          cy="65"
+          rx="3.4"
+          ry="2.3"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(-10 61.5 65)"
+        />
+        <ellipse
+          cx="87.5"
+          cy="72"
+          rx="3.4"
+          ry="2.3"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(55 87.5 72)"
+        />
+      </g>
+      <ellipse cx="61" cy="80" rx="21" ry="8.4" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <ellipse cx="62" cy="77" rx="14" ry="5" fill={BELLY} />
+      <g transform="translate(40 77) rotate(-30) scale(0.64) translate(-60 -46)">
+        <Head mood="purring" />
+      </g>
+    </g>
+  );
+}
+
+// Leaning into a brush: sat up, swaying over to one side, head tipped against
+// it, eyes shut, blissful.
+function Leaning() {
+  return (
+    <g transform="rotate(10 60 88)">
+      <Sitting mood="purring" stage={STAGES[2]} />
+    </g>
+  );
+}
+
+// Lounging like a film star: lying on its side along the edge, head propped up
+// on a paw, the other paw out in front, tail curled over, a wink.
+function Lounging() {
+  return (
+    <g>
+      <path d="M88 84c6-2 8-8 4-12-2-2-5-1-4 1" fill="none" stroke={EDGE} strokeWidth="5.4" strokeLinecap="round" />
+      <path d="M88 84c6-2 8-8 4-12-2-2-5-1-4 1" fill="none" stroke={FUR} strokeWidth="3.4" strokeLinecap="round" />
+      <path
+        d="M36 88c-3 0-5-3-4-6 3-8 14-11 30-11s29 4 30 11c.6 3-1 6-4 6z"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M56 76l1 3M64 75.4l.4 3M72 76l-.6 3" stroke={STRIPE} strokeWidth="1.7" strokeLinecap="round" />
+      <ellipse cx="62" cy="84" rx="16" ry="3.4" fill={BELLY} />
+      <path d="M44 84 39 72" fill="none" stroke={EDGE} strokeWidth="6.4" strokeLinecap="round" />
+      <path d="M44 84 39 72" fill="none" stroke={FUR} strokeWidth="4.1" strokeLinecap="round" />
+      <g transform="translate(41 63) rotate(-16) scale(0.72) translate(-60 -46)">
+        <Head mood="wink" />
+      </g>
+      <ellipse
+        cx="39"
+        cy="71.5"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(-10 39 71.5)"
+      />
+      <path d="M48 86h-10" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M48 86h-10" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <ellipse
+        cx="36.5"
+        cy="86.4"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 36.5 86.4)"
+      />
+    </g>
+  );
+}
+
+// Tripping: a front paw slipping off the edge, the other flung up, a hind leg
+// kicked up behind, tail flying, eyes wide.
+function Stumbling() {
+  return (
+    <g>
+      <path d="M83 66c4-4 6-12 4-20-1-3 2-4 3-2" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M83 66c4-4 6-12 4-20-1-3 2-4 3-2" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <path d="M50 75 38 86" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M50 75 38 86" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M52 70 40 57" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M52 70 40 57" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M77 77l1 10" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M77 77l1 10" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M80 70l11-7" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M80 70l11-7" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <ellipse
+        cx="37"
+        cy="87.5"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(-30 37 87.5)"
+      />
+      <ellipse
+        cx="39"
+        cy="55"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(-40 39 55)"
+      />
+      <ellipse
+        cx="78.5"
+        cy="88"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 78.5 88)"
+      />
+      <ellipse
+        cx="92.5"
+        cy="62"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(30 92.5 62)"
+      />
+      <ellipse
+        cx="64"
+        cy="71"
+        rx="20"
+        ry="10"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        transform="rotate(16 64 71)"
+      />
+      <path d="M64 61.5l1.6 3.8M71 64l1 4M77 67.5l-.4 3.8" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+      <g transform="translate(42 66) rotate(14) scale(0.72) translate(-60 -46)">
+        <Head mood="hungry" />
+      </g>
+    </g>
+  );
+}
+
+// Tumbling through the air, curled in a ball, legs splayed, eyes screwed shut
+// (spun round as it falls).
+function Tumbling() {
+  return (
+    <g>
+      <path d="M73 78c6 4 12 3 15-1" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M73 78c6 4 12 3 15-1" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <path d="M52 61 43 53" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M52 61 43 53" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M68 61l9-8" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M68 61l9-8" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M51 80l-8 7" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M51 80l-8 7" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M69 80l8 7" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M69 80l8 7" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <ellipse
+        cx="42"
+        cy="52"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(-45 42 52)"
+      />
+      <ellipse
+        cx="78"
+        cy="52"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(45 78 52)"
+      />
+      <ellipse
+        cx="42"
+        cy="88"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(45 42 88)"
+      />
+      <ellipse
+        cx="78"
+        cy="88"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(-45 78 88)"
+      />
+      <circle cx="60" cy="70" r="15" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <ellipse cx="60" cy="74" rx="8.5" ry="7.5" fill={BELLY} />
+      <g transform="translate(60 59) scale(0.62) translate(-60 -46)">
+        <Head mood="sneeze" />
+      </g>
+    </g>
+  );
+}
+
+// Landed in a heap: flat on its tummy, legs sprawled, chin down, eyes screwed
+// shut, stars going round its head.
+function Splat() {
+  return (
+    <g>
+      <path d="M82 84c6 0 11 1 15 4" fill="none" stroke={EDGE} strokeWidth="5.4" strokeLinecap="round" />
+      <path d="M82 84c6 0 11 1 15 4" fill="none" stroke={FUR} strokeWidth="3.4" strokeLinecap="round" />
+      <path d="M44 82 30 86" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M44 82 30 86" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M76 82l13 4" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M76 82l13 4" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M48 86l-11 3" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M48 86l-11 3" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M72 86l11 3" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M72 86l11 3" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <ellipse
+        cx="28.5"
+        cy="86.4"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 28.5 86.4)"
+      />
+      <ellipse
+        cx="90.5"
+        cy="86.4"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 90.5 86.4)"
+      />
+      <ellipse
+        cx="35.5"
+        cy="89.4"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 35.5 89.4)"
+      />
+      <ellipse
+        cx="84.5"
+        cy="89.4"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 84.5 89.4)"
+      />
+      <ellipse cx="60" cy="83" rx="24" ry="7" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <path d="M66 77l1 3M73 77.6l.4 3M80 79l-.6 2.6" stroke={STRIPE} strokeWidth="1.7" strokeLinecap="round" />
+      <g transform="translate(50 73) scale(0.66) translate(-60 -46)">
+        <Head mood="sneeze" />
+      </g>
+      <g transform="translate(50 54)">
+        <g className="motion-safe:animate-cat-dizzy" style={{ transformBox: 'view-box', transformOrigin: '0 0' }}>
+          <path d="M-11 -4.8l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1z" fill="#E3B655" />
+          <path d="M10 -7.8l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1z" fill="#E3B655" />
+          <path d="M0 1.2000000000000002l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1z" fill="#E3B655" />
+        </g>
       </g>
     </g>
   );
