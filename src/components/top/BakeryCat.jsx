@@ -148,7 +148,10 @@ function Sitting({ mood, stage }) {
 
 // Its happiest: a "cat loaf", facing out, paws tucked under its chin, tail
 // wrapped round the front, its back domed like a loaf.
-function Loaf({ stage }) {
+function Loaf({ stage, mood = 'purring', kneading = false }) {
+  // Kneading ("making biscuits"): its front paws press down in turn.
+  const knead = (delay) =>
+    kneading ? { className: 'motion-safe:animate-cat-knead', style: { animationDelay: delay } } : {};
   return (
     <g transform={`translate(60 88) scale(${stage.scale}) translate(-60 -88)`}>
       <path
@@ -161,10 +164,14 @@ function Loaf({ stage }) {
       <path d="M37 75l4 2M36 81l4 1M83 75l-4 2M84 81l-4 1" stroke={STRIPE} strokeWidth="1.7" strokeLinecap="round" />
       <path d="M86 84c-2 3.5-9 4.5-14 3.6" fill="none" stroke={EDGE} strokeWidth="5" strokeLinecap="round" />
       <path d="M86 84c-2 3.5-9 4.5-14 3.6" fill="none" stroke={FUR} strokeWidth="3" strokeLinecap="round" />
-      <ellipse cx="54.5" cy="87" rx="3.8" ry="2.1" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
-      <ellipse cx="65.5" cy="87" rx="3.8" ry="2.1" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
+      <g {...knead('0s')}>
+        <ellipse cx="54.5" cy="87" rx="3.8" ry="2.1" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
+      </g>
+      <g {...knead('-0.35s')}>
+        <ellipse cx="65.5" cy="87" rx="3.8" ry="2.1" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
+      </g>
       <g transform="translate(60 69) scale(0.7) translate(-60 -46)">
-        <Head mood="purring" hat={stage.hat} />
+        <Head mood={mood} hat={stage.hat} />
       </g>
     </g>
   );
@@ -308,7 +315,15 @@ export function CatScene({ mood, stage, today = 0, away = false, className = '' 
 // belly) on y = 88, its head to the left; flip it to face right.
 export const ROAM_POSES = {
   // Resting on a panel's edge: a loaf, breathing.
-  rest: () => <Loaf stage={STAGES[2]} />,
+  rest: ({ mood = 'purring' }) => <Loaf stage={STAGES[2]} mood={mood} />,
+  // Well fed: kneading the panel like dough ("making biscuits").
+  knead: () => <Loaf stage={STAGES[2]} kneading />,
+  // Hungry: sat up on its haunches, paws together under its chin.
+  beg: () => <Begging />,
+  // Washing its face with a licked paw.
+  groom: () => <Grooming />,
+  // Full: rolled over belly-up, paws in the air.
+  belly: () => <BellyUp />,
   // Sitting up, for a purr, a slow blink, petting or a treat.
   sit: ({ mood = 'content' }) => <Sitting mood={mood} stage={STAGES[2]} />,
   // Rolling over (the whole drawing turns), purring.
@@ -329,7 +344,7 @@ export const ROAM_POSES = {
       />
     </>
   ),
-  walk: () => <Walking />,
+  walk: ({ mood = 'content' }) => <Walking mood={mood} />,
   crouch: () => (
     <g transform="translate(0 88) scale(1 0.86) translate(0 -88)">
       <Loaf stage={STAGES[2]} />
@@ -456,7 +471,7 @@ function Peeking() {
 }
 
 // Trotting along, head turned to its owner, tail up with a curl at the tip.
-function Walking() {
+function Walking({ mood = 'content' }) {
   return (
     <g>
       <path d="M81 70c8-1 11-9 8-17-1-3-5-3-5 0" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
@@ -481,7 +496,7 @@ function Walking() {
       <ellipse cx="61" cy="77.5" rx="12" ry="4" fill={BELLY} />
       <path d="M63 61.5l1 4M70 62l.5 4M77 64l-1 3.5" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
       <g transform="translate(45 59) scale(0.74) translate(-60 -46)">
-        <Head mood="content" />
+        <Head mood={mood} />
       </g>
     </g>
   );
@@ -586,6 +601,123 @@ function Dangling() {
       <ellipse cx="60" cy="69" rx="6.5" ry="10" fill={BELLY} />
       <g transform="translate(0 -6)">
         <Head mood="hungry" />
+      </g>
+    </g>
+  );
+}
+
+// Begging: sat up tall on its haunches, front paws together under its chin,
+// big hungry eyes, bobbing a little.
+function Begging() {
+  return (
+    <g className="motion-safe:animate-cat-step" style={{ animationDuration: '1.4s' }}>
+      <path d="M74 86c12 0 17-6 14-13" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M74 86c12 0 17-6 14-13" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <path
+        d="M47 89c-5 0-7-5-6-12 1.5-12 7-21 19-21s17.5 9 19 21c1 7-1 12-6 12z"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M53 88c-3-5-3-17 7-21 10 4 10 16 7 21z" fill={BELLY} />
+      <ellipse cx="52" cy="88.5" rx="5.2" ry="3" fill={BELLY} stroke={EDGE} strokeWidth="1.4" />
+      <ellipse cx="68" cy="88.5" rx="5.2" ry="3" fill={BELLY} stroke={EDGE} strokeWidth="1.4" />
+      <g transform="translate(60 44) scale(0.92) translate(-60 -46)">
+        <Head mood="hungry" />
+      </g>
+      <ellipse cx="55.5" cy="64" rx="4" ry="3.2" fill={BELLY} stroke={EDGE} strokeWidth="1.3" />
+      <ellipse cx="64.5" cy="64" rx="4" ry="3.2" fill={BELLY} stroke={EDGE} strokeWidth="1.3" />
+    </g>
+  );
+}
+
+// Grooming: sitting, eyes shut, a paw up at its cheek, washing in strokes.
+function Grooming() {
+  return (
+    <g>
+      <Sitting mood="purring" stage={STAGES[2]} />
+      <g className="motion-safe:animate-cat-step" style={{ animationDuration: '0.7s' }}>
+        <path d="M47 74Q42 64 48 57" fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
+        <path d="M47 74Q42 64 48 57" fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+        <ellipse
+          cx="49"
+          cy="55.5"
+          rx="4.4"
+          ry="3.4"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.3"
+          transform="rotate(-25 49 55.5)"
+        />
+      </g>
+    </g>
+  );
+}
+
+// Belly-up: lying back with its belly to the sky, head tipped back, front
+// paws curled at its chest and back legs loose in the air.
+function BellyUp() {
+  return (
+    <g>
+      <path d="M83 85c6 1 10-1 12-4" fill="none" stroke={EDGE} strokeWidth="5.4" strokeLinecap="round" />
+      <path d="M83 85c6 1 10-1 12-4" fill="none" stroke={FUR} strokeWidth="3.4" strokeLinecap="round" />
+      <g className="motion-safe:animate-cat-step" style={{ animationDuration: '1.6s' }}>
+        <path d="M73 76l5-8" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M73 76l5-8" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <path d="M78 78l8-5" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M78 78l8-5" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <ellipse
+          cx="79"
+          cy="66.5"
+          rx="3.5"
+          ry="2.4"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(30 79 66.5)"
+        />
+        <ellipse
+          cx="87.5"
+          cy="72"
+          rx="3.5"
+          ry="2.4"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(55 87.5 72)"
+        />
+      </g>
+      <ellipse cx="62" cy="80" rx="22" ry="8.6" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <ellipse cx="63" cy="77.2" rx="15" ry="5" fill={BELLY} />
+      <g transform="translate(39 76) rotate(-22) scale(0.66) translate(-60 -46)">
+        <Head mood="purring" />
+      </g>
+      <g>
+        <path d="M50 75q-1-6 3-9" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M50 75q-1-6 3-9" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <path d="M56 74q1-6 5-8" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+        <path d="M56 74q1-6 5-8" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        <ellipse
+          cx="54"
+          cy="65.5"
+          rx="3.5"
+          ry="2.4"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(-20 54 65.5)"
+        />
+        <ellipse
+          cx="61.5"
+          cy="65"
+          rx="3.5"
+          ry="2.4"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(-10 61.5 65)"
+        />
       </g>
     </g>
   );

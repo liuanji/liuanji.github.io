@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ROAM_POSES } from './BakeryCat';
+import { ROAM_POSES, moodOf } from './BakeryCat';
 
 // The bakery cat let out to roam the page. It lives on the edges of the panels
 // marked data-cat-perch that are in view: mostly resting on a panel's top edge
@@ -36,8 +36,76 @@ const CHASE = 90;
 const LEAP_MS = 720;
 const HOP_MS = 480;
 const DROP_MS = 380;
+const SPRING_MS = 260;
 const SETTLE_MS = 1200;
 const DOZE_AFTER = 3 * 60 * 1000;
+// How it carries itself on what it has eaten lately: its pace, its face, how
+// soon it dozes off, how long it rests, how readily it leaps away, how far off
+// it notices the pointer, and what else it gets up to now and then (a chance
+// each time it stirs on a panel's top edge). Starving, it drags itself about,
+// begs and naps; well fed, it kneads the panel ("makes biscuits") and gets the
+// zoomies; full, it lolls belly-up and grooms.
+const FEELS = {
+  napping: {
+    pace: 0.55,
+    face: 'hungry',
+    restFace: 'hungry',
+    doze: 40 * 1000,
+    rest: [12, 24],
+    leap: 0.35,
+    notice: 150,
+    begs: true,
+    acts: { beg: 0.3, sleep: 0.25 },
+  },
+  hungry: {
+    pace: 0.8,
+    face: 'hungry',
+    restFace: 'content',
+    doze: DOZE_AFTER,
+    rest: [8, 18],
+    leap: 0.8,
+    notice: 170,
+    begs: true,
+    acts: { beg: 0.25, groom: 0.05 },
+  },
+  content: {
+    pace: 1,
+    face: 'content',
+    restFace: 'purring',
+    doze: DOZE_AFTER,
+    rest: [8, 18],
+    leap: 1,
+    notice: 170,
+    acts: { groom: 0.15, knead: 0.05 },
+  },
+  purring: {
+    pace: 1.2,
+    face: 'content',
+    restFace: 'purring',
+    doze: DOZE_AFTER,
+    rest: [6, 14],
+    leap: 1.1,
+    notice: 210,
+    acts: { knead: 0.2, zoom: 0.14, groom: 0.1 },
+  },
+  loaf: {
+    pace: 0.75,
+    face: 'purring',
+    restFace: 'purring',
+    doze: DOZE_AFTER,
+    rest: [12, 24],
+    leap: 0.5,
+    notice: 170,
+    acts: { belly: 0.22, groom: 0.18, knead: 0.12 },
+  },
+};
+// What it does for each of those, for how long, and what it says.
+const ACTS = {
+  beg: { pose: 'beg', mood: 'hungry', ms: 3200, say: 'mew' },
+  groom: { pose: 'groom', mood: 'purring', ms: 3000 },
+  knead: { pose: 'knead', mood: 'purring', ms: 3600, say: 'prr' },
+  belly: { pose: 'belly', mood: 'purring', ms: 4500, say: 'heart' },
+};
 const BORED_AFTER = 2 * 60 * 1000;
 // Moves a cat makes between two poses, and for how long.
 const BETWEEN = {
@@ -111,12 +179,15 @@ const OPTIONS = [
   ['home', 'Send home'],
 ];
 
-export default function RoamingCat({ onHome }) {
+export default function RoamingCat({ onHome, meal }) {
   const box = useRef(null);
   const cat = useRef(null);
   const menuBox = useRef(null);
+  const tilt = useRef(null);
   const homeRef = useRef(onHome);
   homeRef.current = onHome;
+  const moodRef = useRef('content');
+  moodRef.current = moodOf(meal);
   const [menu, setMenu] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [look, setLook] = useState({
@@ -124,6 +195,7 @@ export default function RoamingCat({ onHome }) {
     facing: -1,
     mood: 'content',
     side: 'top',
+    flip: 1,
     previous: null,
     change: 0,
   });
@@ -168,29 +240,38 @@ export default function RoamingCat({ onHome }) {
       if (between && time < between.until) return;
       between = null;
       const side = state.mode === 'leap' || state.mode === 'held' ? 'top' : state.side;
-      if (pose === shown.pose && state.facing === shown.facing && mood === shown.mood && side === shown.side) return;
+      // On a side it clings on upright, drawn out to the right of the edge and
+      // mirrored for a left side; elsewhere it faces the way it is going.
+      const flip = side === 'left' ? -1 : side === 'right' ? 1 : -state.facing;
+      if (pose === shown.pose && flip === shown.flip && mood === shown.mood && side === shown.side) return;
       const step = shown.pose && pose !== shown.pose && (BETWEEN[`${shown.pose}>${pose}`] ?? BETWEEN[`${shown.pose}>`]);
       const next = step ? step[0] : pose;
       if (step) between = { until: time + step[1] };
-      // Blended, unless it is a quick swipe of a paw or the last pose was only
-      // a moment ago (then it just changes).
-      const blend =
-        next !== shown.pose && time - (shown.since ?? 0) > 300 && !(SWIPE.has(next) && SWIPE.has(shown.pose));
+      // Blended, turning round included, unless it is a quick swipe of a paw or
+      // the last change was only a moment ago (then it just changes).
+      const changed = next !== shown.pose || flip !== shown.flip;
+      const blend = changed && time - (shown.since ?? 0) > 300 && !(SWIPE.has(next) && SWIPE.has(shown.pose));
       setLook((current) => ({
         pose: next,
-        facing: state.facing,
+        flip,
         mood,
         side,
         previous: blend ? current.pose : null,
+        previousFlip: current.flip,
         previousMood: current.mood,
         change: current.change + (blend ? 1 : 0),
       }));
-      shown = { pose: next, facing: state.facing, mood, side, since: next !== shown.pose ? time : shown.since };
+      shown = { pose: next, flip, mood, side, since: changed ? time : shown.since };
     };
     const place = () => {
       const anchor = state.mode === 'held' ? SCRUFF : FEET;
       if (box.current) {
         box.current.style.transform = `translate(${state.x - anchor.x}px, ${state.y - anchor.y}px)`;
+      }
+      if (tilt.current) {
+        // Its nose is on the left unless the drawing is mirrored to face right.
+        const nose = state.facing < 0 ? 1 : -1;
+        tilt.current.style.transform = state.mode === 'leap' ? `rotate(${(state.tilt ?? 0) * nose}deg)` : '';
       }
     };
     // The menu a click opens; while it is open the cat stays where it is.
@@ -228,6 +309,13 @@ export default function RoamingCat({ onHome }) {
     const leapTo = (perch, along = null, duration = LEAP_MS, side = 'top') => {
       if (!perch) return;
       closeMenu();
+      // Off a panel, it crouches to spring first.
+      if (state.perch && duration !== DROP_MS && state.mode !== 'spring') {
+        state.mode = 'spring';
+        state.until = performance.now() + SPRING_MS;
+        state.spring = [perch, along, duration, side];
+        return;
+      }
       const to = spotOn(perch, along, side);
       Object.assign(state, {
         mode: 'leap',
@@ -242,7 +330,35 @@ export default function RoamingCat({ onHome }) {
       state.side = 'top';
       state.facing = to.x < state.x ? -1 : 1;
     };
-    const rest = (time, seconds = [8, 18]) => {
+    const feel = () => FEELS[moodRef.current] ?? FEELS.content;
+    // One of its mood's own doings, or a nap, or a dash along its panel.
+    const act = (name, time) => {
+      if (name === 'sleep') {
+        state.mode = 'sleep';
+        return;
+      }
+      if (name === 'zoom') {
+        const edge = page(state.perch.getBoundingClientRect());
+        const far = state.x < (edge.left + edge.right) / 2 ? edge.right - MARGIN : edge.left + MARGIN;
+        state.mode = 'zoom';
+        state.zooms = [far, random(edge.left + MARGIN, edge.right - MARGIN)];
+        return;
+      }
+      const doing = ACTS[name];
+      state.mode = 'act';
+      state.act = doing;
+      state.until = time + doing.ms;
+      if (doing.say) say(doing.say);
+    };
+    const pickAct = () => {
+      let roll = Math.random();
+      for (const [name, chance] of Object.entries(feel().acts)) {
+        if (roll < chance) return name;
+        roll -= chance;
+      }
+      return null;
+    };
+    const rest = (time, seconds = feel().rest) => {
       state.mode = 'rest';
       state.until = time + random(...seconds) * 1000;
       // On a top edge, mostly a loaf, sometimes peeking over; on a side, clinging on.
@@ -321,7 +437,23 @@ export default function RoamingCat({ onHome }) {
       const time = performance.now();
       state.lastPlay = time;
       if (state.mode === 'held') {
-        // Dropped: onto the panel under the pointer, else the nearest in view.
+        // Dropped beside a panel's side: it clings on there, where it was let go.
+        const beside = [...document.querySelectorAll('[data-cat-perch]')]
+          .flatMap((element) => {
+            const edge = page(element.getBoundingClientRect());
+            if (event.pageY < edge.top + 20 || event.pageY > edge.bottom - 10) return [];
+            return [
+              { element, side: 'left', distance: edge.left - event.pageX },
+              { element, side: 'right', distance: event.pageX - edge.right },
+            ];
+          })
+          .filter(({ element, side, distance }) => distance > -14 && distance < 50 && sideFits(element, side))
+          .sort((a, b) => Math.abs(a.distance) - Math.abs(b.distance))[0];
+        if (beside) {
+          leapTo(beside.element, event.pageY, DROP_MS, beside.side);
+          return;
+        }
+        // Dropped elsewhere: onto the panel under the pointer, else the nearest in view.
         const perches = visiblePerches();
         const below = perches
           .map((element) => ({ element, edge: page(element.getBoundingClientRect()) }))
@@ -413,14 +545,33 @@ export default function RoamingCat({ onHome }) {
     };
 
     leapTo(visiblePerches()[0]);
+    let last = performance.now();
     let frame = requestAnimationFrame(function step(time) {
       frame = requestAnimationFrame(step);
+      // Seconds since the last frame, so its pace is the same at any frame rate.
+      const dt = Math.min(0.05, Math.max(0, time - last) / 1000);
+      last = time;
       // Follow its panel as the page moves, riding along while the page
       // scrolls; once the scrolling has settled with its panel out of view, one
       // leap in from the edge it left by onto the nearest panel in view.
       if (
         state.perch &&
-        ['rest', 'walk', 'sit', 'sleep', 'crouch', 'pet', 'chase', 'knock', 'roll', 'toy', 'land'].includes(state.mode)
+        [
+          'rest',
+          'walk',
+          'sit',
+          'sleep',
+          'crouch',
+          'spring',
+          'pet',
+          'chase',
+          'knock',
+          'roll',
+          'toy',
+          'land',
+          'act',
+          'zoom',
+        ].includes(state.mode)
       ) {
         const rect = state.perch.getBoundingClientRect();
         const edge = page(rect);
@@ -437,6 +588,7 @@ export default function RoamingCat({ onHome }) {
           if (perch) {
             state.x = Math.min(window.scrollX + window.innerWidth - MARGIN, Math.max(window.scrollX + MARGIN, state.x));
             state.y = above ? window.scrollY + TOP_CLEAR - 40 : window.scrollY + window.innerHeight + 20;
+            state.perch = null;
             leapTo(perch, state.x);
           }
         }
@@ -450,19 +602,26 @@ export default function RoamingCat({ onHome }) {
       const pointerNear =
         !state.menu &&
         time - state.pointer.at < 1500 &&
-        Math.hypot(state.pointer.x - state.x, state.pointer.y - (state.y - 18)) < 170;
+        Math.hypot(state.pointer.x - state.x, state.pointer.y - (state.y - 18)) < feel().notice;
 
       switch (state.mode) {
         case 'leap': {
+          // Nearly a steady pace across, an arc up and down, and the cat tilted
+          // along it: nose up as it rises, down as it comes in to land.
           const t = Math.min(1, (time - state.started) / state.duration);
-          const eased = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
-          state.x = state.from.x + (state.to.x - state.from.x) * eased;
+          const eased = 0.5 * t + 0.25 * (1 - Math.cos(Math.PI * t));
+          const pace = 0.5 + 0.25 * Math.PI * Math.sin(Math.PI * t);
+          const dx = state.to.x - state.from.x;
+          state.x = state.from.x + dx * eased;
           state.y = state.from.y + (state.to.y - state.from.y) * eased - state.height * 4 * t * (1 - t);
+          const rise = state.height * 4 * (1 - 2 * t) - (state.to.y - state.from.y) * pace;
+          state.tilt = Math.max(-18, Math.min(18, (0.6 * Math.atan2(rise, Math.abs(dx * pace) + 60) * 180) / Math.PI));
           show('leap');
           if (t >= 1 && state.homing) {
             state.mode = 'home';
             homeRef.current?.();
           } else if (t >= 1) {
+            state.tilt = 0;
             state.perch = state.target;
             state.side = state.targetSide;
             along();
@@ -476,13 +635,19 @@ export default function RoamingCat({ onHome }) {
           if (time > state.until) rest(time);
           break;
         case 'rest': {
-          show(state.restPose);
+          show(state.restPose, state.restPose === 'rest' ? feel().restFace : feel().face);
           if (pointerNear && time > state.chaseRest && !onSide()) {
+            // Hungry, it begs its owner rather than plays.
+            if (feel().begs && Math.random() < 0.6) {
+              state.chaseRest = time + 8000;
+              act('beg', time);
+              break;
+            }
             state.mode = 'chase';
             state.until = time + 6000;
             break;
           }
-          if (time - state.pointer.at > DOZE_AFTER && !onSide()) {
+          if (time - state.pointer.at > feel().doze && !onSide()) {
             state.mode = 'sleep';
             break;
           }
@@ -490,18 +655,18 @@ export default function RoamingCat({ onHome }) {
           const bored = time - state.lastPlay > BORED_AFTER;
           const roll = Math.random();
           const perch = state.perch;
-          if (bored && roll < 0.3) {
+          const doing = !onSide() && !bored ? pickAct() : null;
+          if (doing) {
+            act(doing, time);
+          } else if (bored && roll < 0.3) {
             // Nobody has played for a while: it knocks on its panel.
             state.mode = 'knock';
             state.until = time + 1400;
             state.knocks = [time + 300, time + 800];
-          } else if (roll < (bored ? 0.6 : 0.3)) {
+          } else if (roll < (bored ? 0.3 : 0) + 0.3 * feel().leap) {
             const other = otherPerch();
-            if (other) {
-              state.mode = 'crouch';
-              state.until = time + 550;
-              state.then = other;
-            } else rest(time);
+            if (other) leapTo(other);
+            else rest(time);
           } else if (onSide() && roll < 0.65) {
             // Back up onto the top edge.
             leapTo(perch, null, HOP_MS);
@@ -528,7 +693,7 @@ export default function RoamingCat({ onHome }) {
           }
           // Along the top, or climbing up or down a side.
           const at = onSide() ? state.y : state.x;
-          const step = (STROLL / 60) * Math.sign(state.goal - at);
+          const step = STROLL * feel().pace * dt * Math.sign(state.goal - at);
           const next = Math.abs(state.goal - at) <= Math.abs(step) ? state.goal : at + step;
           if (onSide()) {
             state.y = next;
@@ -539,7 +704,7 @@ export default function RoamingCat({ onHome }) {
             state.facing = step < 0 ? -1 : 1;
           }
           along();
-          show(onSide() ? 'climb' : 'walk');
+          show(onSide() ? 'climb' : 'walk', feel().face);
           if (next === state.goal) rest(time);
           break;
         }
@@ -548,7 +713,8 @@ export default function RoamingCat({ onHome }) {
           // at it with quick swipes when close, purring when it rests on the cat.
           const dx = state.pointer.x - state.x;
           const distance = Math.hypot(dx, state.pointer.y - (state.y - 18));
-          state.facing = dx < 0 ? -1 : 1;
+          // It turns to the pointer only once it is clearly to one side.
+          if (Math.abs(dx) > 18) state.facing = dx < 0 ? -1 : 1;
           if (distance < 40) {
             show('sit', 'purring');
             if (time > (state.purredAt ?? 0) + 1600) {
@@ -561,7 +727,7 @@ export default function RoamingCat({ onHome }) {
             const edge = page(state.perch.getBoundingClientRect());
             const next = Math.min(
               edge.right - MARGIN,
-              Math.max(edge.left + MARGIN, state.x + (CHASE / 60) * Math.sign(dx)),
+              Math.max(edge.left + MARGIN, state.x + CHASE * dt * Math.sign(dx)),
             );
             show(next === state.x ? 'reach' : 'walk');
             state.x = next;
@@ -574,13 +740,18 @@ export default function RoamingCat({ onHome }) {
           }
           break;
         }
+        case 'spring':
+          show(onSide() ? 'cling' : 'crouch');
+          if (time > state.until) {
+            const [perch, at, duration, side] = state.spring;
+            state.mode = 'leaping';
+            state.perch = null;
+            leapTo(perch, at, duration, side);
+          }
+          break;
         case 'crouch':
           show('crouch');
-          if (time > state.until) {
-            if (state.then === 'toy') {
-              state.mode = 'toy';
-            } else leapTo(state.then);
-          }
+          if (time > state.until) state.mode = 'toy';
           break;
         case 'toy': {
           // The ball rolls ahead; the cat runs after it and pounces.
@@ -589,7 +760,7 @@ export default function RoamingCat({ onHome }) {
           const x = ball.x + (ball.to - ball.x) * (1 - (1 - roll) ** 2);
           setToy({ x, y: state.y });
           const gap = x - state.x;
-          if (Math.abs(gap) > 26) state.x += Math.sign(gap) * Math.min(Math.abs(gap) - 26, (CHASE * 1.6) / 60);
+          if (Math.abs(gap) > 26) state.x += Math.sign(gap) * Math.min(Math.abs(gap) - 26, CHASE * 1.6 * dt);
           along();
           show('walk');
           if (roll >= 1 && Math.abs(x - state.x) <= 27) {
@@ -610,6 +781,22 @@ export default function RoamingCat({ onHome }) {
             rest(time);
           }
           break;
+        case 'act':
+          show(state.act.pose, state.act.mood);
+          if (time > state.until && !state.menu) rest(time);
+          break;
+        case 'zoom': {
+          // The zoomies: a dash to the far end of its panel and partway back.
+          const goal = state.zooms[0];
+          const step = CHASE * 2.6 * dt * Math.sign(goal - state.x);
+          state.x = Math.abs(goal - state.x) <= Math.abs(step) ? goal : state.x + step;
+          state.facing = step < 0 ? -1 : 1;
+          along();
+          show('walk', 'content');
+          if (state.x === goal) state.zooms.shift();
+          if (!state.zooms.length) sit(time, 'purring', 1600);
+          break;
+        }
         case 'sit':
           show('sit', state.mood);
           if (time > state.until && !state.menu) rest(time);
@@ -655,10 +842,14 @@ export default function RoamingCat({ onHome }) {
 
   const Pose = ROAM_POSES[look.pose] ?? ROAM_POSES.rest;
   const Previous = look.previous ? ROAM_POSES[look.previous] : null;
-  const rolling = look.pose === 'roll';
-  // On a side it clings on upright, drawn out to the right of the edge and
-  // mirrored for a left side; elsewhere it faces the way it is going.
-  const flip = look.side === 'left' ? -1 : look.side === 'right' ? 1 : -look.facing;
+  // A drawing faces left; mirrored about its feet (x = 60) to face right.
+  const mirror = (flip) => (flip < 0 ? 'translate(120 0) scale(-1 1)' : undefined);
+  const motion =
+    look.pose === 'roll'
+      ? 'motion-safe:animate-cat-roll'
+      : look.pose === 'rest'
+        ? 'motion-safe:animate-cat-breathe'
+        : '';
   const poseBox = { transformBox: 'fill-box', transformOrigin: 'center bottom' };
   return createPortal(
     <div className="pointer-events-none absolute left-0 top-0 z-40" style={{ width: 0, height: 0 }}>
@@ -686,25 +877,30 @@ export default function RoamingCat({ onHome }) {
           data-cat
           data-pose={look.pose}
           aria-hidden="true"
-          className={`pointer-events-auto touch-none overflow-visible ${
-            look.pose === 'rest' ? 'motion-safe:animate-cat-breathe' : ''
-          }`}
-          style={{
-            opacity: leaving ? 0 : 1,
-            transform: `scaleX(${flip}) ${rolling ? 'rotate(360deg)' : ''}`,
-            transformOrigin: `${FEET.x}px ${FEET.y}px`,
-            transition: `${rolling ? 'transform 0.6s ease-in-out' : 'transform 0.25s ease-out'}, opacity ${LEAP_MS}ms ease-in`,
-          }}
+          className="pointer-events-auto touch-none overflow-visible"
+          style={{ opacity: leaving ? 0 : 1, transition: `opacity ${LEAP_MS}ms ease-in` }}
           onPointerDown={(event) => cat.current?.onPointerDown?.(event)}
         >
-          {/* The last pose fades as the new one settles in. */}
-          {Previous && (
-            <g key={`out-${look.change}`} className="motion-safe:animate-cat-pose-out opacity-0" style={poseBox}>
-              <Previous mood={look.previousMood} />
+          {/* Tilted along a leap; rolling over or breathing; the last pose
+              fading as the new one (or the same, turned round) comes in. */}
+          <g ref={tilt} style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+            <g
+              className={motion}
+              style={{ ...poseBox, transformOrigin: look.pose === 'roll' ? 'center' : 'center bottom' }}
+            >
+              {Previous && (
+                <g key={`out-${look.change}`} className="motion-safe:animate-cat-pose-out opacity-0">
+                  <g transform={mirror(look.previousFlip)}>
+                    <Previous mood={look.previousMood} />
+                  </g>
+                </g>
+              )}
+              <g key={`in-${look.change}`} className="motion-safe:animate-cat-pose-in">
+                <g transform={mirror(look.flip)}>
+                  <Pose mood={look.mood} />
+                </g>
+              </g>
             </g>
-          )}
-          <g key={`in-${look.change}`} className="motion-safe:animate-cat-pose-in" style={poseBox}>
-            <Pose mood={look.mood} />
           </g>
         </svg>
         {/* What can be done for it, popped up above it by a click. */}

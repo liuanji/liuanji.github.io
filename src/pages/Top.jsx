@@ -390,7 +390,9 @@ export default function Top() {
                   )}
                 </div>
               )}
-              {catRoaming && catCanRoam && <RoamingCat onHome={() => setCatRoaming(false)} />}
+              {catRoaming && catCanRoam && (
+                <RoamingCat meal={stats.data?.cats?.[user]} onHome={() => setCatRoaming(false)} />
+              )}
               <NotesPill notes={notes} me={user}>
                 {closed && <ClosedBanner since={overview.data.generated_at} now={now} />}
                 <OverheatBanner items={overheated} onOpen={hosts.length > 1 ? showHost : undefined} />
