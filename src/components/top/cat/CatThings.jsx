@@ -351,6 +351,50 @@ function Helicopter({ rope = 40 }) {
   );
 }
 
+// A wooden ladder, its top at (0, 0), reaching down rope pixels.
+function Ladder({ rope = 100 }) {
+  const rungs = Array.from({ length: Math.max(1, Math.floor(rope / 11)) }, (_, index) => 6 + index * 11);
+  return (
+    <g stroke="#B07A3E" strokeLinecap="round">
+      <path d={`M-7 -2V${rope}M7 -2V${rope}`} strokeWidth="2.6" />
+      <path d={rungs.map((y) => `M-7 ${y}H7`).join('')} strokeWidth="2" />
+    </g>
+  );
+}
+
+// A rope hanging from (0, 0) down rope pixels.
+function Rope({ rope = 100 }) {
+  return <path d={`M0 0V${rope}`} stroke="#C49A62" strokeWidth="2" strokeDasharray="5 2" strokeLinecap="round" />;
+}
+
+// A little parachute, its strings meeting at (0, 0), the canopy above.
+function Parachute() {
+  return (
+    <g>
+      <path d="M0 0L-17-40M0 0L-6-42M0 0L6-42M0 0L17-40" stroke="#A3ADBB" strokeWidth="0.8" />
+      <path
+        d="M-22-38c0-14 10-22 22-22s22 8 22 22c-4-3-7-3-11 0-4-3-7-3-11 0-4-3-7-3-11 0-4-3-7-3-11 0z"
+        fill="#F2B8C2"
+        stroke="#D98E9C"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+      <path d="M-11-38c0-12 5-20 11-21M11-38c0-12-5-20-11-21" fill="none" stroke="#E79AA8" strokeWidth="0.9" />
+    </g>
+  );
+}
+
+// A small trampoline, the top of its mat at (0, 0).
+function Trampoline() {
+  return (
+    <g>
+      <path d="M-20 2l-4 10M20 2l4 10" stroke="#8E98A8" strokeWidth="2.2" strokeLinecap="round" />
+      <ellipse cx="0" cy="2" rx="24" ry="4" fill="#9FB4E8" stroke="#7E95CF" strokeWidth="1.2" />
+      <path d="M-18 2h36" stroke="#C9D6F4" strokeWidth="1" />
+    </g>
+  );
+}
+
 const THINGS = {
   yarn: Yarn,
   butterfly: Butterfly,
@@ -374,6 +418,10 @@ const THINGS = {
   dirt: Dirt,
   puff: Puff,
   heli: Helicopter,
+  ladder: Ladder,
+  rope: Rope,
+  parachute: Parachute,
+  trampoline: Trampoline,
   bowl: TreatBowl,
 };
 // How far each reaches round its base, for the box it is drawn in.
@@ -400,6 +448,10 @@ const REACH = {
   dirt: 8,
   puff: 18,
   heli: 60,
+  ladder: 20,
+  rope: 10,
+  parachute: 30,
+  trampoline: 28,
   bowl: 20,
 };
 

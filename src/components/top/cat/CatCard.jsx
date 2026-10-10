@@ -146,15 +146,15 @@ function ActionsMenu() {
           ))}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="max-h-80 w-52 overflow-y-auto font-mono text-[11px]">
+      <DropdownMenuContent align="end" className="max-h-80 w-56 overflow-y-auto font-mono text-[11px]">
         {ACTIONS.map(([group, actions], index) => (
           <div key={group}>
             {index > 0 && <DropdownMenuSeparator />}
             <DropdownMenuLabel className="py-1 text-[10px] font-normal uppercase tracking-wide text-data-grey">
               {group}
               {isGpuGroup(actions) && !gpus && (
-                <span className="block normal-case tracking-normal text-data-grey/70">
-                  Scroll a running GPU into view first
+                <span className="block whitespace-nowrap normal-case tracking-normal text-data-grey/70">
+                  Scroll a running GPU into view
                 </span>
               )}
             </DropdownMenuLabel>

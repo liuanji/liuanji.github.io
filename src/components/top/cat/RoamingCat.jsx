@@ -481,7 +481,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
             ? { amp: 10, freq: 2.2, decay: 3, from: state.started }
             : state.mode === 'trip'
               ? { amp: 12, freq: 5, decay: 0, from: state.until - 520 }
-              : state.mode === 'script'
+              : state.mode === 'script' || state.mode === 'enter'
                 ? state.rock
                 : null;
         const turn = (box, origin, angle) => {
@@ -489,7 +489,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           tilt.current.style.transformOrigin = origin;
           tilt.current.style.transform = angle ? `rotate(${angle}deg)` : '';
         };
-        if (state.mode === 'script' && state.spin != null) {
+        if ((state.mode === 'script' || state.mode === 'enter') && state.spin != null) {
           // Turning head over heels (a backflip), round its middle.
           turn('fill-box', 'center', state.spin);
         } else if (state.mode === 'held') {
@@ -1655,6 +1655,51 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         time,
       );
     };
+    // Back into view after the page scrolled its panel away: from below, up a
+    // ladder, floating up on a balloon, or bounced off a trampoline; from
+    // above, down under a parachute or abseiling down a rope; from either,
+    // lowered by the helicopter, or simply leaping in from the edge.
+    const WAYS_IN = {
+      below: ['leap', 'ladder', 'balloon', 'trampoline', 'heli'],
+      above: ['leap', 'parachute', 'abseil', 'heli'],
+    };
+    const comeBack = (perch, fromAbove, time) => {
+      const ways = WAYS_IN[fromAbove ? 'above' : 'below'].filter((way) => way !== state.lastWayIn);
+      const way = ways[Math.floor(Math.random() * ways.length)];
+      state.lastWayIn = way;
+      if (way === 'leap') {
+        leapTo(perch, state.x);
+        return;
+      }
+      const to = spotOn(perch, state.x);
+      const screenTop = window.scrollY + TOP_CLEAR - 60;
+      const screenBottom = window.scrollY + window.innerHeight;
+      const side = to.x < window.scrollX + window.innerWidth / 2 ? -1 : 1;
+      Object.assign(state, {
+        mode: 'enter',
+        enter: { way, perch, to, started: time, screenTop, screenBottom, side },
+        x: to.x,
+        y: fromAbove ? screenTop : screenBottom + 60,
+        spin: null,
+        rock: null,
+      });
+      state.facing = -side;
+    };
+    const arrive = (time) => {
+      const { perch } = state.enter;
+      putThing(null);
+      Object.assign(state, {
+        enter: null,
+        spin: null,
+        rock: null,
+        perch,
+        side: 'top',
+        mode: 'land',
+        until: time + 320,
+      });
+      const edge = page(perch.getBoundingClientRect());
+      state.along = state.x - edge.left;
+    };
     // Mishaps along a walk (each carries on to where it was going).
     const mishaps = {
       sniff: (goal) => [{ pose: 'sniff', ms: 1400, start: () => say('sniff') }, { to: goal }],
@@ -2552,7 +2597,16 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         else if (name.startsWith('toss:')) play(tossed[name.slice(5)](), performance.now());
         else if (name.startsWith('gpu:')) return visitGpu(name.slice(4));
         else if (name === 'run') stroll(true);
-        else if (name.startsWith('trap:')) {
+        else if (name.startsWith('in:')) {
+          const [, way, from] = name.split(':');
+          const perches = visiblePerches();
+          const perch = from === 'above' ? perches[0] : perches[perches.length - 1];
+          state.lastWayIn = null;
+          const keep = WAYS_IN[from];
+          WAYS_IN[from] = [way];
+          comeBack(perch, from === 'above', performance.now());
+          WAYS_IN[from] = keep;
+        } else if (name.startsWith('trap:')) {
           const [, way, index] = name.split(':');
           const panel = [...document.querySelectorAll('[data-cat-perch]')][Number(index)];
           state.escapeAs = way;
@@ -2673,7 +2727,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
             state.x = Math.min(window.scrollX + window.innerWidth - MARGIN, Math.max(window.scrollX + MARGIN, state.x));
             state.y = above ? window.scrollY + TOP_CLEAR - 40 : window.scrollY + window.innerHeight + 20;
             state.perch = null;
-            leapTo(perch, state.x);
+            comeBack(perch, above, time);
           }
         }
       }
@@ -2955,6 +3009,142 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
               state.perch = null;
               leapTo(back, state.x);
             } else rest(time);
+          }
+          break;
+        }
+        case 'enter': {
+          // Coming back into view, by one of its ways in.
+          const enter = state.enter;
+          const t = time - enter.started;
+          const { to, way, screenTop, screenBottom, side } = enter;
+          const ease = (k) => (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
+          if (way === 'ladder') {
+            // A ladder slides up to the edge; it climbs it and steps off.
+            const length = screenBottom - to.y + 20;
+            const climbMs = Math.min(2600, Math.max(1200, length * 9));
+            const rise = Math.min(1, t / 500);
+            const sink = t > 900 + climbMs ? Math.min(1, (t - 900 - climbMs) / 500) : 0;
+            putThing({ kind: 'ladder', x: to.x, y: to.y + (1 - rise + sink) * length, rope: length });
+            if (t < 600) {
+              state.y = screenBottom + 60;
+              show('climb');
+            } else if (t < 600 + climbMs) {
+              const k = (t - 600) / climbMs;
+              state.x = to.x + 2;
+              state.y = screenBottom + 40 - (screenBottom + 40 - (to.y + 30)) * k;
+              state.facing = -1;
+              show('climb');
+            } else if (t < 900 + climbMs) {
+              const k = (t - 600 - climbMs) / 300;
+              state.x = to.x + 2 + 26 * k;
+              state.y = to.y + 30 - 30 * k - 14 * Math.sin(Math.PI * k);
+              show('leap');
+            } else if (sink >= 1) arrive(time);
+            else show('sit', 'purring');
+          } else if (way === 'balloon') {
+            // Floating up holding a balloon's string; onto the edge; let go.
+            const k = Math.min(1, t / 2400);
+            if (t < 2400) {
+              state.y = screenBottom + 40 - (screenBottom + 40 - (to.y - 26)) * ease(k);
+              state.x = to.x + Math.sin(t / 400) * 6;
+              putThing({ kind: 'balloon', x: state.x, y: state.y });
+              show('hang', 'purring');
+            } else if (t < 2800) {
+              const j = (t - 2400) / 400;
+              state.y = to.y - 26 + 26 * j;
+              state.x = to.x;
+              putThing({ kind: 'balloon', x: to.x, y: to.y - 26 - 160 * j, opacity: 1 - j });
+              show('leap');
+            } else arrive(time);
+          } else if (way === 'trampoline') {
+            // A trampoline at the bottom of the screen; a bounce, a somersault
+            // high up onto the edge.
+            const pad = { x: to.x - side * 70, y: screenBottom - 16 };
+            const showing = t < 1600 ? Math.min(1, t / 300) : Math.max(0, 1 - (t - 1600) / 400);
+            putThing({ kind: 'trampoline', x: pad.x, y: pad.y + (1 - showing) * 40 });
+            if (t < 500) {
+              state.x = pad.x;
+              state.y = pad.y + 40 * (1 - Math.min(1, t / 300));
+              show('crouch');
+            } else if (t < 1300) {
+              const k = (t - 500) / 800;
+              state.x = pad.x + (to.x - pad.x) * k;
+              state.y = pad.y + (to.y - pad.y) * k - 90 * Math.sin(Math.PI * k);
+              state.spin = (side < 0 ? 1 : -1) * 360 * ease(k);
+              show('tuck');
+            } else if (t < 1900) {
+              state.spin = null;
+              state.x = to.x;
+              state.y = to.y;
+              show('cheer');
+            } else arrive(time);
+          } else if (way === 'parachute') {
+            // Down under a parachute, swaying; it folds away on landing.
+            const k = Math.min(1, t / 2600);
+            state.x = to.x + Math.sin(t / 500) * 10 * (1 - k);
+            state.y = screenTop + (to.y - screenTop) * ease(k);
+            state.rock = { amp: 8 * (1 - k), freq: 0.9, decay: 0, from: enter.started, origin: 'paws' };
+            if (t < 2600) {
+              // Its strings meet at its paws.
+              putThing({ kind: 'parachute', x: state.x, y: state.y - 2 });
+              show('hang', 'purring');
+            } else if (t < 3000) {
+              const j = (t - 2600) / 400;
+              putThing({
+                kind: 'parachute',
+                x: to.x + 10 * j,
+                y: to.y - 2 + 10 * j,
+                scale: 1 - 0.6 * j,
+                opacity: 1 - j,
+              });
+              state.rock = null;
+              show('crouch');
+            } else arrive(time);
+          } else if (way === 'abseil') {
+            // A rope drops from the top of the screen; it slides down it.
+            const drop = Math.min(1, t / 400);
+            const ropeLength = (to.y - 40 - screenTop) * drop;
+            if (t < 400) {
+              putThing({ kind: 'rope', x: to.x, y: screenTop, rope: ropeLength });
+              state.y = screenTop - 60;
+              show('hang');
+            } else if (t < 1800) {
+              const k = (t - 400) / 1400;
+              putThing({ kind: 'rope', x: to.x, y: screenTop, rope: to.y - 40 - screenTop });
+              state.x = to.x;
+              state.y = screenTop + (to.y - 40 - screenTop) * ease(k);
+              show('hang', 'purring');
+            } else if (t < 2100) {
+              const k = (t - 1800) / 300;
+              state.y = to.y - 40 + 40 * k * k;
+              putThing({ kind: 'rope', x: to.x, y: screenTop, rope: (to.y - 40 - screenTop) * (1 - k) });
+              show('leap');
+            } else arrive(time);
+          } else {
+            // The helicopter flies in with it hanging from its rope, lowers it
+            // onto the edge, and flies off.
+            const from = side < 0 ? window.scrollX - 80 : window.scrollX + window.innerWidth + 80;
+            const fly = Math.min(1, t / 1800);
+            const lower = t > 1800 ? Math.min(1, (t - 1800) / 600) : 0;
+            const hx = from + (to.x - from) * ease(fly);
+            const hy = to.y - 150 + 40 * lower;
+            if (t < 2400) {
+              putThing({ kind: 'heli', x: hx, y: hy, rope: 40 });
+              state.x = hx;
+              state.y = hy + 46;
+              state.facing = side < 0 ? 1 : -1;
+              show('hang', 'purring');
+            } else if (t < 2700) {
+              const k = (t - 2400) / 300;
+              state.y = hy + 46 + (to.y - hy - 46) * k * k;
+              putThing({ kind: 'heli', x: hx, y: hy, rope: 40 });
+              show('leap');
+            } else if (t < 3600) {
+              const k = (t - 2700) / 900;
+              putThing({ kind: 'heli', x: to.x - side * 300 * k, y: hy - 200 * k, rope: 40, opacity: 1 - k });
+              state.y = to.y;
+              show('sit', 'purring');
+            } else arrive(time);
           }
           break;
         }

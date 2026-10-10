@@ -211,6 +211,19 @@ treat moments and the three tossed toys. Picked, she does it at once (hopping
 up first off a side or a GPU card). Trips, slips and being trapped are not in
 the list.
 
+## Back into view
+
+When the page has scrolled her panel away and the scrolling has settled for
+1.2 s, she comes back onto the nearest panel in view, an equal pick of her ways
+in (never the same twice running):
+
+| Left off the… | Ways back in |
+|---|---|
+| Bottom of the screen | Leaping in; up a ladder that slides up to the edge; floating up holding a balloon; bounced off a trampoline in a somersault; lowered by the helicopter |
+| Top of the screen | Leaping in; down under a parachute, swaying; abseiling down a rope; lowered by the helicopter |
+
+These are not in the list on her card.
+
 ## Coming out
 
 - **Dropped on your name:** she goes back to hiding behind it, peeking over,
