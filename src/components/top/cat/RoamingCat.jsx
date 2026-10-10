@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MORPH_MS, ROAM_POSES, moodOf } from './BakeryCat';
 import { CatThing, WISHES, ToyIcon } from './CatThings';
+import { RING_SERIES } from '../shared/DetailBoxes';
 
 // The bakery cat let out to roam the page. It lives on the edges of the panels
 // marked data-cat-perch that are in view: mostly resting on a panel's top edge
@@ -355,6 +356,13 @@ const DOT_MS = 3500;
 const WISH_MS = 20000;
 const MENU_MS = 6000;
 
+// What it cheers as an idle GPU it has given some oil runs: a few of these, in
+// Chinese, Japanese, Malay, Korean and Vietnamese, in a random order each time.
+const CHEERS = ['加油!', '頑張れ!', 'Semangat!', '화이팅!', 'Cố lên!'];
+
+// The GPU visits that move or shake a tile (or its ring), left out in quiet mode.
+const MOVES_TILES = new Set(['wobble', 'steal', 'kick', 'spin', 'wheel', 'swing']);
+
 // What a click on the cat offers.
 const OPTIONS = [
   ['treat', 'Give a treat'],
@@ -363,13 +371,16 @@ const OPTIONS = [
   ['home', 'Send home'],
 ];
 
-export default function RoamingCat({ onHome, meal, peek = false }) {
+export default function RoamingCat({ onHome, meal, peek = false, quiet = false }) {
   const box = useRef(null);
   const cat = useRef(null);
   const menuBox = useRef(null);
   const tilt = useRef(null);
   const homeRef = useRef(onHome);
   homeRef.current = onHome;
+  // Quiet mode: it does not move or shake anything of the page's.
+  const quietRef = useRef(quiet);
+  quietRef.current = quiet;
   const moodRef = useRef('content');
   moodRef.current = moodOf(meal);
   const [menu, setMenu] = useState(false);
@@ -524,7 +535,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           tilt.current.style.transformOrigin = origin;
           tilt.current.style.transform = angle ? `rotate(${angle}deg)` : '';
         };
-        if ((state.mode === 'script' || state.mode === 'enter') && state.spin != null) {
+        if (['script', 'enter', 'plummet'].includes(state.mode) && state.spin != null) {
           // Turning head over heels (a backflip), round its middle.
           turn('fill-box', 'center', state.spin);
         } else if (state.mode === 'held') {
@@ -968,17 +979,79 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
     // back to a panel.
     // A GPU's tile it has set wobbling or tipped: let go (springing back if
     // tipped) as it leaves, however it leaves.
+    // A pretend reading over an idle GPU's ring while it runs: compute and
+    // memory arcs (in the ring's own sizes and colours) and the percentage,
+    // over a disc of the tile's colour hiding its "0%".
+    const SVG = 'http://www.w3.org/2000/svg';
+    const pretendRing = (ring, face) => {
+      const holder = ring.parentElement;
+      const size = Number(ring.getAttribute('width')) || 64;
+      const middle = size / 2;
+      const svg = document.createElementNS(SVG, 'svg');
+      for (const [name, value] of Object.entries({ width: size, height: size, viewBox: `0 0 ${size} ${size}` }))
+        svg.setAttribute(name, value);
+      svg.style.cssText = 'position:absolute;inset:0;pointer-events:none';
+      const tracks = [...ring.querySelectorAll('circle')].slice(0, 2);
+      const series = [RING_SERIES.compute, RING_SERIES.memory];
+      const arcs = tracks.map((track, index) => {
+        const arc = document.createElementNS(SVG, 'circle');
+        for (const name of ['cx', 'cy', 'r', 'stroke-width']) arc.setAttribute(name, track.getAttribute(name));
+        arc.setAttribute('fill', 'none');
+        arc.setAttribute('stroke', series[index].color);
+        arc.setAttribute('stroke-linecap', 'round');
+        arc.setAttribute('transform', `rotate(-90 ${middle} ${middle})`);
+        return arc;
+      });
+      const disc = document.createElementNS(SVG, 'circle');
+      disc.setAttribute('cx', middle);
+      disc.setAttribute('cy', middle);
+      disc.setAttribute('r', Math.max(4, Number(tracks[1]?.getAttribute('r') ?? 21) - 2.5));
+      disc.setAttribute('fill', getComputedStyle(face).backgroundColor || '#F6F7F9');
+      const label = document.createElementNS(SVG, 'text');
+      const font = getComputedStyle(holder.querySelector('span') ?? holder);
+      label.setAttribute('x', middle);
+      label.setAttribute('y', middle + 4.5);
+      label.setAttribute('text-anchor', 'middle');
+      label.style.cssText = `font: ${font.fontWeight} ${font.fontSize} ${font.fontFamily}; fill: ${font.color}; font-variant-numeric: tabular-nums`;
+      svg.append(...arcs, disc, label);
+      holder.appendChild(svg);
+      let shares = [0, 0];
+      const set = (compute, memory) => {
+        shares = [compute, memory];
+        arcs.forEach((arc, index) => {
+          const circumference = 2 * Math.PI * Number(arc.getAttribute('r'));
+          const length = Math.max(0, Math.min(1, shares[index])) * circumference;
+          arc.setAttribute('stroke-dasharray', `${length} ${circumference}`);
+          arc.style.opacity = length > 0.5 ? '1' : '0';
+        });
+        label.textContent = `${Math.round(Math.max(0, compute) * 100)}%`;
+      };
+      set(0, 0);
+      return {
+        set,
+        // Winding down to nothing, then gone.
+        windDown: (ms) => {
+          const [compute, memory] = shares;
+          const from = performance.now();
+          const step = (now) => {
+            const k = Math.min(1, (now - from) / ms);
+            set(compute * (1 - k) ** 2, memory * (1 - k) ** 2);
+            if (k < 1) requestAnimationFrame(step);
+            else svg.remove();
+          };
+          requestAnimationFrame(step);
+        },
+        remove: () => svg.remove(),
+      };
+    };
     // An idle tile it got running: stopped (sputtering out, or at once).
     const stopOilRun = (sputter = false) => {
       const run = state.oilRun;
       if (!run) return;
       state.oilRun = null;
-      run.hum.forEach((animation) => animation?.cancel());
-      if (sputter)
-        run.ring?.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(160deg)' }], {
-          duration: 1200,
-          easing: 'ease-out',
-        });
+      run.hum.forEach((animation) => animation && animation.cancel());
+      if (sputter) run.pretend?.windDown(1200);
+      else run.pretend?.remove();
       run.face.style.opacity = '';
       setTimeout(() => (run.face.style.transition = ''), 600);
     };
@@ -1104,7 +1177,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         { pose: 'crouch', ms: 1, start: () => startKick(tile) },
       ],
       // Getting an idle GPU going: a puzzled look, oil poured in from a little
-      // can ("glug"), a cheer ("加油!") and the tile runs a while (bright, its
+      // can ("glug"), cheers ("加油!", "頑張れ!", "Semangat!", "화이팅!", "Cố lên!") and the tile runs a while (bright, its
       // ring whirring, humming and glowing), then sputters out.
       oil: (tile) => {
         const face = tile.querySelector('.rounded-2xl') ?? tile;
@@ -1124,27 +1197,27 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           {
             pose: 'cheer',
             ms: 3800,
-            start: () => {
-              say('加油!');
+            start: (step) => {
+              // Two or three cheers, shuffled: the first now, the rest as it runs.
+              step.cheers = [...CHEERS].sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 2));
+              say(step.cheers.shift());
               face.style.transition = 'opacity 0.5s';
               face.style.opacity = '1';
               state.oilRun = {
                 face,
                 ring,
+                pretend: ring ? pretendRing(ring, face) : null,
                 hum: [
-                  ring?.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], {
-                    duration: 1100,
-                    iterations: Infinity,
-                  }),
-                  tile.animate(
-                    [
-                      { transform: 'translate(0, 0)' },
-                      { transform: 'translate(0.7px, -0.5px)' },
-                      { transform: 'translate(-0.6px, 0.4px)' },
-                      { transform: 'translate(0, 0)' },
-                    ],
-                    { duration: 130, iterations: Infinity },
-                  ),
+                  !quietRef.current &&
+                    tile.animate(
+                      [
+                        { transform: 'translate(0, 0)' },
+                        { transform: 'translate(0.7px, -0.5px)' },
+                        { transform: 'translate(-0.6px, 0.4px)' },
+                        { transform: 'translate(0, 0)' },
+                      ],
+                      { duration: 130, iterations: Infinity },
+                    ),
                   face.animate(
                     [
                       { boxShadow: '0 0 0 0 rgba(91, 190, 152, 0)' },
@@ -1157,9 +1230,15 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
             },
             frame: (step, now, k) => {
               state.lift = Math.abs(Math.sin(k * 10 * Math.PI)) * 6;
+              // The reading climbs, then flickers as a busy GPU's does.
+              const rise = Math.min(1, k * 4);
+              state.oilRun?.pretend?.set(
+                rise * (0.74 + 0.07 * Math.sin(now / 170) + 0.03 * Math.sin(now / 53)),
+                Math.min(1, k * 2.5) * (0.46 + 0.02 * Math.sin(now / 260)),
+              );
               if (Math.floor(k * 4) !== step.beat) {
                 step.beat = Math.floor(k * 4);
-                if (step.beat) say('~');
+                if (step.beat) say(step.beat % 2 && step.cheers?.length ? step.cheers.shift() : '~');
               }
             },
           },
@@ -1331,6 +1410,11 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
     // Off to a running GPU's tile (the hottest, for a nap), and the visit once there.
     const visitGpu = (asked) => {
       if (!state.perch) return false;
+      // Quiet, it only visits in ways that leave the tile be.
+      if (quietRef.current && MOVES_TILES.has(asked)) {
+        const calm = Object.fromEntries(Object.entries(feel().gpus).filter(([name]) => !MOVES_TILES.has(name)));
+        asked = Object.keys(calm).length ? pick(calm) : 'warm';
+      }
       const running = runningGpus();
       const idle = idleGpus();
       // One tile stolen at a time; an idle tile to get running, or a running one
@@ -1472,6 +1556,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       const target = things[Math.floor(Math.random() * things.length)];
       const targetAt = target && page(target.getBoundingClientRect());
       const jiggle = () =>
+        !quietRef.current &&
         target?.animate(
           [
             { transform: 'none' },
@@ -1788,8 +1873,8 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
     // above, down under a parachute or abseiling down a rope; from either,
     // lowered by the helicopter, or simply leaping in from the edge.
     const WAYS_IN = {
-      below: ['leap', 'ladder', 'balloon', 'trampoline', 'heli'],
-      above: ['leap', 'parachute', 'abseil', 'heli'],
+      below: ['leap', 'ladder', 'balloon', 'trampoline', 'heli', 'superhero', 'pogo', 'bubble'],
+      above: ['leap', 'parachute', 'abseil', 'heli', 'superhero', 'umbrella'],
     };
     const comeBack = (perch, fromAbove, time) => {
       const ways = WAYS_IN[fromAbove ? 'above' : 'below'].filter((way) => way !== state.lastWayIn);
@@ -2604,6 +2689,19 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           leapTo(beside.element, state.y, DROP_MS, beside.side);
           return;
         }
+        // Dropped over nothing at all (no panel anywhere below): it falls off
+        // the bottom of the screen, tumbling, and comes back by a way in.
+        const anyBelow = [...document.querySelectorAll('[data-cat-perch]')].some((element) => {
+          const edge = page(element.getBoundingClientRect());
+          return event.pageX >= edge.left && event.pageX <= edge.right && edge.top >= event.pageY - 30;
+        });
+        if (!anyBelow) {
+          Object.assign(state, { mode: 'plummet', started: time, from: { x: state.x, y: state.y }, perch: null });
+          state.wasScared = state.scared;
+          state.scared = false;
+          say('!');
+          return;
+        }
         // Dropped elsewhere: onto the panel under the pointer, else the nearest in view.
         const perches = visiblePerches();
         const below = perches
@@ -2725,7 +2823,15 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         else if (name.startsWith('toss:')) play(tossed[name.slice(5)](), performance.now());
         else if (name.startsWith('gpu:')) return visitGpu(name.slice(4));
         else if (name === 'run') stroll(true);
-        else if (name.startsWith('in:')) {
+        else if (name === 'plummet') {
+          Object.assign(state, {
+            mode: 'plummet',
+            started: performance.now(),
+            from: { x: state.x, y: state.y },
+            perch: null,
+          });
+          state.wasScared = false;
+        } else if (name.startsWith('in:')) {
           const [, way, from] = name.split(':');
           const perches = visiblePerches();
           const perch = from === 'above' ? perches[0] : perches[perches.length - 1];
@@ -3248,6 +3354,79 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
               putThing({ kind: 'rope', x: to.x, y: screenTop, rope: (to.y - 40 - screenTop) * (1 - k) });
               show('leap');
             } else arrive(time);
+          } else if (way === 'superhero') {
+            // Flying in from the side of the screen like a superhero, cape
+            // streaming, and landing with paws up.
+            const from = { x: side < 0 ? window.scrollX - 80 : window.scrollX + window.innerWidth + 80, y: to.y - 140 };
+            if (t < 1300) {
+              const k = ease(t / 1300);
+              state.x = from.x + (to.x - from.x) * k;
+              state.y = from.y + (to.y - from.y) * k - 40 * Math.sin(Math.PI * k);
+              state.facing = side < 0 ? 1 : -1;
+              show('fly');
+            } else if (t < 2000) {
+              state.x = to.x;
+              state.y = to.y;
+              if (!enter.landed) {
+                enter.landed = true;
+                say('✦');
+              }
+              show('cheer');
+            } else arrive(time);
+          } else if (way === 'pogo') {
+            // Bouncing up from the bottom of the screen on a pogo stick, in
+            // three hops, and hopping off onto the edge.
+            const hops = 3;
+            const hopMs = 520;
+            const stand = 16 * UNIT;
+            if (t < hops * hopMs) {
+              const hop = Math.floor(t / hopMs);
+              const k = (t % hopMs) / hopMs;
+              const fromY = screenBottom + 30 - ((screenBottom + 30 - (to.y - stand)) * hop) / hops;
+              const toY = screenBottom + 30 - ((screenBottom + 30 - (to.y - stand)) * (hop + 1)) / hops;
+              state.x = to.x + side * 20 * (1 - (hop + k) / hops);
+              state.y = fromY + (toY - fromY) * k - 70 * Math.sin(Math.PI * k);
+              if (hop !== enter.hop) {
+                enter.hop = hop;
+                say('boing');
+              }
+              show('pogo');
+            } else if (t < hops * hopMs + 350) {
+              const k = (t - hops * hopMs) / 350;
+              state.x = to.x;
+              state.y = to.y - stand + stand * k - 16 * Math.sin(Math.PI * k);
+              show('leap');
+            } else arrive(time);
+          } else if (way === 'bubble') {
+            // Floating up inside a big bubble, which pops at the edge.
+            if (t < 2600) {
+              const k = ease(Math.min(1, t / 2600));
+              state.x = to.x + Math.sin(t / 450) * 8;
+              state.y = screenBottom + 60 - (screenBottom + 60 - (to.y - 20)) * k;
+              putThing({ kind: 'bigbubble', x: state.x, y: state.y - 22, scale: 0.86 + 0.03 * Math.sin(t / 200) });
+              show('float');
+            } else if (t < 2900) {
+              const k = (t - 2600) / 300;
+              if (!enter.popped) {
+                enter.popped = true;
+                say('pop!');
+              }
+              putThing({ kind: 'bigbubble', x: to.x, y: to.y - 42, scale: 0.9 + 0.4 * k, opacity: 1 - k });
+              state.x = to.x;
+              state.y = to.y - 20 + 20 * k * k;
+              show('float');
+            } else arrive(time);
+          } else if (way === 'umbrella') {
+            // Drifting down from the top under an umbrella, swaying.
+            const k = Math.min(1, t / 2800);
+            state.x = to.x + Math.sin(t / 520) * 14 * (1 - k);
+            state.y = screenTop + (to.y - screenTop) * ease(k);
+            state.rock = { amp: 7 * (1 - k), freq: 0.8, decay: 0, from: enter.started };
+            if (t < 2800) show('brolly');
+            else if (t < 3300) {
+              state.rock = null;
+              show('sit', 'purring');
+            } else arrive(time);
           } else {
             // The helicopter flies in with it hanging from its rope, lowers it
             // onto the edge, and flies off.
@@ -3273,6 +3452,33 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
               state.y = to.y;
               show('sit', 'purring');
             } else arrive(time);
+          }
+          break;
+        }
+        case 'plummet': {
+          // Falling, faster and faster, tumbling, off the bottom of the screen;
+          // a moment later, back by one of its ways in.
+          const seconds = (time - state.started) / 1000;
+          state.x = state.from.x;
+          state.y = state.from.y + 0.5 * 2600 * seconds * seconds;
+          state.spin = (state.facing < 0 ? 1 : -1) * seconds * 540;
+          show(state.wasScared ? 'scared' : 'tumble');
+          if (state.y - window.scrollY > window.innerHeight + 120) {
+            state.spin = null;
+            state.goneAt = state.goneAt ?? time;
+            if (time - state.goneAt > 900) {
+              state.goneAt = null;
+              const perches = visiblePerches();
+              const perch = perches[perches.length - 1];
+              if (perch) {
+                state.x = Math.min(
+                  window.scrollX + window.innerWidth - MARGIN,
+                  Math.max(window.scrollX + MARGIN, state.x),
+                );
+                state.y = window.scrollY + window.innerHeight + 20;
+                comeBack(perch, false, time);
+              } else state.mode = 'idle';
+            }
           }
           break;
         }
@@ -3491,7 +3697,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           show(onSide() ? 'cling' : 'reach');
           if (state.knocks.length && time > state.knocks[0]) {
             state.knocks.shift();
-            shake(state.perch);
+            if (!quietRef.current) shake(state.perch);
           }
           if (time > state.until) {
             state.lastPlay = time - BORED_AFTER / 2;
@@ -3854,7 +4060,9 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           : '';
   const poseBox = { transformBox: 'fill-box', transformOrigin: 'center bottom' };
   return createPortal(
-    <div className="pointer-events-none absolute left-0 top-0 z-40" style={{ width: 0, height: 0 }}>
+    // Above the page's panels (their popups go to z-10) but under its floating
+    // bars: the navigation bar (z-50), the notes pill and the range rail (z-30).
+    <div className="pointer-events-none absolute left-0 top-0 z-20" style={{ width: 0, height: 0 }}>
       {/* The thing it is playing with, behind it. */}
       {things
         .filter((item) => !item.front)

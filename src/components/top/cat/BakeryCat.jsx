@@ -465,6 +465,12 @@ export const ROAM_POSES = {
   lean: () => <Leaning />,
   wink: () => <Sitting mood="wink" stage={STAGES[2]} />,
   glam: () => <Lounging />,
+  // Ways back into view: flying in like a superhero (a little cape), bouncing
+  // on a pogo stick, floating in a bubble, drifting down under an umbrella.
+  fly: () => <Flying />,
+  pogo: () => <Pogo />,
+  float: () => <Floating />,
+  brolly: () => <Brolly />,
   // Tripping off its edge: a stumble, a tumble through the air, and a splat.
   stumble: () => <Stumbling />,
   tumble: () => <Tumbling />,
@@ -2138,6 +2144,281 @@ function Lounging() {
         stroke={EDGE}
         strokeWidth="1.2"
         transform="rotate(0 36.5 86.4)"
+      />
+    </g>
+  );
+}
+
+// Flying in like a superhero: stretched out level, front paws together out
+// ahead, hind legs out behind, a little red cape streaming back.
+function Flying() {
+  return (
+    <g>
+      <path
+        d="M54 62c10-4 22-6 34-2 6 2 10 0 12-4-1 8-5 12-12 12-8 0-14 4-22 6z"
+        fill="#E98A8A"
+        stroke="#C96363"
+        strokeWidth="1.1"
+        strokeLinejoin="round"
+        className="motion-safe:animate-cat-wave"
+        style={{ transformBox: 'fill-box', transformOrigin: 'left center', animationDuration: '0.5s' }}
+      />
+      <path d="M83 72c7 0 12-3 15-8" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M83 72c7 0 12-3 15-8" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <path d="M77 75l16 4" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M77 75l16 4" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M75 77l15 7" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M75 77l15 7" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <ellipse
+        cx="94.5"
+        cy="79.4"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(15 94.5 79.4)"
+      />
+      <ellipse
+        cx="91.5"
+        cy="84.6"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(25 91.5 84.6)"
+      />
+      <ellipse cx="62" cy="72" rx="22" ry="8.5" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <ellipse cx="61" cy="77" rx="13" ry="3" fill={BELLY} />
+      <path d="M48 72 31 69" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M48 72 31 69" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M50 75 32 74" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M50 75 32 74" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <ellipse
+        cx="29.5"
+        cy="68.6"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(-10 29.5 68.6)"
+      />
+      <ellipse
+        cx="30.5"
+        cy="74"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(-5 30.5 74)"
+      />
+      <g transform="translate(43 63) scale(0.72) translate(-60 -46)">
+        <Head mood="content" />
+      </g>
+    </g>
+  );
+}
+
+// On a pogo stick: stood on its footpegs (at y = 88), paws on the handles, the
+// spring and tip below.
+function Pogo() {
+  return (
+    <g>
+      <path d="M60 50v52" stroke="#8E98A8" strokeWidth="3" strokeLinecap="round" />
+      <path d="M53 88h14" stroke="#5B6474" strokeWidth="2.6" strokeLinecap="round" />
+      <path d="M57 94l6 2-6 2 6 2-6 2" fill="none" stroke="#A3ADBB" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M58 104h4" stroke="#5B6474" strokeWidth="3" strokeLinecap="round" />
+      <path
+        d="M48 86c-4 0-6-5-5-11 1.4-10 6-17 17-17s15.6 7 17 17c1 6-1 11-5 11z"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M54 85c-3-5-3-14 6-17 9 3 9 12 6 17z" fill={BELLY} />
+      <path d="M50 68 43 65" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M50 68 43 65" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M70 68 77 65" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M70 68 77 65" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M38 64.5h44" stroke="#5B6474" strokeWidth="2.6" strokeLinecap="round" />
+      <g transform="translate(60 45) scale(0.82) translate(-60 -46)">
+        <Head mood="purring" />
+      </g>
+      <ellipse
+        cx="41.5"
+        cy="64.4"
+        rx="3.8"
+        ry="2.8"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 41.5 64.4)"
+      />
+      <ellipse
+        cx="78.5"
+        cy="64.4"
+        rx="3.8"
+        ry="2.8"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 78.5 64.4)"
+      />
+      <ellipse
+        cx="53.5"
+        cy="86.8"
+        rx="4.4"
+        ry="2.6"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 53.5 86.8)"
+      />
+      <ellipse
+        cx="66.5"
+        cy="86.8"
+        rx="4.4"
+        ry="2.6"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 66.5 86.8)"
+      />
+    </g>
+  );
+}
+
+// Floating in a bubble: sat round and content, paws up against its wall, tail
+// curled round, eyes shut.
+function Floating() {
+  return (
+    <g>
+      <path d="M72 84c10 2 14-5 10-11-2-3-5-2-5 1" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M72 84c10 2 14-5 10-11-2-3-5-2-5 1" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <ellipse cx="60" cy="76" rx="15" ry="13" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <ellipse cx="60" cy="80" rx="8" ry="7" fill={BELLY} />
+      <path d="M49 72 42 64" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M49 72 42 64" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M71 72 78 64" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M71 72 78 64" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <g transform="translate(60 58) scale(0.74) translate(-60 -46)">
+        <Head mood="purring" />
+      </g>
+      <ellipse
+        cx="41"
+        cy="62.6"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(-40 41 62.6)"
+      />
+      <ellipse
+        cx="79"
+        cy="62.6"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(40 79 62.6)"
+      />
+      <ellipse
+        cx="54"
+        cy="88"
+        rx="4"
+        ry="2.4"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 54 88)"
+      />
+      <ellipse
+        cx="66"
+        cy="88"
+        rx="4"
+        ry="2.4"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 66 88)"
+      />
+    </g>
+  );
+}
+
+// Drifting down under a little umbrella held up in one paw, the other paw out
+// for balance, legs dangling.
+function Brolly() {
+  return (
+    <g>
+      <path d="M80 22v20q0 4-3 4" fill="none" stroke="#5B6474" strokeWidth="1.6" strokeLinecap="round" />
+      <path
+        d="M56 26c0-12 11-20 24-20s24 8 24 20c-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-12 0z"
+        fill="#B6C6EE"
+        stroke="#7E95CF"
+        strokeWidth="1.1"
+        strokeLinejoin="round"
+      />
+      <path d="M68 26c0-10 5-17 12-19M92 26c0-10-5-17-12-19" fill="none" stroke="#9FB4E8" strokeWidth="0.9" />
+      <path d="M66 84c6 4 6 10 2 13" fill="none" stroke={EDGE} strokeWidth="5.4" strokeLinecap="round" />
+      <path d="M66 84c6 4 6 10 2 13" fill="none" stroke={FUR} strokeWidth="3.4" strokeLinecap="round" />
+      <path d="M55 83l-2 8" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M55 83l-2 8" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M65 83l2 8" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M65 83l2 8" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <ellipse
+        cx="52.6"
+        cy="92"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 52.6 92)"
+      />
+      <ellipse
+        cx="67.4"
+        cy="92"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 67.4 92)"
+      />
+      <ellipse cx="60" cy="72" rx="11" ry="14" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <ellipse cx="60" cy="75" rx="6" ry="9" fill={BELLY} />
+      <path d="M68 64 78 46" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M68 64 78 46" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M52 64 42 66" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M52 64 42 66" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <g transform="translate(60 52) scale(0.72) translate(-60 -46)">
+        <Head mood="content" />
+      </g>
+      <ellipse
+        cx="78.5"
+        cy="44"
+        rx="3.6"
+        ry="2.8"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 78.5 44)"
+      />
+      <ellipse
+        cx="40.5"
+        cy="66.4"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(-20 40.5 66.4)"
       />
     </g>
   );

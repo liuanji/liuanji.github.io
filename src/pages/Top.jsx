@@ -159,6 +159,8 @@ export default function Top() {
   // Whether the viewer's bakery cat is out roaming the page, remembered in this
   // browser. It stays home on phones and for viewers who prefer reduced motion.
   const [catRoaming, setCatRoaming] = useStoredFlag('gpu-status-cat-roam', false);
+  // Quiet mode: the cat leaves the page's own things where they are.
+  const [catQuiet, setCatQuiet] = useStoredFlag('gpu-status-cat-quiet', false);
   // Already out when the page loads, the cat waits peeking over its owner's
   // name till clicked; let out from its card, it comes straight out.
   const [catPeeksFirst, setCatPeeksFirst] = useState(catRoaming);
@@ -352,7 +354,14 @@ export default function Top() {
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                 <Freshness overview={overview} now={now} />
                 <span className="font-mono text-xs text-data-grey">
-                  <CatButton user={user} meal={stats.data?.cats?.[user]} roaming={catRoaming} onRoam={letCatRoam} />
+                  <CatButton
+                    user={user}
+                    meal={stats.data?.cats?.[user]}
+                    roaming={catRoaming}
+                    onRoam={letCatRoam}
+                    quiet={catQuiet}
+                    onQuiet={setCatQuiet}
+                  />
                   <span aria-hidden="true"> · </span>
                   <button type="button" onClick={signOut} className="transition-colors hover:text-inkwell">
                     Sign out
@@ -398,7 +407,12 @@ export default function Top() {
                 </div>
               )}
               {catRoaming && catCanRoam && (
-                <RoamingCat meal={stats.data?.cats?.[user]} peek={catPeeksFirst} onHome={() => letCatRoam(false)} />
+                <RoamingCat
+                  meal={stats.data?.cats?.[user]}
+                  peek={catPeeksFirst}
+                  quiet={catQuiet}
+                  onHome={() => letCatRoam(false)}
+                />
               )}
               <NotesPill notes={notes} me={user}>
                 {closed && <ClosedBanner since={overview.data.generated_at} now={now} />}

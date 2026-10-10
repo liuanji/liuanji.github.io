@@ -134,7 +134,10 @@ function gpusInView() {
 
 const isGpuGroup = (actions) => actions[0][0].startsWith('gpu:');
 
-function ActionsMenu() {
+// The GPU visits that move or shake a card, not offered in quiet mode.
+const MOVES_CARDS = new Set(['gpu:wobble', 'gpu:steal', 'gpu:kick', 'gpu:spin', 'gpu:wheel', 'gpu:swing']);
+
+function ActionsMenu({ quiet = false }) {
   const [gpus, setGpus] = useState({ running: false, idle: false });
   return (
     <DropdownMenu onOpenChange={(open) => open && setGpus(gpusInView())}>
@@ -164,7 +167,10 @@ function ActionsMenu() {
             {actions.map(([code, label]) => (
               <DropdownMenuItem
                 key={code}
-                disabled={code.startsWith('gpu:') && !(code === 'gpu:oil' ? gpus.idle : gpus.running)}
+                disabled={
+                  (quiet && MOVES_CARDS.has(code)) ||
+                  (code.startsWith('gpu:') && !(code === 'gpu:oil' ? gpus.idle : gpus.running))
+                }
                 className="py-1 text-[11px]"
                 onSelect={() => window.dispatchEvent(new CustomEvent('bakery-cat-do', { detail: code }))}
               >
@@ -180,7 +186,7 @@ function ActionsMenu() {
 
 // The card the cat button opens: the cat in its mood and at its age, how much
 // it ate this week and today, and how it grows.
-function CatDetails({ meal, roaming, onRoam }) {
+function CatDetails({ meal, roaming, onRoam, quiet, onQuiet }) {
   const mood = moodOf(meal);
   const hours = meal?.lifetime_gpu_hours ?? 0;
   const stage = stageOf(hours);
@@ -228,7 +234,12 @@ function CatDetails({ meal, roaming, onRoam }) {
       {/* Letting it out to roam the page (treats and toys are in its menu, a click on it away). */}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border-light pt-3">
         <Switch label={`Let ${NAME} roam the page`} checked={roaming} onChange={onRoam} />
-        {roaming && <ActionsMenu />}
+        {roaming && <ActionsMenu quiet={quiet} />}
+      </div>
+      {/* Quiet mode: it plays without moving or shaking anything of the page's. */}
+      <div className="mt-2 flex items-center gap-2">
+        <Switch label="Quiet mode" checked={Boolean(quiet)} onChange={onQuiet} />
+        <span className="font-mono text-[10px] text-data-grey/70">leaves the cards be</span>
       </div>
     </div>
   );
@@ -237,10 +248,13 @@ function CatDetails({ meal, roaming, onRoam }) {
 // Its owner's name, which opens the cat's card; on hover a soft underline draws
 // itself in from the left, as on the server names. A roaming cat sets off from
 // here (data-cat-home).
-export function CatButton({ user, meal, roaming, onRoam }) {
+export function CatButton({ user, meal, roaming, onRoam, quiet, onQuiet }) {
   const mood = moodOf(meal);
   return (
-    <DetailsPopover content={<CatDetails meal={meal} roaming={roaming} onRoam={onRoam} />} width="w-[320px]">
+    <DetailsPopover
+      content={<CatDetails meal={meal} roaming={roaming} onRoam={onRoam} quiet={quiet} onQuiet={onQuiet} />}
+      width="w-[320px]"
+    >
       <button
         type="button"
         data-cat-home

@@ -395,6 +395,24 @@ function Trampoline() {
   );
 }
 
+// A big soap bubble to float in, centred on (0, 0).
+function BigBubble() {
+  return (
+    <g>
+      <circle r="40" fill="#D8E8FF" fillOpacity="0.28" stroke="#9DBCEB" strokeWidth="1.2" />
+      <path
+        d="M-26-18a30 30 0 0 1 18-16"
+        fill="none"
+        stroke="white"
+        strokeWidth="3"
+        strokeLinecap="round"
+        opacity="0.85"
+      />
+      <path d="M22 24a30 30 0 0 1-8 7" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+    </g>
+  );
+}
+
 const THINGS = {
   yarn: Yarn,
   butterfly: Butterfly,
@@ -422,6 +440,7 @@ const THINGS = {
   rope: Rope,
   parachute: Parachute,
   trampoline: Trampoline,
+  bigbubble: BigBubble,
   bowl: TreatBowl,
 };
 // How far each reaches round its base, for the box it is drawn in.
@@ -452,6 +471,7 @@ const REACH = {
   rope: 10,
   parachute: 30,
   trampoline: 28,
+  bigbubble: 44,
   bowl: 20,
 };
 

@@ -81,7 +81,7 @@ back to a panel.
 | Warm nap (on the hottest card: loaf, then melts flat asleep) | 100% | 55% | 16% | 5% | 5% |
 | Ring spin (dangles a paw; the ring turns once) | – | 15% | 12% | 11% | 11% |
 | Peekaboo (peeks over the card, ducks, pops up) | – | 15% | 8% | 6% | 6% |
-| Add oil (on an idle card: pours from a little oil can, cheers "加油!", and the card runs a while, bright, humming and glowing, then sputters out) | – | 15% | 8% | 8% | 8% |
+| Add oil (on an idle card: pours from a little oil can, cheers two or three of "加油!" (Chinese), "頑張れ!" (Japanese), "Semangat!" (Malay), "화이팅!" (Korean) and "Cố lên!" (Vietnamese), and the card runs a while (its rings showing a pretend reading), bright, humming and glowing, then sputters out) | – | 15% | 8% | 8% | 8% |
 | Wobble (hops on it till it tips, reserve button and all; arches in fright; leaps off) | – | – | 15% | 19% | 19% |
 | Hamster wheel (runs on the ring, up to a turn a second; flung off, lands dizzy) | – | – | 15% | 19% | 19% |
 | Ring swing (hangs from the top of the ring by her front paws and swings; lets go) | – | – | 10% | 15% | 15% |
@@ -202,6 +202,16 @@ twice running:
 Clicks while she is trapped only get a puzzled "?"; picking her up takes her
 out.
 
+## Quiet mode
+
+A switch on her card (remembered in this browser). While it is on she moves
+and shakes nothing of the page's: no wobbling, stealing or kicking a GPU card,
+no spinning, running on or swinging from its ring (a visit that would becomes
+one of the calm ones: the warm nap, peekaboo or adding oil), no shaking her
+panel when she knocks, no jiggling things while trapped, no humming shake when
+an idle card runs. Everything else is as usual, and the card-moving visits are
+greyed out in her card's list.
+
 ## Her card
 
 Opened by clicking your name: how she has eaten, and the switch letting her
@@ -223,8 +233,12 @@ in (never the same twice running):
 
 | Left off the… | Ways back in |
 |---|---|
-| Bottom of the screen | Leaping in; up a ladder that slides up to the edge; floating up holding a balloon; bounced off a trampoline in a somersault; lowered by the helicopter |
-| Top of the screen | Leaping in; down under a parachute, swaying; abseiling down a rope; lowered by the helicopter |
+| Bottom of the screen | Leaping in; up a ladder that slides up to the edge; floating up holding a balloon; bounced off a trampoline in a somersault; lowered by the helicopter; flying in like a superhero (cape streaming); bouncing up on a pogo stick; floating up inside a big bubble that pops |
+| Top of the screen | Leaping in; down under a parachute, swaying; abseiling down a rope; lowered by the helicopter; flying in like a superhero; drifting down under an umbrella |
+
+Dropped over nothing (no panel anywhere below where she is let go), she falls
+off the bottom of the screen, tumbling (flailing if she was scared), and comes
+back up by one of the ways in from below.
 
 These are not in the list on her card.
 
