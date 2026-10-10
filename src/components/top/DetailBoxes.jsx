@@ -65,6 +65,10 @@ export function Metric({ label, value, share = null, series = null }) {
 // once its reading is well into its icon range.
 export const TEMPERATURE_COLOR = '#E07A5F';
 export const POWER_COLOR = '#B07AA1';
+// The GPU glyph's contacts (all but the key notch's place), lit and unlit.
+const CONTACTS = Array.from({ length: 15 }, (_, index) => index).filter((index) => index !== 4);
+const CONTACTS_ON = '#DDA62A';
+const CONTACTS_OFF = '#DCE2EA';
 
 function readingBar(color, amount) {
   return amount != null && amount >= 0.5 ? LEVEL_SERIES.hot : { color, track: `${color}24` };
@@ -93,6 +97,7 @@ export function GpuDetails({ gpu, host, reservation = null, me = null, now = 0 }
         <GpuGlyph
           compute={gpu.utilization / 100}
           memory={gpu.memory_total_mb ? gpu.memory_used_mb / gpu.memory_total_mb : 0}
+          power={power}
         />
         {/* The fan is compute and the chips are memory, so both get a figure in their colour. */}
         <span className="mt-2.5 flex items-center gap-3 font-tight text-base font-semibold leading-none tabular-nums text-inkwell">
@@ -353,7 +358,10 @@ export function ChipGlyph({ share, color, size = 26, animated = false, pace = sh
 // with compute load and its blades spin faster the busier it is (still when
 // idle or when the viewer prefers reduced motion), its eight memory chips fill
 // with memory in use, and gold contacts run along the bottom.
-export function GpuGlyph({ compute, memory, width = 116 }) {
+// power, when known, is the share of the power limit drawn: the gold contacts
+// along the bottom light up with it from the left.
+export function GpuGlyph({ compute, memory, power = null, width = 116 }) {
+  const drawn = useGrowingShare(power ?? 0);
   const fan = { x: 14.5, y: 13, radius: 8.4 };
   const circumference = 2 * Math.PI * fan.radius;
   const load = Math.min(1, Math.max(0, compute));
@@ -430,20 +438,32 @@ export function GpuGlyph({ compute, memory, width = 116 }) {
           </g>
         );
       })}
-      {Array.from({ length: 15 }, (_, index) => index)
-        .filter((index) => index !== 4)
-        .map((index) => (
-          <line
-            key={index}
-            x1={8 + index * 2.6}
-            y1="27.2"
-            x2={8 + index * 2.6}
-            y2="29.4"
-            stroke={GLYPH.contacts}
-            strokeWidth="1.3"
-            strokeLinecap="round"
-          />
-        ))}
+      {/* The gold contacts along the bottom; with power known, they light up
+          from the left with the share of the power limit drawn, the rest
+          grey, as if switched off. */}
+      {CONTACTS.map((index, order) => {
+        const x = 8 + index * 2.6;
+        const amount = power == null ? 1 : Math.min(1, Math.max(0, drawn * CONTACTS.length - order));
+        return (
+          <g key={index}>
+            {power != null && (
+              <line x1={x} y1="27.2" x2={x} y2="29.4" stroke={CONTACTS_OFF} strokeWidth="1.3" strokeLinecap="round" />
+            )}
+            {amount > 0 && (
+              <line
+                x1={x}
+                y1="27.2"
+                x2={x}
+                y2="29.4"
+                stroke={power == null ? GLYPH.contacts : CONTACTS_ON}
+                strokeWidth="1.3"
+                strokeLinecap="round"
+                opacity={amount}
+              />
+            )}
+          </g>
+        );
+      })}
     </svg>
   );
 }

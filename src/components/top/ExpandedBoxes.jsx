@@ -141,11 +141,13 @@ function MiniChart({
               orientation={side}
               domain={[axis?.min ?? 0, axis?.max ?? 100]}
               ticks={axis ? [axis.min ?? 0, ((axis.min ?? 0) + axis.max) / 2, axis.max] : [0, 50, 100]}
-              tickFormatter={axis ? axis.format : () => ''}
+              tickFormatter={axis?.format ?? (() => '')}
               hide={!axis}
               axisLine={false}
               tickLine={false}
-              tick={TICK}
+              // A spacer axis draws nothing but keeps its room, so charts
+              // stacked together keep their times in line.
+              tick={axis?.spacer ? false : TICK}
               width={axis ? (axis.width ?? 40) : 0}
             />
           );
@@ -193,7 +195,12 @@ export function GpuDeepDetails({ gpu, host, timeline, reservation = null, me = n
     <div>
       {/* The card's small picture before its name, the status on the right. */}
       <div className="flex items-center gap-3">
-        <GpuGlyph compute={gpu.utilization / 100} memory={memoryShare} width={64} />
+        <GpuGlyph
+          compute={gpu.utilization / 100}
+          memory={memoryShare}
+          power={gpu.power_limit_w && gpu.power_w != null ? gpu.power_w / gpu.power_limit_w : null}
+          width={64}
+        />
         <div className="min-w-0 flex-1">
           <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">
             {host} <span className="text-data-grey/60">·</span> GPU {gpu.index}
@@ -246,6 +253,9 @@ export function GpuDeepDetails({ gpu, host, timeline, reservation = null, me = n
               points={points}
               start={timeline.start}
               end={timeline.end}
+              // As wide on each side as the temperature and power chart below,
+              // so the two charts' times line up.
+              axes={{ left: { ...PERCENT_AXIS, width: 44 }, right: { spacer: true, width: 40 } }}
               lines={[
                 {
                   key: 'compute',

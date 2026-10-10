@@ -4,7 +4,7 @@ import { BoxFooter, GLYPH, RING_SERIES } from './DetailBoxes';
 import { HISTORY_REFRESH_MS, LIVE_REFRESH_MS } from './config';
 import { Segmented } from './controls';
 import { pressurePhrase } from './easterEggs';
-import { formatAxisTime, formatFullTime, gpuModels } from './format';
+import { formatAxisTime, gpuModels } from './format';
 import { useGrowingShare, useMorphedSeries } from './useGrowingShare';
 import { useStatusFile } from './useStatusFile';
 
@@ -136,21 +136,6 @@ export function RackGlyph({
   );
 }
 
-function ChartTooltip({ active = false, payload = [] }) {
-  if (!active || !payload?.length) return null;
-  const row = payload[0].payload;
-  if (row.busy == null) return null;
-  return (
-    <div className="rounded-lg border border-border-light bg-white/95 px-2.5 py-1.5 font-mono text-[11px] shadow-md backdrop-blur">
-      <div className="text-data-grey">{formatFullTime(row.timestamp)}</div>
-      <div className="text-inkwell">
-        {Math.round(row.busy)} of {row.total} in use
-        <span className="text-data-grey"> · {Math.round(row.utilized * 100)}% utilized</span>
-      </div>
-    </div>
-  );
-}
-
 function Stat({ label, value, note }) {
   return (
     <div className="rounded-lg bg-[#F6F7F9] px-2.5 py-1.5">
@@ -167,6 +152,7 @@ function Stat({ label, value, note }) {
 export function GpuOverview({ host, token }) {
   // The last hour (refreshed with the live readings) or the last day.
   const [range, setRange] = useState('24h');
+  const [hovered, setHovered] = useState(null);
   const history = useStatusFile(
     `history-${host.name}-${range}`,
     range === '1h' ? LIVE_REFRESH_MS : HISTORY_REFRESH_MS,
@@ -239,23 +225,32 @@ export function GpuOverview({ host, token }) {
               value={range}
               onChange={setRange}
             />
-            <span className="flex items-center gap-3 whitespace-nowrap text-[10px]">
-              <span className="flex items-center gap-1">
-                <span className="h-0.5 w-3 rounded-full" style={{ backgroundColor: INK }} aria-hidden="true" />
-                In use
+            {/* While hovering the chart, the moment's reading takes the key's
+                place, so nothing covers the chart. */}
+            {hovered ? (
+              <span className="truncate whitespace-nowrap text-[10px] text-inkwell">
+                {formatAxisTime(hovered.timestamp, '24h')} · {Math.round(hovered.busy)}/{hovered.total}
+                <span className="text-data-grey"> · {Math.round(hovered.utilized * 100)}% computing</span>
               </span>
-              <span className="flex items-center gap-1">
-                <span
-                  className="h-2 w-3 rounded-sm border-t"
-                  style={{ backgroundColor: `${INK_SOFT}66`, borderColor: INK_SOFT }}
-                  aria-hidden="true"
-                />
-                Computing
+            ) : (
+              <span className="flex items-center gap-3 whitespace-nowrap text-[10px]">
+                <span className="flex items-center gap-1">
+                  <span className="h-0.5 w-3 rounded-full" style={{ backgroundColor: INK }} aria-hidden="true" />
+                  In use
+                </span>
+                <span className="flex items-center gap-1">
+                  <span
+                    className="h-2 w-3 rounded-sm border-t"
+                    style={{ backgroundColor: `${INK_SOFT}66`, borderColor: INK_SOFT }}
+                    aria-hidden="true"
+                  />
+                  Computing
+                </span>
               </span>
-            </span>
+            )}
           </div>
           <div
-            className="mt-1 h-[92px]"
+            className="mt-2.5 h-[86px]"
             role="img"
             aria-label={`GPUs in use over the last ${range === '1h' ? 'hour' : '24 hours'}`}
           >
@@ -263,7 +258,12 @@ export function GpuOverview({ host, token }) {
               <p className="pt-8 text-center text-xs text-data-grey">{history ? 'Not enough data yet.' : 'Loading…'}</p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={drawn} margin={{ top: 6, right: 16, bottom: 0, left: 0 }}>
+                <AreaChart
+                  data={drawn}
+                  margin={{ top: 6, right: 16, bottom: 0, left: 0 }}
+                  onMouseMove={(state) => setHovered(state?.activePayload?.[0]?.payload ?? null)}
+                  onMouseLeave={() => setHovered(null)}
+                >
                   <XAxis
                     dataKey="timestamp"
                     type="number"
@@ -274,6 +274,7 @@ export function GpuOverview({ host, token }) {
                     tickLine={false}
                     tick={{ fill: '#94A3B8', fontSize: 10, fontFamily: 'JetBrains Mono, monospace' }}
                     tickMargin={6}
+                    height={20}
                   />
                   <YAxis
                     domain={[0, 1]}
@@ -285,7 +286,7 @@ export function GpuOverview({ host, token }) {
                     width={18}
                   />
                   <ReferenceLine y={1} stroke="#E2E8F0" strokeDasharray="3 4" />
-                  <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#E2E8F0' }} isAnimationActive={false} />
+                  <Tooltip content={() => null} cursor={{ stroke: '#CBD5E1' }} isAnimationActive={false} />
                   <Area
                     type="monotone"
                     dataKey="busyShown"
