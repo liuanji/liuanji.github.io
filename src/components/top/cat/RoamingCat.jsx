@@ -49,11 +49,14 @@ const DOZE_AFTER = 3 * 60 * 1000;
 // hopping between panels rather than dozing on where it lies), its pace, its
 // face, how soon it dozes off, how long it rests between outings, how readily
 // it leaps away, how far off it notices the pointer, how likely it is to play
-// keep-away with it, and what else it gets up to now and then (a chance each
-// time it stirs on a panel's top edge). Starving, it drags itself about, begs
-// and naps, too tired for games; well fed, it kneads the panel ("makes
-// biscuits"), gets the zoomies and plays hard to get; full, it is at its
-// liveliest, though it still lolls belly-up and grooms.
+// keep-away with it, how likely it is to visit a running GPU's tile each time
+// it stirs (and which visit: hungry, mostly a warm nap; well fed, mostly
+// bouncing on it or spinning its ring), and what else it gets up to now and
+// then (a chance each time it stirs on a panel's top edge). Starving, it drags
+// itself about, begs and naps, too tired for games but glad of a warm GPU; well
+// fed, it kneads the panel ("makes biscuits"), gets the zoomies and plays hard
+// to get; full, it is at its liveliest, though it still lolls belly-up and
+// grooms.
 const FEELS = {
   napping: {
     energy: 0.15,
@@ -65,6 +68,7 @@ const FEELS = {
     leap: 0.35,
     notice: 150,
     tease: 0,
+    gpus: { chance: 0.08, kinds: { warm: 1 } },
     begs: true,
     acts: { sleep: 0.45, beg: 0.25 },
   },
@@ -78,6 +82,7 @@ const FEELS = {
     leap: 0.8,
     notice: 170,
     tease: 0.08,
+    gpus: { chance: 0.12, kinds: { warm: 0.7, spin: 0.3 } },
     begs: true,
     acts: { beg: 0.25, groom: 0.05 },
   },
@@ -91,6 +96,7 @@ const FEELS = {
     leap: 1,
     notice: 170,
     tease: 0.2,
+    gpus: { chance: 0.16, kinds: { warm: 0.34, spin: 0.33, wobble: 0.33 } },
     acts: { groom: 0.15, knead: 0.05 },
   },
   purring: {
@@ -103,6 +109,7 @@ const FEELS = {
     leap: 1.1,
     notice: 210,
     tease: 0.4,
+    gpus: { chance: 0.2, kinds: { wobble: 0.45, spin: 0.35, warm: 0.2 } },
     acts: { knead: 0.2, zoom: 0.14, groom: 0.1 },
   },
   loaf: {
@@ -115,6 +122,7 @@ const FEELS = {
     leap: 1.2,
     notice: 170,
     tease: 0.15,
+    gpus: { chance: 0.22, kinds: { wobble: 0.5, spin: 0.3, warm: 0.2 } },
     acts: { belly: 0.22, groom: 0.18, knead: 0.12 },
   },
 };
@@ -172,6 +180,8 @@ function sideFits(perch, side) {
 // A spot on a panel's edge: along the top from its left, or down a side from its top.
 function spotOn(perch, along = null, side = 'top') {
   const edge = page(perch.getBoundingClientRect());
+  // A GPU's tile, visited now and then: the middle of its top edge.
+  if (perch.hasAttribute('data-cat-gpu')) return { x: (edge.left + edge.right) / 2, y: edge.top + 1 };
   if (side === 'top') {
     const x = along ?? random(edge.left + MARGIN, edge.right - MARGIN);
     return { x: Math.min(edge.right - MARGIN, Math.max(edge.left + MARGIN, x)), y: edge.top + 1 };
@@ -190,6 +200,14 @@ function heightAbove(x, feet) {
     .filter((edge) => x >= edge.left && x <= edge.right && edge.top >= feet - 10)
     .map((edge) => edge.top);
   return Math.min(window.scrollY + window.innerHeight, ...tops) - feet;
+}
+
+// The running GPUs' tiles in view, to visit.
+function runningGpus() {
+  return [...document.querySelectorAll('[data-cat-gpu][data-busy]')].filter((element) => {
+    const rect = element.getBoundingClientRect();
+    return rect.width > 40 && rect.top > TOP_CLEAR && rect.top < window.innerHeight - 40;
+  });
 }
 
 // A gentle shake of a panel, as if knocked on.
@@ -227,6 +245,7 @@ const NOTE_COLORS = {
   '♪': ['#E39A55', '#8EA2E8', '#D98E9C'],
   '♫': ['#B07AA1', '#5BBE98', '#E39A55'],
   '✦': ['#E3B655', '#F2B8C2', '#9FB4E8'],
+  '~': ['#E39A55', '#E3B655', '#D98E9C'],
 };
 
 // How long the dot a click shows, and the menu it opens, stay up untouched.
@@ -757,6 +776,106 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         ];
       },
     };
+    // Visits to a running GPU's tile: bouncing on it till it lurches and
+    // tips (a fright, and off it leaps, the tile springing back); a warm nap
+    // on the hottest; or pawing at its ring to spin it. Each ends with a leap
+    // back to a panel.
+    const leaveTile = () => ({
+      pose: 'sit',
+      ms: 1,
+      start: () => leapTo(otherPerch() ?? state.home ?? visiblePerches()[0]),
+    });
+    const gpuVisits = {
+      wobble: (tile) => {
+        const side = Math.random() < 0.5 ? -1 : 1;
+        const tipped = `translateY(5px) rotate(${side * 6}deg)`;
+        let tip = null;
+        return [
+          { pose: 'sit', mood: 'purring', ms: 400, start: () => say('♪') },
+          {
+            pose: 'hop',
+            ms: 1700,
+            frame: (step, time, k) => {
+              state.lift = Math.abs(Math.sin(k * 6 * Math.PI)) * 12;
+              tile.style.transform = `rotate(${Math.sin(k * 12 * Math.PI) * (0.6 + k)}deg)`;
+            },
+          },
+          {
+            pose: 'startle',
+            ms: 700,
+            rock: { amp: 8, freq: 6, decay: 2 },
+            start: () => {
+              tile.style.transform = '';
+              tile.style.transformOrigin = side < 0 ? 'left bottom' : 'right bottom';
+              tip = tile.animate([{ transform: 'none' }, { transform: tipped }], {
+                duration: 360,
+                easing: 'cubic-bezier(.3,1.7,.6,1)',
+                fill: 'forwards',
+              });
+              say('!');
+            },
+          },
+          {
+            ...leaveTile(),
+            start: () => {
+              leapTo(otherPerch() ?? visiblePerches()[0]);
+              // The tile springs back once it is off.
+              setTimeout(() => {
+                tip?.cancel();
+                tile
+                  .animate([{ transform: tipped }, { transform: `rotate(${-side * 1.5}deg)` }, { transform: 'none' }], {
+                    duration: 800,
+                    easing: 'ease-out',
+                  })
+                  .finished.then(() => (tile.style.transformOrigin = ''))
+                  .catch(() => {});
+              }, 450);
+            },
+          },
+        ];
+      },
+      warm: () => [
+        {
+          pose: 'rest',
+          mood: 'purring',
+          ms: 1400,
+          start: () => say('prr'),
+          frame: () => Math.random() < 0.03 && say('~'),
+        },
+        { pose: 'melt', ms: 5000, frame: () => (Math.random() < 0.02 ? say('~') : Math.random() < 0.006 && say('z')) },
+        { pose: 'stretch', ms: 900 },
+        leaveTile(),
+      ],
+      spin: (tile) => {
+        const ring = tile.querySelector('[data-cat-ring]');
+        const spin = () =>
+          ring?.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(720deg)' }], {
+            duration: 1300,
+            easing: 'cubic-bezier(.2,.8,.3,1)',
+          });
+        return [
+          { pose: 'sit', ms: 600 },
+          { pose: 'dangle', ms: 1000, start: () => spin() },
+          { pose: 'sit', mood: 'hungry', ms: 1100, start: () => say('!') },
+          { pose: 'dangle', ms: 1000, start: () => spin() },
+          { pose: 'sit', mood: 'purring', ms: 1300, start: () => say('heart') },
+          leaveTile(),
+        ];
+      },
+    };
+    // Off to a running GPU's tile (the hottest, for a nap), and the visit once there.
+    const visitGpu = (kind) => {
+      const tiles = runningGpus();
+      if (!tiles.length || !state.perch) return false;
+      const tile =
+        kind === 'warm'
+          ? tiles.sort((a, b) => Number(b.dataset.heat ?? 0) - Number(a.dataset.heat ?? 0))[0]
+          : tiles[Math.floor(Math.random() * tiles.length)];
+      state.resume = { steps: () => gpuVisits[kind](tile) };
+      leapTo(tile);
+      return true;
+    };
+
     // Ways of having a treat: tossed, caught in the air; held up, begged for;
     // dropped somewhere, hunted for; or a little bowl of them.
     const munch = () => [
@@ -1424,6 +1543,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         else if (TOYS[name]) startGame(name, performance.now());
         else if (name.startsWith('treat:')) play(treats[name.slice(6)](), performance.now());
         else if (name.startsWith('toss:')) play(tossed[name.slice(5)](), performance.now());
+        else if (name.startsWith('gpu:')) return visitGpu(name.slice(4));
         else if (name.startsWith('dance:')) {
           state.lastDance = null;
           play([{ pose: 'sit', mood: 'purring', ms: 350 }, ...dances[name.slice(6)](), ...bow()], performance.now());
@@ -1625,7 +1745,9 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           show(onSide() ? 'cling' : 'crouch');
           if (time > state.until) {
             // Landed mid-game of keep-away: the game goes on here.
-            if (state.resume === 'tease' && !onSide()) {
+            if (state.resume?.steps) {
+              play(state.resume.steps(), time);
+            } else if (state.resume === 'tease' && !onSide()) {
               const { teasePace: pace, teaseFrom: from } = state;
               startTease(time);
               Object.assign(state, { teasePace: pace, teaseFrom: from, until: time + 4000 });
@@ -1641,6 +1763,10 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
             break;
           }
           if (time < state.until || state.menu) break;
+          if (state.perch?.hasAttribute('data-cat-gpu')) {
+            leapTo(otherPerch() ?? visiblePerches()[0]);
+            break;
+          }
           // Low on energy, it often just dozes on where it is.
           if (Math.random() > feel().energy + 0.35) {
             rest(time);
@@ -1649,6 +1775,13 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           const bored = time - state.lastPlay > BORED_AFTER;
           const roll = Math.random();
           const perch = state.perch;
+          // Off to a running GPU's tile, as likely as its mood makes it.
+          const gpus = feel().gpus;
+          if (!onSide() && !bored && Math.random() < gpus.chance) {
+            let pick = Math.random();
+            const kind = Object.keys(gpus.kinds).find((name) => (pick -= gpus.kinds[name]) < 0) ?? 'warm';
+            if (visitGpu(kind)) break;
+          }
           const doing = !onSide() && !bored ? pickAct() : null;
           const choices = (IDLE[moodRef.current] ?? IDLE.content).filter((name) => name !== state.lastIdle);
           const idle =
@@ -2164,14 +2297,15 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
             </g>
           </g>
         </svg>
-        {/* A toy it wishes for, in a thought bubble: clicked, the game is on. */}
+        {/* A toy it wishes for, in a thought bubble: clicked, the game is on.
+            Left unclicked a few seconds, it gives a wiggle now and then. */}
         {wish && (
           <button
             type="button"
             onClick={() => cat.current?.takeWish?.()}
             aria-label={`Mochi would love to play with ${TOYS[wish]}. Play with Mochi.`}
-            className="pointer-events-auto absolute rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20"
-            style={{ left: BUBBLE.x - 4, bottom: HEIGHT - BUBBLE.y - 3 }}
+            className="pointer-events-auto absolute rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20 motion-safe:animate-cat-nudge"
+            style={{ left: BUBBLE.x - 4, bottom: HEIGHT - BUBBLE.y - 3, transformOrigin: '4px 39px' }}
           >
             <svg
               viewBox="0 0 50 42"

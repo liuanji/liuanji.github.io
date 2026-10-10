@@ -80,7 +80,13 @@ function UsageRing({ gpu }) {
   const memory = useGrowingShare(gpu.memory_total_mb ? gpu.memory_used_mb / gpu.memory_total_mb : 0);
   return (
     <div className="relative flex-shrink-0" style={{ width: RING.size, height: RING.size }}>
-      <svg width={RING.size} height={RING.size} viewBox={`0 0 ${RING.size} ${RING.size}`} aria-hidden="true">
+      <svg
+        width={RING.size}
+        height={RING.size}
+        viewBox={`0 0 ${RING.size} ${RING.size}`}
+        aria-hidden="true"
+        data-cat-ring
+      >
         <Arc radius={RING.outer} width={RING.outerWidth} share={compute} series={RING_SERIES.compute} />
         <Arc radius={RING.inner} width={RING.innerWidth} share={memory} series={RING_SERIES.memory} />
       </svg>
@@ -261,8 +267,12 @@ function GpuRing({ gpu, host, interactive, now, reserving }) {
   const mine = Boolean(reservation) && reservation.user === reserving.me;
   const label = describe(gpu, host, reservation);
   const Tile = interactive ? 'button' : 'div';
+  // The bakery cat may visit a running GPU's tile (data-cat-gpu, busy, and how hot).
   const tile = (
     <Tile
+      data-cat-gpu
+      data-busy={gpu.busy ? '' : undefined}
+      data-heat={gpu.temperature_c ?? undefined}
       {...(interactive
         ? { type: 'button', 'aria-label': `${label}. Show details.` }
         : { role: 'img', 'aria-label': label, title: label })}
