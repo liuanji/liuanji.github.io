@@ -236,6 +236,21 @@ module.exports = {
   				'0%, 100%': { transform: 'scaleX(1)' },
   				'50%': { transform: 'scaleX(0.35)' }
   			},
+  			'cat-emerge': {
+  				'0%': { transform: 'translateY(34px)' },
+  				'45%': { transform: 'translateY(20px)' },
+  				'60%': { transform: 'translateY(20px)' },
+  				'100%': { transform: 'translateY(9px)' }
+  			},
+  			'cat-look': {
+  				'0%, 70%, 100%': { transform: 'rotate(0deg)' },
+  				'78%': { transform: 'rotate(-9deg)' },
+  				'88%': { transform: 'rotate(9deg)' }
+  			},
+  			'cat-wave': {
+  				'0%, 100%': { transform: 'rotate(0deg)' },
+  				'50%': { transform: 'rotate(22deg)' }
+  			},
   			'cat-breathe': {
   				'0%, 100%': { transform: 'scaleY(1)' },
   				'50%': { transform: 'scaleY(1.04)' }
@@ -318,6 +333,9 @@ module.exports = {
   			'cat-knead': 'cat-knead 0.7s ease-in-out infinite',
   			'cat-tremble': 'cat-tremble 0.16s linear infinite',
   			'cat-flap': 'cat-flap 0.22s ease-in-out infinite',
+  			'cat-emerge': 'cat-emerge 1.6s ease-out both',
+  			'cat-look': 'cat-look 4.5s ease-in-out 1.6s infinite',
+  			'cat-wave': 'cat-wave 0.45s ease-in-out infinite',
   			'cat-breathe': 'cat-breathe 3.2s ease-in-out infinite',
   			'cat-float': 'cat-float 1.6s ease-out both',
   			steam: 'steam 2.1s ease-out infinite',

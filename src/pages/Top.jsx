@@ -3,23 +3,23 @@ import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import GhostNav from '../components/layout/GhostNav';
-import CompactHosts from '../components/top/CompactHosts';
-import { BakeryCard } from '../components/top/BakeryStatus';
-import { CatButton } from '../components/top/CatCard';
-import RoamingCat from '../components/top/RoamingCat';
+import CompactHosts from '../components/top/servers/CompactHosts';
+import { BakeryCard } from '../components/top/bakery/BakeryStatus';
+import { CatButton } from '../components/top/cat/CatCard';
+import RoamingCat from '../components/top/cat/RoamingCat';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ClosedBanner } from '../components/top/ClosedBakery';
-import { DetailsPopover } from '../components/top/DetailBoxes';
-import DiskCard, { CleanupBanner, cleanupColor, cleanupIsUrgent } from '../components/top/DiskCard';
-import HostCard from '../components/top/HostCard';
-import LoginCard from '../components/top/LoginCard';
-import LiveTiles from '../components/top/LiveBreakdown';
-import { TrendTile } from '../components/top/PeriodTrends';
-import UptimeCard from '../components/top/UptimeCard';
-import UsageChart from '../components/top/UsageChart';
-import NotesPill from '../components/top/NotesPill';
-import RangeRail from '../components/top/RangeRail';
-import UserRanking from '../components/top/UserRanking';
+import { ClosedBanner } from '../components/top/bakery/ClosedBakery';
+import { DetailsPopover } from '../components/top/shared/DetailBoxes';
+import DiskCard, { CleanupBanner, cleanupColor, cleanupIsUrgent } from '../components/top/servers/DiskCard';
+import HostCard from '../components/top/servers/HostCard';
+import LoginCard from '../components/top/account/LoginCard';
+import LiveTiles from '../components/top/overview/LiveBreakdown';
+import { TrendTile } from '../components/top/overview/PeriodTrends';
+import UptimeCard from '../components/top/overview/UptimeCard';
+import UsageChart from '../components/top/overview/UsageChart';
+import NotesPill from '../components/top/alerts/NotesPill';
+import RangeRail from '../components/top/overview/RangeRail';
+import UserRanking from '../components/top/people/UserRanking';
 import {
   DEFAULT_RANGE,
   DELAYED_AFTER_SECONDS,
@@ -31,8 +31,8 @@ import {
   RANGES,
   RESERVATION_CLASH,
   SERIES,
-} from '../components/top/config';
-import { LiveDot, Notice, SectionLabel, SegmentedControl, Switch } from '../components/top/controls';
+} from '../components/top/shared/config';
+import { LiveDot, Notice, SectionLabel, SegmentedControl, Switch } from '../components/top/shared/controls';
 import {
   cleanupReminders,
   currentStatus,
@@ -41,13 +41,13 @@ import {
   formatObserved,
   formatPercent,
   formatPower,
-} from '../components/top/format';
-import { IdleBanner, myHeldIdle } from '../components/top/Insights';
-import { OverheatBanner, myOverheated } from '../components/top/Overheat';
-import { ClashBanner, myClashes } from '../components/top/Reservations';
-import { useReservations } from '../components/top/useReservations';
-import { useSession } from '../components/top/useSession';
-import { useNow, useStatusFile } from '../components/top/useStatusFile';
+} from '../components/top/shared/format';
+import { IdleBanner, myHeldIdle } from '../components/top/servers/Insights';
+import { OverheatBanner, myOverheated } from '../components/top/alerts/Overheat';
+import { ClashBanner, myClashes } from '../components/top/alerts/Reservations';
+import { useReservations } from '../components/top/hooks/useReservations';
+import { useSession } from '../components/top/account/useSession';
+import { useNow, useStatusFile } from '../components/top/hooks/useStatusFile';
 import { gpuStatusUrl } from '../data/servers';
 import { myCopyrightBody, myUpdateInfo } from '../data/profile';
 import { useDocumentTitle } from '../hooks/use-document-title';
@@ -159,6 +159,13 @@ export default function Top() {
   // Whether the viewer's bakery cat is out roaming the page, remembered in this
   // browser. It stays home on phones and for viewers who prefer reduced motion.
   const [catRoaming, setCatRoaming] = useStoredFlag('gpu-status-cat-roam', false);
+  // Already out when the page loads, the cat waits peeking over its owner's
+  // name till clicked; let out from its card, it comes straight out.
+  const [catPeeksFirst, setCatPeeksFirst] = useState(catRoaming);
+  const letCatRoam = (on) => {
+    setCatPeeksFirst(false);
+    setCatRoaming(on);
+  };
   const catCanRoam = !useIsMobile() && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   // The range a link names wins; otherwise the one last picked in this browser.
   const [savedRange, setSavedRange] = useStoredChoice('gpu-status-range');
@@ -345,7 +352,7 @@ export default function Top() {
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                 <Freshness overview={overview} now={now} />
                 <span className="font-mono text-xs text-data-grey">
-                  <CatButton user={user} meal={stats.data?.cats?.[user]} roaming={catRoaming} onRoam={setCatRoaming} />
+                  <CatButton user={user} meal={stats.data?.cats?.[user]} roaming={catRoaming} onRoam={letCatRoam} />
                   <span aria-hidden="true"> · </span>
                   <button type="button" onClick={signOut} className="transition-colors hover:text-inkwell">
                     Sign out
@@ -391,7 +398,7 @@ export default function Top() {
                 </div>
               )}
               {catRoaming && catCanRoam && (
-                <RoamingCat meal={stats.data?.cats?.[user]} onHome={() => setCatRoaming(false)} />
+                <RoamingCat meal={stats.data?.cats?.[user]} peek={catPeeksFirst} onHome={() => letCatRoam(false)} />
               )}
               <NotesPill notes={notes} me={user}>
                 {closed && <ClosedBanner since={overview.data.generated_at} now={now} />}
