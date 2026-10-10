@@ -76,16 +76,18 @@ back to a panel.
 
 | Visit | Starving | Hungry | Content | Well fed | Full |
 |---|---|---|---|---|---|
-| Warm nap (on the hottest card: loaf, then melts flat asleep) | 100% | 60% | 18% | 6% | 6% |
-| Ring spin (dangles a paw; the ring spins twice) | – | 20% | 14% | 13% | 13% |
-| Peekaboo (peeks over the card, ducks, pops up) | – | 20% | 10% | 7% | 7% |
-| Wobble (hops on it till it tips, reserve button and all; arches in fright; leaps off) | – | – | 18% | 22% | 22% |
-| Hamster wheel (runs on the ring, flung off, lands dizzy) | – | – | 18% | 22% | 22% |
-| Ring swing (hangs from the top of the ring by her front paws and swings; lets go) | – | – | 12% | 18% | 18% |
-| Steal (pushes the card off the nearer edge of the screen and comes back pleased; 6–9 s later a helicopter brings it back) | – | – | 10% | 12% | 12% |
+| Warm nap (on the hottest card: loaf, then melts flat asleep) | 100% | 60% | 17% | 6% | 6% |
+| Ring spin (dangles a paw; the ring turns once) | – | 20% | 13% | 12% | 12% |
+| Peekaboo (peeks over the card, ducks, pops up) | – | 20% | 9% | 6% | 6% |
+| Wobble (hops on it till it tips, reserve button and all; arches in fright; leaps off) | – | – | 16% | 20% | 20% |
+| Hamster wheel (runs on the ring, up to a turn a second; flung off, lands dizzy) | – | – | 16% | 20% | 20% |
+| Ring swing (hangs from the top of the ring by her front paws and swings; lets go) | – | – | 11% | 16% | 16% |
+| Steal (pushes the card off the nearer edge of the screen and comes back pleased; 6–9 s later a helicopter brings it back) | – | – | 9% | 10% | 10% |
+| Kick (three mule kicks, the card leaning further each time, till it topples off the bottom of the screen; a helicopter brings it back) | – | – | 9% | 10% | 10% |
 
-Only one card is stolen at a time (another steal becomes a wobble until it is
-back). Picked up mid-push, the helicopter comes after 2.5 s instead.
+Only one card is out at a time (another steal or kick becomes a wobble until it
+is back). Picked up mid-push or mid-kick, the helicopter comes after 2.5 s
+instead.
 
 ### (iii) Thought bubbles
 
@@ -201,12 +203,13 @@ out.
 
 Opened by clicking your name: how she has eaten, and the switch letting her
 roam. While she roams, a barely-there "•••" button beside the switch lists
-everything she can be asked to do that needs nothing in particular about the
-page: the moves (walk, run, sniff, spook, pounce), her other interactions, the
-things to do with you (belly rub, brushing, photo shoot, the five toy games),
-the four treat moments and the three tossed toys. Picked, she does it at once
-(hopping up first off a side or a GPU card). GPU card visits, trips, slips and
-being trapped are not in the list.
+everything she can be asked to do: the moves (walk, run, sniff, spook,
+pounce), her other interactions, the GPU card visits (greyed out, with a note,
+unless a running GPU's card is fully in view when the list opens), the things
+to do with you (belly rub, brushing, photo shoot, the five toy games), the four
+treat moments and the three tossed toys. Picked, she does it at once (hopping
+up first off a side or a GPU card). Trips, slips and being trapped are not in
+the list.
 
 ## Coming out
 

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { CatScene, MOODS, STAGES, APPETITE, moodOf, stageOf } from './BakeryCat';
 import { DetailsPopover } from '../shared/DetailBoxes';
 import { Switch } from '../shared/controls';
@@ -36,8 +37,8 @@ function moodLine(mood, meal) {
   }
 }
 
-// Things it can be asked to do while it roams (those that need nothing in
-// particular about the page), as the roaming cat knows them.
+// Things it can be asked to do while it roams, as the roaming cat knows them.
+// The GPU card visits need a running GPU's tile fully in view.
 const ACTIONS = [
   [
     'Moves',
@@ -87,6 +88,19 @@ const ACTIONS = [
     ],
   ],
   [
+    'GPU cards',
+    [
+      ['gpu:warm', 'Warm nap on the hottest'],
+      ['gpu:spin', 'Spin a ring'],
+      ['gpu:peekaboo', 'Peekaboo'],
+      ['gpu:wobble', 'Bounce on one till it tips'],
+      ['gpu:wheel', 'Run on a ring'],
+      ['gpu:swing', 'Swing from a ring'],
+      ['gpu:steal', 'Steal one'],
+      ['gpu:kick', 'Kick one off'],
+    ],
+  ],
+  [
     'Treats',
     [
       ['treat:toss', 'Toss and catch'],
@@ -107,9 +121,20 @@ const ACTIONS = [
 
 // A barely-there button beside the roam switch with everything it can be
 // asked to do; picked, it does it.
+// Whether a running GPU's tile is fully in view, for the cat to visit.
+function gpuInView() {
+  return [...document.querySelectorAll('[data-cat-gpu][data-busy]')].some((element) => {
+    const rect = element.getBoundingClientRect();
+    return rect.width > 40 && rect.top > 120 && rect.bottom < window.innerHeight - 10;
+  });
+}
+
+const isGpuGroup = (actions) => actions[0][0].startsWith('gpu:');
+
 function ActionsMenu() {
+  const [gpus, setGpus] = useState(false);
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={(open) => open && setGpus(gpuInView())}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
@@ -127,10 +152,16 @@ function ActionsMenu() {
             {index > 0 && <DropdownMenuSeparator />}
             <DropdownMenuLabel className="py-1 text-[10px] font-normal uppercase tracking-wide text-data-grey">
               {group}
+              {isGpuGroup(actions) && !gpus && (
+                <span className="block normal-case tracking-normal text-data-grey/70">
+                  Scroll a running GPU into view first
+                </span>
+              )}
             </DropdownMenuLabel>
             {actions.map(([code, label]) => (
               <DropdownMenuItem
                 key={code}
+                disabled={code.startsWith('gpu:') && !gpus}
                 className="py-1 text-[11px]"
                 onSelect={() => window.dispatchEvent(new CustomEvent('bakery-cat-do', { detail: code }))}
               >

@@ -446,6 +446,9 @@ export const ROAM_POSES = {
   // Pushing something along (to its left): leaning in, front paws braced flat
   // against it, hind legs digging in, straining.
   push: () => <Pushing />,
+  // A mule kick: front paws planted, both hind legs kicked straight out behind
+  // (to its right, reaching x = 92).
+  kick: () => <Kicking />,
   // Mid-backflip: tucked into a tight ball, paws pulled in, happy.
   tuck: () => <Tucked />,
   // Trapped in a panel: up on its hind legs, front paws pressed flat on the
@@ -1684,6 +1687,81 @@ function Pushing() {
       <g transform="translate(46 64) rotate(10) scale(0.7) translate(-60 -46)">
         <Head mood="sneeze" />
       </g>
+    </g>
+  );
+}
+
+// A mule kick: head down, front paws planted, rump up, both hind legs kicked
+// straight out behind, tail up, a cheeky face.
+function Kicking() {
+  return (
+    <g>
+      <path d="M77 58c3-7 2-14-3-18-2-1-4 1-3 3" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M77 58c3-7 2-14-3-18-2-1-4 1-3 3" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <path d="M76 64 91 61" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M76 64 91 61" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M75 68 91 69" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M75 68 91 69" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <ellipse
+        cx="92.6"
+        cy="60.8"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(80 92.6 60.8)"
+      />
+      <ellipse
+        cx="92.6"
+        cy="69.2"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(80 92.6 69.2)"
+      />
+      <ellipse
+        cx="62"
+        cy="72"
+        rx="19"
+        ry="9.5"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        transform="rotate(-20 62 72)"
+      />
+      <ellipse cx="60" cy="77" rx="10" ry="3.4" fill={BELLY} transform="rotate(-20 60 77)" />
+      <path d="M62 63l1.6 3.8M69 60l1.4 4M75 57.6l.6 4" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M50 79l-2 8" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M50 79l-2 8" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <path d="M55 80l-1 7" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d="M55 80l-1 7" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+      <ellipse
+        cx="47.6"
+        cy="87.6"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 47.6 87.6)"
+      />
+      <ellipse
+        cx="53.6"
+        cy="87.8"
+        rx="3.4"
+        ry="2.3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 53.6 87.8)"
+      />
+      <g transform="translate(43 72) scale(0.7) translate(-60 -46)">
+        <Head mood="wink" />
+      </g>
+      <path d="M95 60l4-3M96 66h5M95 72l4 3" stroke="#CBD5E1" strokeWidth="1.2" strokeLinecap="round" />
     </g>
   );
 }

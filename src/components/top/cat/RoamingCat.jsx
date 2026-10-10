@@ -119,7 +119,7 @@ const FEELS = {
     tease: 0.2,
     plan: { move: 0.3, card: 0.25, bubble: 0.1, other: 0.35 },
     moves: { walk: 0.45, run: 0.2, leap: 0.2, side: 0.15 },
-    gpus: { warm: 0.18, spin: 0.14, wobble: 0.18, wheel: 0.18, peekaboo: 0.1, swing: 0.12, steal: 0.1 },
+    gpus: { warm: 0.17, spin: 0.13, wobble: 0.16, wheel: 0.16, peekaboo: 0.09, swing: 0.11, steal: 0.09, kick: 0.09 },
     acts: ['groom', 'knead'],
   },
   purring: {
@@ -133,7 +133,7 @@ const FEELS = {
     tease: 0.4,
     plan: { move: 0.3, card: 0.28, bubble: 0.12, other: 0.3 },
     moves: { walk: 0.35, run: 0.3, leap: 0.2, side: 0.15 },
-    gpus: { wobble: 0.22, wheel: 0.22, swing: 0.18, spin: 0.13, peekaboo: 0.07, warm: 0.06, steal: 0.12 },
+    gpus: { wobble: 0.2, wheel: 0.2, swing: 0.16, spin: 0.12, peekaboo: 0.06, warm: 0.06, steal: 0.1, kick: 0.1 },
     acts: ['knead', 'zoom', 'groom'],
   },
   loaf: {
@@ -147,7 +147,7 @@ const FEELS = {
     tease: 0.15,
     plan: { move: 0.3, card: 0.3, bubble: 0.14, other: 0.26 },
     moves: { walk: 0.3, run: 0.35, leap: 0.2, side: 0.15 },
-    gpus: { wobble: 0.22, wheel: 0.22, swing: 0.18, spin: 0.13, peekaboo: 0.07, warm: 0.06, steal: 0.12 },
+    gpus: { wobble: 0.2, wheel: 0.2, swing: 0.16, spin: 0.12, peekaboo: 0.06, warm: 0.06, steal: 0.1, kick: 0.1 },
     acts: ['belly', 'groom', 'knead'],
   },
 };
@@ -1046,6 +1046,13 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         { pose: 'sit', mood: 'hungry', ms: 500, start: () => say('!') },
         { pose: 'crouch', ms: 1, start: () => startSteal(tile) },
       ],
+      // Kicking it off: down beside it, back to it, three mule kicks (it jolts
+      // and leans further each time) till it topples off the screen; then back
+      // to a panel, pleased. A helicopter brings the tile back later.
+      kick: (tile) => [
+        { pose: 'sit', mood: 'hungry', ms: 500, start: () => say('!') },
+        { pose: 'crouch', ms: 1, start: () => startKick(tile) },
+      ],
       // Peekaboo: hiding behind the tile, peeking over its top, ducking down
       // and popping up again.
       peekaboo: () => [
@@ -1060,8 +1067,8 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       spin: (tile) => {
         const ring = tile.querySelector('[data-cat-ring]');
         const spin = () =>
-          ring?.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(720deg)' }], {
-            duration: 1300,
+          ring?.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], {
+            duration: 1600,
             easing: 'cubic-bezier(.2,.8,.3,1)',
           });
         return [
@@ -1125,10 +1132,11 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           frame: (step, time, k) => {
             const dt = last == null ? 0 : (time - last) / 1000;
             last = time;
-            angle -= state.facing * (140 + 1100 * k * k) * dt;
+            // Up to a turn a second at most.
+            angle -= state.facing * (60 + 300 * k) * dt;
             ring.style.transform = `rotate(${angle}deg)`;
-            step.pose = Math.floor(time / (150 - 90 * k)) % 2 ? 'run' : 'run2';
-            state.lift = Math.abs(Math.sin(time / (90 - 40 * k))) * 3;
+            step.pose = Math.floor(time / (190 - 70 * k)) % 2 ? 'run' : 'run2';
+            state.lift = Math.abs(Math.sin(time / (110 - 30 * k))) * 3;
           },
         },
         {
@@ -1140,9 +1148,9 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
             ring.style.transform = '';
             ring
               .animate(
-                [{ transform: `rotate(${angle}deg)` }, { transform: `rotate(${angle - state.facing * 600}deg)` }],
+                [{ transform: `rotate(${angle}deg)` }, { transform: `rotate(${angle - state.facing * 240}deg)` }],
                 {
-                  duration: 1600,
+                  duration: 2000,
                   easing: 'cubic-bezier(.1,.6,.3,1)',
                 },
               )
@@ -1173,6 +1181,20 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       });
       state.facing = dir;
     };
+    // The kick: three mule kicks at a GPU's tile till it topples off the screen.
+    const KICK_REACH = (92 - 60) * UNIT;
+    const startKick = (tile) => {
+      const rect = tile.getBoundingClientRect();
+      const base = page(rect);
+      // It falls towards the nearer side of the screen; the cat stands on the
+      // other side of it, its back to it.
+      const dir = (rect.left + rect.right) / 2 < window.innerWidth / 2 ? -1 : 1;
+      Object.assign(state, {
+        mode: 'kick',
+        steal: { tile, base, dir, dx: 0, started: performance.now(), from: { x: state.x, y: state.y } },
+      });
+      state.facing = -dir;
+    };
     // A stolen tile, to be brought back by helicopter in a while.
     const stolenAway = (steal, heliIn) => {
       state.stolen = {
@@ -1189,7 +1211,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       const tiles = runningGpus();
       if (!tiles.length || !state.perch) return false;
       // One tile stolen at a time.
-      const kind = asked === 'steal' && state.stolen ? 'wobble' : asked;
+      const kind = (asked === 'steal' || asked === 'kick') && state.stolen ? 'wobble' : asked;
       const tile =
         kind === 'warm'
           ? tiles.sort((a, b) => Number(b.dataset.heat ?? 0) - Number(a.dataset.heat ?? 0))[0]
@@ -2285,6 +2307,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       else if (group === 'game') startGame(name, time);
       else if (group === 'treat' && treats[name]) play(treats[name](), time);
       else if (group === 'toss' && tossed[name]) play(tossed[name](), time);
+      else if (group === 'gpu' && !visitGpu(name)) say('?');
     };
     window.addEventListener('bakery-cat-do', onDo);
 
@@ -2303,7 +2326,18 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       const press = state.press;
       if (press && state.mode !== 'held' && Math.hypot(event.pageX - press.x, event.pageY - press.y) > 5) {
         clearTimeout(press.timer);
-        if (state.mode === 'steal' && state.steal) stolenAway(state.steal, 2500);
+        if ((state.mode === 'steal' || state.mode === 'kick') && state.steal) {
+          // Picked up mid-steal or mid-kick: the tile is put back by helicopter
+          // soon, from off the side of the screen.
+          const steal = state.steal;
+          steal.tile.style.transformOrigin = '';
+          steal.dx =
+            steal.dir < 0
+              ? window.scrollX - steal.base.right - 40
+              : window.scrollX + window.innerWidth - steal.base.left + 40;
+          steal.tile.style.transform = `translateX(${steal.dx}px)`;
+          stolenAway(steal, 2500);
+        }
         state.mode = 'held';
         Object.assign(state, {
           swing: 0,
@@ -2868,6 +2902,62 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           }
           break;
         }
+        case 'kick': {
+          const steal = state.steal;
+          const t = time - steal.started;
+          const { base, dir, tile } = steal;
+          // Beside the tile, its back to it, hind paws reaching its side.
+          const spot = dir < 0 ? base.right + KICK_REACH : base.left - KICK_REACH;
+          state.facing = -dir;
+          const kicks = [1100, 1800, 2500];
+          if (t < 450) {
+            const k = t / 450;
+            state.x = steal.from.x + (spot - steal.from.x) * k;
+            state.y = steal.from.y + (base.bottom - steal.from.y) * k - 24 * Math.sin(Math.PI * k);
+            show('leap');
+          } else if (t < 2800) {
+            state.x = spot;
+            state.y = base.bottom;
+            const done = kicks.filter((at) => t >= at).length;
+            const kicking = kicks.some((at) => t >= at && t < at + 320);
+            show(kicking ? 'kick' : 'crouch');
+            if (done !== (steal.kicks ?? 0)) {
+              steal.kicks = done;
+              say(done < 3 ? 'thump' : '!');
+            }
+            // Each kick jolts it and leaves it leaning further.
+            const lean = dir * done * 3;
+            const jolt = kicking ? dir * 5 : 0;
+            tile.style.transformOrigin = dir < 0 ? 'left bottom' : 'right bottom';
+            tile.style.transform = `translateX(${dir * done * 6 + jolt}px) rotate(${lean}deg)`;
+          } else if (t < 4300) {
+            // Over it goes, tumbling off the bottom of the screen.
+            const k = (t - 2800) / 1500;
+            tile.style.transform = `translate(${dir * (18 + 120 * k)}px, ${1100 * k * k}px) rotate(${dir * (9 + 120 * k)}deg)`;
+            if (!steal.watched) {
+              steal.watched = true;
+              say('✦');
+            }
+            show('sit', 'purring');
+          } else {
+            // Gone; parked off the side of the screen for the helicopter to fetch.
+            tile.style.transformOrigin = '';
+            steal.dx = dir < 0 ? window.scrollX - base.right - 40 : window.scrollX + window.innerWidth - base.left + 40;
+            tile.style.transform = `translateX(${steal.dx}px)`;
+            stolenAway(steal, random(6000, 9000));
+            state.resume = { steps: () => [{ pose: 'groom', ms: 1400 }] };
+            const back = visiblePerches().sort(
+              (a, b) =>
+                Math.abs(page(a.getBoundingClientRect()).top - state.y) -
+                Math.abs(page(b.getBoundingClientRect()).top - state.y),
+            )[0];
+            if (back) {
+              state.perch = null;
+              leapTo(back, state.x);
+            } else rest(time);
+          }
+          break;
+        }
         case 'skid':
           show('skid');
           if (time > state.until) rest(time);
@@ -3415,7 +3505,9 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
     });
     return () => {
       cancelAnimationFrame(frame);
-      for (const tile of [state.steal?.tile, state.stolen?.tile]) if (tile) tile.style.transform = '';
+      for (const tile of [state.steal?.tile, state.stolen?.tile]) {
+        if (tile) Object.assign(tile.style, { transform: '', transformOrigin: '' });
+      }
       clearTimeout(state.clickTimer);
       clearTimeout(state.menuTimer);
       window.removeEventListener('scroll', onScroll);
