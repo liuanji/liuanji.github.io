@@ -70,7 +70,7 @@ export function Segmented({ label, options, value, onChange, className = '' }) {
 // the tile's top-right corner.
 export function StatTile({ label, value, total = null, caption = null, icon = null, className = '' }) {
   return (
-    <div className={`bg-white rounded-2xl border border-border-light p-5 ${className}`}>
+    <div data-cat-perch className={`bg-white rounded-2xl border border-border-light p-5 ${className}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="font-mono text-xs text-data-grey">{label}</div>
         {icon && (

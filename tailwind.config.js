@@ -203,9 +203,21 @@ module.exports = {
   			},
   			// The roaming bakery cat: its steps while walking, its breathing at rest,
   			// and hearts or z's rising off it.
+  			'cat-pose-in': {
+  				'0%': { opacity: '0', transform: 'scale(0.94, 0.9)' },
+  				'100%': { opacity: '1', transform: 'scale(1, 1)' }
+  			},
+  			'cat-pose-out': {
+  				'0%': { opacity: '1' },
+  				'100%': { opacity: '0' }
+  			},
   			'cat-step': {
   				'0%, 100%': { transform: 'translateY(0)' },
   				'50%': { transform: 'translateY(-2px)' }
+  			},
+  			'cat-climb': {
+  				'0%, 100%': { transform: 'translateY(0)' },
+  				'50%': { transform: 'translateY(-5px)' }
   			},
   			'cat-breathe': {
   				'0%, 100%': { transform: 'scaleY(1)' },
@@ -281,7 +293,10 @@ module.exports = {
   			'box-lid': 'box-lid 0.35s ease-out both',
   			'box-leave': 'box-leave 1.3s ease-in both',
   			'box-enter': 'box-enter 0.5s ease-out both',
+  			'cat-pose-in': 'cat-pose-in 0.22s ease-out both',
+  			'cat-pose-out': 'cat-pose-out 0.22s ease-in both',
   			'cat-step': 'cat-step 0.4s ease-in-out infinite',
+  			'cat-climb': 'cat-climb 0.5s ease-in-out infinite',
   			'cat-breathe': 'cat-breathe 3.2s ease-in-out infinite',
   			'cat-float': 'cat-float 1.6s ease-out both',
   			steam: 'steam 2.1s ease-out infinite',

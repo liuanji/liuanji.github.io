@@ -2,44 +2,62 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ROAM_POSES } from './BakeryCat';
 
-// The bakery cat let out to roam the page. It lives on the top edges of the
-// panels marked data-cat-perch that are in view, mostly resting there as a
-// loaf, now and then strolling along its panel or leaping to another, and
-// leaping back into view when its panel scrolls away. It answers to its
-// owner: a click and it purrs, a double click and it blinks slowly back, a
-// few clicks and it rolls over and hops off, a press and hold to pet it, and
-// it can be picked up and dropped on another panel. It watches the pointer
-// and creeps after it when it comes close, dozes off when the pointer has been
-// still for a while, and when nobody has played with it for some time it
-// knocks on its panel or wanders off on its own. Only the cat itself takes
-// clicks; it sits above the panels' edges, never on their readings.
+// The bakery cat let out to roam the page. It lives on the edges of the panels
+// marked data-cat-perch that are in view: mostly resting on a panel's top edge
+// as a loaf (or peeking over it), or round its side, peeking out; now and then
+// strolling along its edge, climbing a side, hopping between top and side, or
+// leaping to another panel, and leaping back into view when its panel scrolls
+// away. It answers to its owner: a click and it purrs, a double click and it
+// blinks slowly back, a few clicks and it rolls over and hops off, a press and
+// hold to pet it, and it can be picked up and dropped on another panel. It
+// plays with the pointer when it comes close, dozes off when the pointer has
+// been still for a while (and stretches when it wakes), and when nobody has
+// played with it for some time it knocks on its panel or wanders off. One pose
+// blends into the next, with a crouch or a stretch between where a cat would.
+// Only the cat itself takes clicks, and it keeps to the panels' edges.
 
 // The drawing's box (its 120 x 100 frame cropped round the cat) and how big it
-// is drawn: about as tall as a server's name.
+// is drawn.
 const VIEW = { x: 10, y: 30, width: 100, height: 62 };
-const WIDTH = 46;
+const WIDTH = 72;
 const UNIT = WIDTH / VIEW.width;
 const HEIGHT = VIEW.height * UNIT;
 // Where its feet are, and where it is held when picked up, in that box.
 const FEET = { x: (60 - VIEW.x) * UNIT, y: (88 - VIEW.y) * UNIT };
 const SCRUFF = { x: (60 - VIEW.x) * UNIT, y: (30 - VIEW.y) * UNIT };
-// Room it keeps from a panel's ends, and from the top of the window, where the
-// site's navigation bar sits.
-const MARGIN = 34;
-const TOP_CLEAR = 100;
+// Room it keeps from a panel's ends, from the top of the window (where the
+// site's navigation bar sits) and from its sides.
+const MARGIN = 50;
+const TOP_CLEAR = 110;
+const SIDE_CLEAR = 16;
 // Paces, in pixels a second, and how long things take, in milliseconds.
-const STROLL = 32;
-const CHASE = 60;
+const STROLL = 36;
+const CHASE = 90;
 const LEAP_MS = 720;
+const HOP_MS = 480;
 const DROP_MS = 380;
+const SETTLE_MS = 1200;
 const DOZE_AFTER = 3 * 60 * 1000;
 const BORED_AFTER = 2 * 60 * 1000;
+// Moves a cat makes between two poses, and for how long.
+const BETWEEN = {
+  'sleep>': ['stretch', 900],
+  'rest>walk': ['crouch', 180],
+  'rest>sit': ['crouch', 160],
+  'rest>reach': ['crouch', 160],
+  'sit>rest': ['crouch', 200],
+  'walk>rest': ['crouch', 200],
+};
+
+// Poses it swaps between too quickly to blend: batting at the pointer.
+const SWIPE = new Set(['sit', 'reach']);
 
 const random = (from, to) => from + Math.random() * (to - from);
 const page = (rect) => ({
   left: rect.left + window.scrollX,
   right: rect.right + window.scrollX,
   top: rect.top + window.scrollY,
+  bottom: rect.bottom + window.scrollY,
 });
 
 // The panels it can sit on that are in view, with their top edges on screen.
@@ -50,10 +68,26 @@ function visiblePerches() {
   });
 }
 
-function spotOn(perch, along = null) {
+// Whether it fits on a panel's side: the panel tall enough and the side clear
+// of the window's edge.
+function sideFits(perch, side) {
+  const rect = perch.getBoundingClientRect();
+  if (rect.height < 120) return false;
+  return side === 'left' ? rect.left > HEIGHT + SIDE_CLEAR : rect.right < window.innerWidth - HEIGHT - SIDE_CLEAR;
+}
+
+// A spot on a panel's edge: along the top from its left, or down a side from its top.
+function spotOn(perch, along = null, side = 'top') {
   const edge = page(perch.getBoundingClientRect());
-  const x = along ?? random(edge.left + MARGIN, edge.right - MARGIN);
-  return { x: Math.min(edge.right - MARGIN, Math.max(edge.left + MARGIN, x)), y: edge.top + 1 };
+  if (side === 'top') {
+    const x = along ?? random(edge.left + MARGIN, edge.right - MARGIN);
+    return { x: Math.min(edge.right - MARGIN, Math.max(edge.left + MARGIN, x)), y: edge.top + 1 };
+  }
+  const y = along ?? random(edge.top + 40, edge.bottom - 30);
+  return {
+    x: side === 'left' ? edge.left - 1 : edge.right + 1,
+    y: Math.min(edge.bottom - 30, Math.max(edge.top + 40, y)),
+  };
 }
 
 // A gentle shake of a panel, as if knocked on.
@@ -70,10 +104,29 @@ function shake(element) {
   );
 }
 
-export default function RoamingCat() {
+// What a click on the cat offers.
+const OPTIONS = [
+  ['treat', 'Give a treat'],
+  ['toy', 'Toss a toy'],
+  ['home', 'Send home'],
+];
+
+export default function RoamingCat({ onHome }) {
   const box = useRef(null);
   const cat = useRef(null);
-  const [look, setLook] = useState({ pose: 'leap', facing: -1, mood: 'content' });
+  const menuBox = useRef(null);
+  const homeRef = useRef(onHome);
+  homeRef.current = onHome;
+  const [menu, setMenu] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [look, setLook] = useState({
+    pose: 'leap',
+    facing: -1,
+    mood: 'content',
+    side: 'top',
+    previous: null,
+    change: 0,
+  });
   const [effects, setEffects] = useState([]);
   const [toy, setToy] = useState(null);
 
@@ -93,22 +146,46 @@ export default function RoamingCat() {
       x: start ? start.left + window.scrollX + start.width / 2 : window.scrollX + window.innerWidth - 80,
       y: start ? start.top + window.scrollY : window.scrollY + 120,
       facing: -1,
+      side: 'top',
       perch: null,
       along: 0,
       until: now,
       pointer: { x: -9999, y: -9999, at: 0 },
+      scrolledAt: 0,
       lastPlay: now,
       chaseRest: 0,
       clicks: [],
       press: null,
     };
     cat.current = state;
-    let shown = { pose: '', facing: 0, mood: '' };
+
+    // The pose shown, blending from the last, through a move between them
+    // where a cat would make one.
+    let shown = { pose: '', facing: 0, mood: '', side: '' };
+    let between = null;
     const show = (pose, mood = 'content') => {
-      if (pose !== shown.pose || state.facing !== shown.facing || mood !== shown.mood) {
-        shown = { pose, facing: state.facing, mood };
-        setLook({ pose, facing: state.facing, mood });
-      }
+      const time = performance.now();
+      if (between && time < between.until) return;
+      between = null;
+      const side = state.mode === 'leap' || state.mode === 'held' ? 'top' : state.side;
+      if (pose === shown.pose && state.facing === shown.facing && mood === shown.mood && side === shown.side) return;
+      const step = shown.pose && pose !== shown.pose && (BETWEEN[`${shown.pose}>${pose}`] ?? BETWEEN[`${shown.pose}>`]);
+      const next = step ? step[0] : pose;
+      if (step) between = { until: time + step[1] };
+      // Blended, unless it is a quick swipe of a paw or the last pose was only
+      // a moment ago (then it just changes).
+      const blend =
+        next !== shown.pose && time - (shown.since ?? 0) > 300 && !(SWIPE.has(next) && SWIPE.has(shown.pose));
+      setLook((current) => ({
+        pose: next,
+        facing: state.facing,
+        mood,
+        side,
+        previous: blend ? current.pose : null,
+        previousMood: current.mood,
+        change: current.change + (blend ? 1 : 0),
+      }));
+      shown = { pose: next, facing: state.facing, mood, side, since: next !== shown.pose ? time : shown.since };
     };
     const place = () => {
       const anchor = state.mode === 'held' ? SCRUFF : FEET;
@@ -116,23 +193,60 @@ export default function RoamingCat() {
         box.current.style.transform = `translate(${state.x - anchor.x}px, ${state.y - anchor.y}px)`;
       }
     };
-    const leapTo = (perch, along = null, duration = LEAP_MS) => {
+    // The menu a click opens; while it is open the cat stays where it is.
+    const closeMenu = () => {
+      state.menu = false;
+      setMenu(false);
+    };
+    const openMenu = () => {
+      state.menu = true;
+      setMenu(true);
+    };
+    // Sent home: a last leap back into its owner's name, fading as it goes.
+    const goHome = () => {
+      closeMenu();
+      const home = document.querySelector('[data-cat-home]')?.getBoundingClientRect();
+      if (!home) {
+        homeRef.current?.();
+        return;
+      }
+      const to = { x: home.left + window.scrollX + home.width / 2, y: home.top + window.scrollY + home.height };
+      Object.assign(state, {
+        mode: 'leap',
+        from: { x: state.x, y: state.y },
+        to,
+        target: null,
+        homing: true,
+        started: performance.now(),
+        duration: LEAP_MS,
+        height: 40,
+      });
+      state.side = 'top';
+      state.facing = to.x < state.x ? -1 : 1;
+      setLeaving(true);
+    };
+    const leapTo = (perch, along = null, duration = LEAP_MS, side = 'top') => {
       if (!perch) return;
-      const to = spotOn(perch, along);
+      closeMenu();
+      const to = spotOn(perch, along, side);
       Object.assign(state, {
         mode: 'leap',
         from: { x: state.x, y: state.y },
         to,
         target: perch,
+        targetSide: side,
         started: performance.now(),
         duration,
-        height: duration === DROP_MS ? 8 : 34 + Math.abs(to.y - state.y) * 0.25,
+        height: duration === DROP_MS ? 10 : 30 + Math.abs(to.y - state.y) * 0.25,
       });
+      state.side = 'top';
       state.facing = to.x < state.x ? -1 : 1;
     };
     const rest = (time, seconds = [8, 18]) => {
       state.mode = 'rest';
       state.until = time + random(...seconds) * 1000;
+      // On a top edge, mostly a loaf, sometimes peeking over; on a side, clinging on.
+      state.restPose = state.side !== 'top' ? 'cling' : Math.random() < 0.8 ? 'rest' : 'peek';
     };
     const otherPerch = () => {
       const perches = visiblePerches().filter((element) => element !== state.perch);
@@ -143,17 +257,28 @@ export default function RoamingCat() {
       state.mood = mood;
       state.until = time + ms;
     };
+    const onSide = () => state.side !== 'top';
 
-    // Treats and toys from its card.
+    // Treats and toys from its card; on a side, it hops up first.
     const onTreat = () => {
       if (!state.perch) return;
       state.lastPlay = performance.now();
+      if (onSide()) {
+        leapTo(state.perch, null, HOP_MS);
+        setTimeout(onTreat, HOP_MS + 300);
+        return;
+      }
       sit(performance.now(), 'purring', 2600);
       say('treat');
       setTimeout(() => say('crunch'), 700);
     };
     const onToy = () => {
       if (!state.perch) return;
+      if (onSide()) {
+        leapTo(state.perch, null, HOP_MS);
+        setTimeout(onToy, HOP_MS + 300);
+        return;
+      }
       const edge = page(state.perch.getBoundingClientRect());
       const goRight = state.x < (edge.left + edge.right) / 2;
       const end = goRight ? edge.right - MARGIN : edge.left + MARGIN;
@@ -161,7 +286,7 @@ export default function RoamingCat() {
         mode: 'crouch',
         until: performance.now() + 600,
         then: 'toy',
-        ball: { x: state.x + (goRight ? 26 : -26), to: end, at: performance.now() },
+        ball: { x: state.x + (goRight ? 34 : -34), to: end, at: performance.now() },
         lastPlay: performance.now(),
       });
       state.facing = goRight ? 1 : -1;
@@ -173,12 +298,13 @@ export default function RoamingCat() {
       const time = performance.now();
       state.pointer = { x: event.pageX, y: event.pageY, at: time };
       if (state.mode === 'sleep') {
-        sit(time, 'content', 1200);
+        sit(time, 'content', 1500);
       }
       const press = state.press;
       if (press && state.mode !== 'held' && Math.hypot(event.pageX - press.x, event.pageY - press.y) > 5) {
         clearTimeout(press.timer);
         state.mode = 'held';
+        state.side = 'top';
         state.perch = null;
       }
       if (state.mode === 'held') {
@@ -214,13 +340,27 @@ export default function RoamingCat() {
         rest(time);
         return;
       }
-      // A click: purr; two quick ones, a slow blink; more, it rolls over and hops off.
+      // A click: purr, and what can be done for it pops up; two quick ones, a
+      // slow blink; more, it rolls over and hops off. On a side it stays peeking.
       state.clicks = [...state.clicks.filter((at) => time - at < 700), time];
       clearTimeout(state.clickTimer);
       state.clickTimer = setTimeout(() => {
         const count = state.clicks.length;
         state.clicks = [];
         const at = performance.now();
+        if (count === 1) {
+          if (state.menu) {
+            closeMenu();
+            return;
+          }
+          openMenu();
+        } else closeMenu();
+        if (onSide()) {
+          say('prr');
+          say('heart');
+          if (count >= 3) leapTo(state.perch, null, HOP_MS);
+          return;
+        }
         if (count >= 3) {
           state.mode = 'roll';
           state.until = at + 650;
@@ -234,8 +374,29 @@ export default function RoamingCat() {
         }
       }, 320);
     };
+    const onScroll = () => {
+      state.scrolledAt = performance.now();
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
+    // The menu closes on a press anywhere else, or Escape; its options act here.
+    const onPressAway = (event) => {
+      if (state.menu && !menuBox.current?.contains(event.target) && !event.target.closest?.('[data-cat]')) {
+        closeMenu();
+      }
+    };
+    const onKey = (event) => {
+      if (event.key === 'Escape' && state.menu) closeMenu();
+    };
+    window.addEventListener('pointerdown', onPressAway);
+    window.addEventListener('keydown', onKey);
+    state.choose = (kind) => {
+      closeMenu();
+      if (kind === 'treat') onTreat();
+      else if (kind === 'toy') onToy();
+      else goHome();
+    };
     // A press on the cat: held still it is petting, moved it picks the cat up.
     state.onPointerDown = (event) => {
       event.preventDefault();
@@ -244,7 +405,7 @@ export default function RoamingCat() {
       const press = { x: event.pageX, y: event.pageY, petting: false };
       press.timer = setTimeout(() => {
         press.petting = true;
-        state.mode = 'pet';
+        if (!onSide()) state.mode = 'pet';
         say('heart');
         press.hearts = setInterval(() => (state.press === press ? say('heart') : clearInterval(press.hearts)), 900);
       }, 450);
@@ -254,31 +415,42 @@ export default function RoamingCat() {
     leapTo(visiblePerches()[0]);
     let frame = requestAnimationFrame(function step(time) {
       frame = requestAnimationFrame(step);
-      // Follow its panel as the page moves; leap back into view if it goes.
+      // Follow its panel as the page moves, riding along while the page
+      // scrolls; once the scrolling has settled with its panel out of view, one
+      // leap in from the edge it left by onto the nearest panel in view.
       if (
         state.perch &&
         ['rest', 'walk', 'sit', 'sleep', 'crouch', 'pet', 'chase', 'knock', 'roll', 'toy', 'land'].includes(state.mode)
       ) {
         const rect = state.perch.getBoundingClientRect();
-        if (rect.top < TOP_CLEAR - 30 || rect.top > window.innerHeight - 10 || !rect.width) {
-          const perch = visiblePerches()[0];
+        const edge = page(rect);
+        const spot = onSide()
+          ? spotOn(state.perch, edge.top + state.along, state.side)
+          : spotOn(state.perch, edge.left + state.along);
+        state.x = spot.x;
+        state.y = spot.y;
+        const onScreen = spot.y - window.scrollY;
+        const above = onScreen < TOP_CLEAR - 30;
+        if ((above || onScreen > window.innerHeight - 10 || !rect.width) && time - state.scrolledAt > SETTLE_MS) {
+          const perches = visiblePerches();
+          const perch = above ? perches[0] : perches[perches.length - 1];
           if (perch) {
-            const fromLeft = Math.random() < 0.5;
-            state.x = window.scrollX + (fromLeft ? -30 : window.innerWidth + 30);
-            state.y = Math.max(window.scrollY + 40, page(perch.getBoundingClientRect()).top - 70);
-            leapTo(perch);
+            state.x = Math.min(window.scrollX + window.innerWidth - MARGIN, Math.max(window.scrollX + MARGIN, state.x));
+            state.y = above ? window.scrollY + TOP_CLEAR - 40 : window.scrollY + window.innerHeight + 20;
+            leapTo(perch, state.x);
           }
-        } else {
-          const spot = spotOn(state.perch, page(rect).left + state.along);
-          state.x = spot.x;
-          state.y = spot.y;
         }
       }
       const along = () => {
-        if (state.perch) state.along = state.x - page(state.perch.getBoundingClientRect()).left;
+        if (!state.perch) return;
+        const edge = page(state.perch.getBoundingClientRect());
+        state.along = onSide() ? state.y - edge.top : state.x - edge.left;
       };
+      // Near enough to play with, unless its menu is open and the pointer is on its way there.
       const pointerNear =
-        time - state.pointer.at < 1500 && Math.hypot(state.pointer.x - state.x, state.pointer.y - (state.y - 12)) < 150;
+        !state.menu &&
+        time - state.pointer.at < 1500 &&
+        Math.hypot(state.pointer.x - state.x, state.pointer.y - (state.y - 18)) < 170;
 
       switch (state.mode) {
         case 'leap': {
@@ -287,75 +459,117 @@ export default function RoamingCat() {
           state.x = state.from.x + (state.to.x - state.from.x) * eased;
           state.y = state.from.y + (state.to.y - state.from.y) * eased - state.height * 4 * t * (1 - t);
           show('leap');
-          if (t >= 1) {
+          if (t >= 1 && state.homing) {
+            state.mode = 'home';
+            homeRef.current?.();
+          } else if (t >= 1) {
             state.perch = state.target;
+            state.side = state.targetSide;
             along();
             state.mode = 'land';
-            state.until = time + 200;
+            state.until = time + 220;
           }
           break;
         }
         case 'land':
-          show('crouch');
+          show(onSide() ? 'cling' : 'crouch');
           if (time > state.until) rest(time);
           break;
         case 'rest': {
-          show('rest');
-          if (pointerNear && time > state.chaseRest) {
+          show(state.restPose);
+          if (pointerNear && time > state.chaseRest && !onSide()) {
             state.mode = 'chase';
-            state.until = time + 3500;
+            state.until = time + 6000;
             break;
           }
-          if (time - state.pointer.at > DOZE_AFTER) {
+          if (time - state.pointer.at > DOZE_AFTER && !onSide()) {
             state.mode = 'sleep';
             break;
           }
-          if (time < state.until) break;
+          if (time < state.until || state.menu) break;
           const bored = time - state.lastPlay > BORED_AFTER;
           const roll = Math.random();
-          if (bored && roll < 0.35) {
+          const perch = state.perch;
+          if (bored && roll < 0.3) {
             // Nobody has played for a while: it knocks on its panel.
             state.mode = 'knock';
             state.until = time + 1400;
             state.knocks = [time + 300, time + 800];
-          } else if (roll < (bored ? 0.7 : 0.35)) {
-            const perch = otherPerch();
-            if (perch) {
+          } else if (roll < (bored ? 0.6 : 0.3)) {
+            const other = otherPerch();
+            if (other) {
               state.mode = 'crouch';
               state.until = time + 550;
-              state.then = perch;
+              state.then = other;
             } else rest(time);
+          } else if (onSide() && roll < 0.65) {
+            // Back up onto the top edge.
+            leapTo(perch, null, HOP_MS);
+          } else if (!onSide() && roll < 0.5) {
+            // Round onto a side of the panel, the one nearer.
+            const edge = page(perch.getBoundingClientRect());
+            const side = state.x < (edge.left + edge.right) / 2 ? 'left' : 'right';
+            if (sideFits(perch, side)) leapTo(perch, null, HOP_MS, side);
+            else rest(time);
           } else {
-            const edge = page(state.perch.getBoundingClientRect());
+            const edge = page(perch.getBoundingClientRect());
             state.mode = 'walk';
-            state.goal = random(edge.left + MARGIN, edge.right - MARGIN);
+            state.goal = onSide()
+              ? random(edge.top + 40, edge.bottom - 30)
+              : random(edge.left + MARGIN, edge.right - MARGIN);
           }
           break;
         }
         case 'walk': {
-          const step = (STROLL / 60) * Math.sign(state.goal - state.x);
-          state.facing = step < 0 ? -1 : 1;
-          state.x = Math.abs(state.goal - state.x) <= Math.abs(step) ? state.goal : state.x + step;
+          if (pointerNear && time > state.chaseRest && !onSide()) {
+            state.mode = 'chase';
+            state.until = time + 6000;
+            break;
+          }
+          // Along the top, or climbing up or down a side.
+          const at = onSide() ? state.y : state.x;
+          const step = (STROLL / 60) * Math.sign(state.goal - at);
+          const next = Math.abs(state.goal - at) <= Math.abs(step) ? state.goal : at + step;
+          if (onSide()) {
+            state.y = next;
+            const up = step < 0;
+            state.facing = state.side === 'left' ? (up ? 1 : -1) : up ? -1 : 1;
+          } else {
+            state.x = next;
+            state.facing = step < 0 ? -1 : 1;
+          }
           along();
-          show('walk');
-          if (state.x === state.goal) rest(time);
+          show(onSide() ? 'climb' : 'walk');
+          if (next === state.goal) rest(time);
           break;
         }
         case 'chase': {
-          // Watching the pointer and creeping after it along its panel.
+          // Playing with the pointer: trotting after it along its panel, batting
+          // at it with quick swipes when close, purring when it rests on the cat.
           const dx = state.pointer.x - state.x;
+          const distance = Math.hypot(dx, state.pointer.y - (state.y - 18));
           state.facing = dx < 0 ? -1 : 1;
-          if (Math.abs(dx) > 40 && state.perch) {
+          if (distance < 40) {
+            show('sit', 'purring');
+            if (time > (state.purredAt ?? 0) + 1600) {
+              state.purredAt = time;
+              say('prr');
+            }
+          } else if (Math.abs(dx) < 90 || !state.perch) {
+            show(Math.floor(time / 240) % 2 ? 'reach' : 'sit');
+          } else {
             const edge = page(state.perch.getBoundingClientRect());
-            state.x = Math.min(
+            const next = Math.min(
               edge.right - MARGIN,
               Math.max(edge.left + MARGIN, state.x + (CHASE / 60) * Math.sign(dx)),
             );
+            show(next === state.x ? 'reach' : 'walk');
+            state.x = next;
             along();
-            show('walk');
-          } else show('reach');
-          if (time > state.until || !pointerNear) {
-            state.chaseRest = time + 20000;
+          }
+          if (pointerNear) state.lastNear = time;
+          if (time > state.until || time - (state.lastNear ?? time) > 1000) {
+            state.chaseRest = time + 6000;
             rest(time, [4, 10]);
           }
           break;
@@ -375,10 +589,10 @@ export default function RoamingCat() {
           const x = ball.x + (ball.to - ball.x) * (1 - (1 - roll) ** 2);
           setToy({ x, y: state.y });
           const gap = x - state.x;
-          if (Math.abs(gap) > 18) state.x += Math.sign(gap) * Math.min(Math.abs(gap) - 18, (CHASE * 1.6) / 60);
+          if (Math.abs(gap) > 26) state.x += Math.sign(gap) * Math.min(Math.abs(gap) - 26, (CHASE * 1.6) / 60);
           along();
           show('walk');
-          if (roll >= 1 && Math.abs(x - state.x) <= 19) {
+          if (roll >= 1 && Math.abs(x - state.x) <= 27) {
             setToy(null);
             sit(time, 'purring', 1800);
             say('heart');
@@ -386,7 +600,7 @@ export default function RoamingCat() {
           break;
         }
         case 'knock':
-          show('reach');
+          show(onSide() ? 'cling' : 'reach');
           if (state.knocks.length && time > state.knocks[0]) {
             state.knocks.shift();
             shake(state.perch);
@@ -398,7 +612,7 @@ export default function RoamingCat() {
           break;
         case 'sit':
           show('sit', state.mood);
-          if (time > state.until) rest(time);
+          if (time > state.until && !state.menu) rest(time);
           break;
         case 'pet':
           show('sit', 'purring');
@@ -414,6 +628,8 @@ export default function RoamingCat() {
         case 'held':
           show('held');
           break;
+        case 'home':
+          break;
         default:
           // Not out yet: waits for a panel to come into view.
           if (time > state.until) {
@@ -427,22 +643,31 @@ export default function RoamingCat() {
     return () => {
       cancelAnimationFrame(frame);
       clearTimeout(state.clickTimer);
+      window.removeEventListener('scroll', onScroll);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('bakery-cat-treat', onTreat);
       window.removeEventListener('bakery-cat-toy', onToy);
+      window.removeEventListener('pointerdown', onPressAway);
+      window.removeEventListener('keydown', onKey);
     };
   }, []);
 
   const Pose = ROAM_POSES[look.pose] ?? ROAM_POSES.rest;
+  const Previous = look.previous ? ROAM_POSES[look.previous] : null;
   const rolling = look.pose === 'roll';
+  // On a side it clings on upright, drawn out to the right of the edge and
+  // mirrored for a left side; elsewhere it faces the way it is going.
+  const flip = look.side === 'left' ? -1 : look.side === 'right' ? 1 : -look.facing;
+  const poseBox = { transformBox: 'fill-box', transformOrigin: 'center bottom' };
   return createPortal(
-    <div aria-hidden="true" className="pointer-events-none absolute left-0 top-0 z-40" style={{ width: 0, height: 0 }}>
+    <div className="pointer-events-none absolute left-0 top-0 z-40" style={{ width: 0, height: 0 }}>
       {toy && (
         <svg
+          aria-hidden="true"
           viewBox="-6 -6 12 12"
-          className="absolute h-[11px] w-[11px]"
-          style={{ transform: `translate(${toy.x - 5.5}px, ${toy.y - 11}px) rotate(${toy.x * 6}deg)` }}
+          className="absolute h-[16px] w-[16px]"
+          style={{ transform: `translate(${toy.x - 8}px, ${toy.y - 16}px) rotate(${toy.x * 5}deg)` }}
         >
           <circle r="5" fill="#9FB4E8" stroke="#7E95CF" strokeWidth="1" />
           <path
@@ -458,25 +683,59 @@ export default function RoamingCat() {
           viewBox={`${VIEW.x} ${VIEW.y} ${VIEW.width} ${VIEW.height}`}
           width={WIDTH}
           height={HEIGHT}
-          className={`pointer-events-auto cursor-grab touch-none overflow-visible active:cursor-grabbing ${
+          data-cat
+          data-pose={look.pose}
+          aria-hidden="true"
+          className={`pointer-events-auto touch-none overflow-visible ${
             look.pose === 'rest' ? 'motion-safe:animate-cat-breathe' : ''
           }`}
           style={{
-            transform: `scaleX(${-look.facing}) ${rolling ? 'rotate(360deg)' : ''}`,
+            opacity: leaving ? 0 : 1,
+            transform: `scaleX(${flip}) ${rolling ? 'rotate(360deg)' : ''}`,
             transformOrigin: `${FEET.x}px ${FEET.y}px`,
-            transition: rolling ? 'transform 0.6s ease-in-out' : undefined,
+            transition: `${rolling ? 'transform 0.6s ease-in-out' : 'transform 0.25s ease-out'}, opacity ${LEAP_MS}ms ease-in`,
           }}
           onPointerDown={(event) => cat.current?.onPointerDown?.(event)}
         >
-          <Pose mood={look.mood} />
+          {/* The last pose fades as the new one settles in. */}
+          {Previous && (
+            <g key={`out-${look.change}`} className="motion-safe:animate-cat-pose-out opacity-0" style={poseBox}>
+              <Previous mood={look.previousMood} />
+            </g>
+          )}
+          <g key={`in-${look.change}`} className="motion-safe:animate-cat-pose-in" style={poseBox}>
+            <Pose mood={look.mood} />
+          </g>
         </svg>
+        {/* What can be done for it, popped up above it by a click. */}
+        {menu && (
+          <div
+            ref={menuBox}
+            role="menu"
+            aria-label="Mochi"
+            className="pointer-events-auto absolute bottom-full left-1/2 mb-2 flex -translate-x-1/2 items-center gap-0.5 whitespace-nowrap rounded-full border border-border-light bg-white p-0.5 shadow-sm motion-safe:animate-cat-pose-in"
+          >
+            {OPTIONS.map(([kind, label]) => (
+              <button
+                key={kind}
+                type="button"
+                role="menuitem"
+                onClick={() => cat.current?.choose?.(kind)}
+                className="rounded-full px-2.5 py-0.5 font-mono text-[11px] text-data-grey transition-colors hover:bg-[#F1F3F6] hover:text-inkwell focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
         {effects.map(({ id, kind }) => (
           <span
+            aria-hidden="true"
             key={id}
-            className="absolute -top-3 left-1/2 -translate-x-1/2 font-mono text-[9px] text-[#C98A50] motion-safe:animate-cat-float"
+            className="absolute -top-3 left-1/2 -translate-x-1/2 font-mono text-[11px] text-[#C98A50] motion-safe:animate-cat-float"
           >
             {kind === 'heart' ? (
-              <svg viewBox="-5 -1 10 9" className="h-2.5 w-2.5">
+              <svg viewBox="-5 -1 10 9" className="h-3.5 w-3.5">
                 <path
                   d="M0 1.6c-1.6-2.4-5-1.2-4.2 1.4C-3.6 5 0 7 0 7s3.6-2 4.2-4c.8-2.6-2.6-3.8-4.2-1.4z"
                   fill="#F08A93"
@@ -485,7 +744,7 @@ export default function RoamingCat() {
             ) : kind === 'z' ? (
               <span className="font-semibold text-[#A3B1C6]">z</span>
             ) : kind === 'treat' ? (
-              <svg viewBox="-4 -3 9 6" className="h-2 w-3">
+              <svg viewBox="-4 -3 9 6" className="h-3 w-4">
                 <path
                   d="M-3 0q3-2.6 6 0q-3 2.6-6 0zm6 0 1.8-1.6v3.2z"
                   fill="#E39A55"

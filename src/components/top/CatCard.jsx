@@ -39,9 +39,11 @@ function CatDetails({ meal, roaming, onRoam }) {
   return (
     <div>
       <div className="flex justify-center rounded-xl px-4 pb-2 pt-3" style={{ backgroundColor: '#F7F5F2' }}>
-        <CatScene mood={mood} stage={stage} today={today} className="h-auto w-[250px]" />
+        <CatScene mood={mood} stage={stage} today={today} away={roaming} className="h-auto w-[250px]" />
       </div>
-      <h4 className="mt-4 font-tight text-base font-semibold leading-tight text-inkwell">{MOODS[mood].title(NAME)}</h4>
+      <h4 className="mt-4 font-tight text-base font-semibold leading-tight text-inkwell">
+        {roaming ? `${NAME} is out roaming the page` : MOODS[mood].title(NAME)}
+      </h4>
       <p className="mt-1 text-sm leading-relaxed text-data-grey">{moodLine(mood, meal)}</p>
       <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-border-light pt-3 font-mono text-[11px]">
         <dt className="text-data-grey">Fed this week</dt>
