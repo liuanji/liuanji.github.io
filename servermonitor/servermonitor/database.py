@@ -50,6 +50,9 @@ PACE_DAYS = 30
 # Baker cards describe the last BAKER_DAYS of each user's GPU time, and chart
 # it over each period the page offers: (period, step in seconds, steps).
 BAKER_DAYS = 90
+# The bakery cat's week of meals, and the last days its mood follows.
+CAT_WEEK_SECONDS = 7 * 86400
+CAT_RECENT_SECONDS = 3 * 86400
 BAKER_SERIES = (
     # Five minutes, since one late collection can credit a single minute twice.
     ("1h", 300, 12),
@@ -1034,6 +1037,55 @@ class Database:
                 if row["memory_count"]:
                     series["memory_percent"][row["step"]] = round(row["memory"] / row["memory_count"], 1)
         return series
+
+    def cat_meals(self, now: int, utc_offset: int) -> dict[str, dict[str, Any]]:
+        """What each user's bakery cat has eaten: one cookie per GPU-hour their
+        jobs spent computing (GPU time weighted by load, so GPUs held idle feed
+        it nothing), today (since midnight in the servers' local time), over the
+        last three days (its mood) and the last week, by server; and their GPU
+        hours ever, which it grows with."""
+        midnight = now - (now + utc_offset) % 86400
+        with self.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT bucket, host, username, weighted_gpu_seconds AS seconds FROM user_hour
+                WHERE bucket >= ? AND username != ? AND weighted_gpu_seconds > 0
+                """,
+                (now - CAT_WEEK_SECONDS, UNKNOWN_USER),
+            ).fetchall()
+            lifetimes = {
+                row["username"]: float(row["gpu_seconds"])
+                for row in connection.execute("SELECT username, gpu_seconds FROM lifetime_user_time")
+            }
+        meals: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            meal = meals.setdefault(
+                row["username"], {"today": 0.0, "recent": 0.0, "week": 0.0, "hosts": defaultdict(float)}
+            )
+            seconds = float(row["seconds"])
+            meal["week"] += seconds
+            meal["hosts"][row["host"]] += seconds
+            if row["bucket"] >= now - CAT_RECENT_SECONDS:
+                meal["recent"] += seconds
+            if row["bucket"] >= midnight:
+                meal["today"] += seconds
+        cookies = lambda seconds: round(seconds / 3600, 2)  # noqa: E731
+        return {
+            user: {
+                "today": cookies(meal["today"]) if meal else 0.0,
+                "recent": cookies(meal["recent"]) if meal else 0.0,
+                "week": cookies(meal["week"]) if meal else 0.0,
+                "hosts": sorted(
+                    ({"name": host, "cookies": cookies(seconds)} for host, seconds in meal["hosts"].items()),
+                    key=lambda item: -item["cookies"],
+                )
+                if meal
+                else [],
+                "lifetime_gpu_hours": _hours(lifetimes.get(user, 0.0)),
+            }
+            for user in sorted(set(meals) | set(lifetimes))
+            for meal in [meals.get(user)]
+        }
 
     def baker_profiles(self, now: int, utc_offset: int, days: int = BAKER_DAYS) -> dict[str, dict[str, Any]]:
         """What each user's baker card needs: their GPU time ever and since

@@ -223,6 +223,7 @@ def build_files(
             files[f"gpus-{host}"] = public_gpus(database, host, now, utc_offset)
     lifetime = None if live_only else database.lifetime(now)
     bakers = None if live_only else database.baker_profiles(now, utc_offset)
+    cats = None if live_only else database.cat_meals(now, utc_offset)
     for host in (None, *settings.hosts):
         key = host or "all"
         if not live_only:
@@ -233,6 +234,8 @@ def build_files(
                 "lifetime": lifetime,
                 # Each user's baker card, lab-wide, also the same in every file.
                 "bakers": bakers,
+                # What each user's bakery cat has eaten, also lab-wide.
+                "cats": cats,
                 "periods": database.period_summaries(PERIODS, now=now, host=host),
                 "users": {
                     name: database.user_summary(now - seconds, now, host)

@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 import GhostNav from '../components/layout/GhostNav';
 import CompactHosts from '../components/top/CompactHosts';
 import { BakeryCard } from '../components/top/BakeryStatus';
+import { CatButton } from '../components/top/CatCard';
 import { ClosedBanner } from '../components/top/ClosedBakery';
 import { DetailsPopover } from '../components/top/DetailBoxes';
 import DiskCard, { CleanupBanner, cleanupColor, cleanupIsUrgent } from '../components/top/DiskCard';
@@ -338,7 +339,7 @@ export default function Top() {
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
                 <Freshness overview={overview} now={now} />
                 <span className="font-mono text-xs text-data-grey">
-                  {user}
+                  <CatButton user={user} meal={stats.data?.cats?.[user]} />
                   <span aria-hidden="true"> · </span>
                   <button type="button" onClick={signOut} className="transition-colors hover:text-inkwell">
                     Sign out

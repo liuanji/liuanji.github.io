@@ -319,6 +319,31 @@ class DatabaseTest(unittest.TestCase):
         carol = self.database.baker_profiles(now=start + 3600, utc_offset=0)["carol"]
         self.assertEqual((carol["lifetime_gpu_hours"], carol["recent"], carol["series"]), (2.0, None, None))
 
+    def test_cat_meals_count_computing_hours_as_cookies(self) -> None:
+        # Saturday 18 November 2023, 02:00 UTC.
+        start = 1_700_272_800
+        for offset in range(0, 3601, 60):
+            self.database.save(successful_result(start + offset))
+        meals = self.database.cat_meals(now=start + 3600, utc_offset=0)
+        alice = meals["alice"]
+        with self.database.connect() as connection:
+            weighted = connection.execute(
+                "SELECT SUM(weighted_gpu_seconds) FROM user_hour WHERE username = 'alice'"
+            ).fetchone()[0]
+        # One cookie per GPU-hour spent computing, all of it today and lately.
+        self.assertAlmostEqual(alice["week"], weighted / 3600, places=2)
+        self.assertEqual((alice["today"], alice["recent"]), (alice["week"], alice["week"]))
+        self.assertEqual([host["name"] for host in alice["hosts"]], ["brezel"])
+        self.assertEqual(alice["lifetime_gpu_hours"], 1.0)
+        # A day later the cookies are no longer today's, but still the week's.
+        later = self.database.cat_meals(now=start + 86400 + 3600, utc_offset=0)["alice"]
+        self.assertEqual((later["today"], later["week"]), (0.0, alice["week"]))
+        # Someone who only baked long ago has a cat that has not eaten lately.
+        with self.database.connect() as connection:
+            connection.execute("INSERT INTO lifetime_user_time VALUES ('carol', 7200, 1600000000)")
+        carol = self.database.cat_meals(now=start + 3600, utc_offset=0)["carol"]
+        self.assertEqual((carol["week"], carol["hosts"], carol["lifetime_gpu_hours"]), (0.0, [], 2.0))
+
     def test_names_cut_short_by_ps_are_folded_into_the_full_name(self) -> None:
         start = 1_700_000_000
         for offset in (0, 60):
