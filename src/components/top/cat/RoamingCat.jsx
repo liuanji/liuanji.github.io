@@ -40,6 +40,12 @@ const LEAP_MS = 720;
 const HOP_MS = 480;
 const DROP_MS = 380;
 const SPRING_MS = 260;
+// Held still over a panel (moving no more than STILL_PX) for TRAP_HOLD_MS
+// before being let go, it is trapped inside it.
+const STILL_PX = 6;
+const TRAP_HOLD_MS = 2000;
+// How fast it trots about while trapped in a panel, in pixels a second.
+const TRAPPED_PACE = 160;
 // How high above what is under it it can be carried before it takes fright.
 const SCARED_AT = 140;
 const SETTLE_MS = 1200;
@@ -451,7 +457,15 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       // Lifted off its edge a little in some of its doings: a hop, a pounce, in a box.
       const lift = ['script', 'tease', 'game', 'slip'].includes(state.mode) ? (state.lift ?? 0) : 0;
       if (box.current) {
-        box.current.style.transform = `translate(${state.x - anchor.x}px, ${state.y - anchor.y - lift}px)`;
+        const left = state.x - anchor.x;
+        const top = state.y - anchor.y - lift;
+        box.current.style.transform = `translate(${left}px, ${top}px)`;
+        // Trapped in a panel, only what is within its walls shows.
+        if (state.inside && !state.escaping) {
+          const edge = page(state.inside.getBoundingClientRect());
+          const [l, t, r, b] = [edge.left - left, edge.top - top, edge.right - left, edge.bottom - top];
+          box.current.style.clipPath = `polygon(${l}px ${t}px, ${r}px ${t}px, ${r}px ${b}px, ${l}px ${b}px)`;
+        } else if (box.current.style.clipPath) box.current.style.clipPath = '';
       }
       if (tilt.current) {
         // Its nose is on the left unless the drawing is mirrored to face right.
@@ -1239,6 +1253,201 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         ];
       },
     };
+    // Trapped in a panel (dropped well inside it): it falls to the floor,
+    // looks round, paws at a wall, bats at something in the panel (which
+    // jiggles), and at last leaps up and out over the top onto its edge.
+    const trap = (panel, time) => {
+      const edge = page(panel.getBoundingClientRect());
+      const floor = edge.bottom - 10;
+      const dropped = state.y;
+      const wall = state.x < (edge.left + edge.right) / 2 ? edge.left + 36 : edge.right - 36;
+      // Something in the panel to bat at: a picture or a block of text, small
+      // enough, above the floor.
+      const things = [...panel.querySelectorAll('svg, h2, h3, p, button, div')].filter((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return (
+          style.display !== 'inline' &&
+          rect.width > 14 &&
+          rect.width < 220 &&
+          rect.height > 10 &&
+          rect.height < 120 &&
+          rect.bottom + window.scrollY < floor - 24 &&
+          rect.left + window.scrollX > edge.left + 30 &&
+          rect.right + window.scrollX < edge.right - 30 &&
+          !element.closest('[data-cat]')
+        );
+      });
+      const target = things[Math.floor(Math.random() * things.length)];
+      const targetAt = target && page(target.getBoundingClientRect());
+      const jiggle = () =>
+        target?.animate(
+          [
+            { transform: 'none' },
+            { transform: 'translateY(-3px) rotate(-5deg)' },
+            { transform: 'rotate(4deg)' },
+            { transform: 'none' },
+          ],
+          { duration: 420, easing: 'ease-out' },
+        );
+      const reach = targetAt ? Math.max(16, Math.min(90, floor - targetAt.bottom - 20)) : 30;
+      // Out onto its top edge, at last.
+      const out = () => {
+        const top = page(panel.getBoundingClientRect());
+        Object.assign(state, { inside: null, escaping: false, squeezing: false, lift: 0, y: top.top + 1 });
+        state.x = Math.min(top.right - MARGIN, Math.max(top.left + MARGIN, state.x));
+        state.along = state.x - top.left;
+      };
+      const leapOut = () => ({
+        pose: 'leap',
+        ms: 620,
+        start: () => {
+          state.escaping = true;
+          say('!');
+        },
+        frame: (step, now, k) => {
+          const top = page(panel.getBoundingClientRect()).top + 1;
+          state.lift = (floor - top) * k + 34 * Math.sin(Math.PI * k);
+        },
+      });
+      // Its ways out: a leap up over the top; breaking the glass (paws on it,
+      // a tap, cracks, a crash, shards flying) and jumping out; or squeezing
+      // flat out through a wall and hopping up onto the edge.
+      const escapes = {
+        over: () => [
+          { pose: 'crouch', ms: 500, rock: { amp: 3.5, freq: 5.5, decay: 0 } },
+          leapOut(),
+          { pose: 'crouch', ms: 300, start: out },
+        ],
+        glass: () => {
+          const crack = (count) => ({ kind: 'cracks', front: true, x: state.x, y: floor - 28, count });
+          const shards = Array.from({ length: 9 }, (_, index) => ({
+            angle: (index / 9) * Math.PI * 2 + Math.random() * 0.4,
+            speed: random(60, 140),
+            spin: random(-400, 400),
+          }));
+          return [
+            { pose: 'press', ms: 900, start: () => say('?') },
+            { pose: 'press', ms: 260, rock: { amp: 4, freq: 4, decay: 4 }, start: () => putThing(crack(1)) },
+            { pose: 'press', ms: 500 },
+            { pose: 'press', ms: 260, rock: { amp: 4, freq: 4, decay: 4 }, start: () => putThing(crack(2)) },
+            { pose: 'press', ms: 500, start: () => putThing(crack(3)) },
+            {
+              pose: 'cheer',
+              ms: 900,
+              start: (step) => {
+                step.at = { x: state.x, y: floor - 28 };
+                state.escaping = true;
+                say('crash!');
+              },
+              frame: (step, now, k) =>
+                putThing(
+                  shards.map((shard, index) => ({
+                    kind: 'shard',
+                    id: `shard-${index}`,
+                    front: true,
+                    x: step.at.x + Math.cos(shard.angle) * shard.speed * k,
+                    y: step.at.y + Math.sin(shard.angle) * shard.speed * k + 160 * k * k,
+                    rotate: shard.spin * k,
+                    opacity: 1 - k,
+                  })),
+                ),
+            },
+            { ...leapOut(), start: () => putThing(null) },
+            { pose: 'crouch', ms: 300, start: out },
+          ];
+        },
+        squeeze: () => {
+          const toLeft = state.x < (edge.left + edge.right) / 2;
+          const wallAt = () => {
+            const now = page(panel.getBoundingClientRect());
+            return toLeft ? now.left : now.right;
+          };
+          return [
+            { to: toLeft ? edge.left + 36 : edge.right - 36, speed: TRAPPED_PACE },
+            { pose: 'crouch', ms: 500, start: () => ((state.facing = toLeft ? -1 : 1), say('…')) },
+            {
+              pose: 'sniff',
+              ms: 1300,
+              start: (step) => {
+                step.from = state.x;
+                state.squeezing = true;
+              },
+              frame: (step, now, k) => (state.x = step.from + (wallAt() + (toLeft ? -40 : 40) - step.from) * k),
+            },
+            {
+              pose: 'sit',
+              mood: 'hungry',
+              ms: 500,
+              start: () => {
+                state.escaping = true;
+                say('!');
+              },
+            },
+            {
+              pose: 'leap',
+              ms: 560,
+              start: (step) => {
+                step.from = state.x;
+                step.to = wallAt() + (toLeft ? 46 : -46);
+              },
+              frame: (step, now, k) => {
+                const top = page(panel.getBoundingClientRect()).top + 1;
+                state.x = step.from + (step.to - step.from) * k;
+                state.lift = (floor - top) * k + 30 * Math.sin(Math.PI * k);
+              },
+            },
+            { pose: 'crouch', ms: 300, start: out },
+          ];
+        },
+      };
+      const escape = () => {
+        const ways = Object.keys(escapes).filter((way) => way !== state.lastEscape);
+        const way = ways[Math.floor(Math.random() * ways.length)];
+        state.lastEscape = way;
+        return escapes[state.escapeAs ?? way]();
+      };
+      Object.assign(state, { inside: panel, perch: panel, side: 'top', escaping: false, x: state.x, y: floor });
+      const batAt = () => ({
+        pose: 'reach',
+        ms: 460,
+        start: () => (state.facing = targetAt && (targetAt.left + targetAt.right) / 2 < state.x ? -1 : state.facing),
+        frame: (step, now, k) => {
+          state.lift = reach * Math.sin(Math.PI * k);
+          if (k > 0.5 && !step.hit) {
+            step.hit = true;
+            jiggle();
+          }
+        },
+      });
+      play(
+        [
+          {
+            pose: 'tumble',
+            ms: 380,
+            frame: (step, now, k) => (state.lift = Math.max(0, floor - dropped) * (1 - k * k)),
+          },
+          { pose: 'balance', ms: 700, rock: { amp: 9, freq: 2.2, decay: 2.5 }, start: () => say('?') },
+          { pose: 'sit', mood: 'hungry', ms: 550, start: () => (state.facing = -1) },
+          { pose: 'sit', mood: 'hungry', ms: 550, start: () => ((state.facing = 1), say('?')) },
+          { to: wall, speed: TRAPPED_PACE },
+          { pose: 'reach', ms: 300, start: () => (state.facing = wall < (edge.left + edge.right) / 2 ? -1 : 1) },
+          { pose: 'sit', mood: 'hungry', ms: 220 },
+          { pose: 'reach', ms: 300, start: () => say('!') },
+          ...(targetAt
+            ? [
+                { to: (targetAt.left + targetAt.right) / 2, speed: TRAPPED_PACE },
+                batAt(),
+                { pose: 'sit', mood: 'hungry', ms: 300 },
+                batAt(),
+              ]
+            : []),
+          { pose: 'sit', mood: 'hungry', ms: 700, start: () => say('…') },
+          ...escape(),
+        ],
+        time,
+      );
+    };
     // Mishaps along a walk (each carries on to where it was going).
     const mishaps = {
       sniff: (goal) => [{ pose: 'sniff', ms: 1400, start: () => say('sniff') }, { to: goal }],
@@ -1858,7 +2067,15 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       if (press && state.mode !== 'held' && Math.hypot(event.pageX - press.x, event.pageY - press.y) > 5) {
         clearTimeout(press.timer);
         state.mode = 'held';
-        Object.assign(state, { swing: 0, swingV: 0, heldVx: 0, heldX: event.pageX });
+        Object.assign(state, {
+          swing: 0,
+          swingV: 0,
+          heldVx: 0,
+          heldX: event.pageX,
+          inside: null,
+          stillAt: { x: event.pageX, y: event.pageY },
+          stillSince: time,
+        });
         if (state.wish) wishFor(null);
         state.resume = null;
         releaseTile();
@@ -1866,6 +2083,12 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         state.perch = null;
       }
       if (state.mode === 'held') {
+        // Held still (moved only a little) since when: held still over a
+        // panel long enough, let go, and it is trapped inside it.
+        if (!state.stillAt || Math.hypot(event.pageX - state.stillAt.x, event.pageY - state.stillAt.y) > STILL_PX) {
+          state.stillAt = { x: event.pageX, y: event.pageY };
+          state.stillSince = time;
+        }
         // Carried up high it takes fright.
         const scared = heightAbove(event.pageX, event.pageY + FEET.y - SCRUFF.y) > SCARED_AT;
         if (scared && !state.scared) say('!');
@@ -1889,6 +2112,24 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         state.y += FEET.y - SCRUFF.y;
         // It stays put where it was put a moment, before it plays again.
         state.chaseRest = time + 2500;
+        // Held still over well inside a panel a while, then let go: trapped in
+        // it, till it finds a way out.
+        const stillLongEnough = time - (state.stillSince ?? time) >= TRAP_HOLD_MS;
+        const inside = [...document.querySelectorAll('[data-cat-perch]')].find((element) => {
+          if (!stillLongEnough) return false;
+          const edge = page(element.getBoundingClientRect());
+          return (
+            edge.bottom - edge.top >= 120 &&
+            event.pageX > edge.left + 20 &&
+            event.pageX < edge.right - 20 &&
+            event.pageY > edge.top + 40 &&
+            event.pageY < edge.bottom - 10
+          );
+        });
+        if (inside) {
+          trap(inside, time);
+          return;
+        }
         // Dropped beside a panel's side: it clings on there, where it was let go.
         const beside = [...document.querySelectorAll('[data-cat-perch]')]
           .flatMap((element) => {
@@ -1929,6 +2170,10 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       }
       if (press.petting) {
         rest(time);
+        return;
+      }
+      if (state.inside) {
+        say('?');
         return;
       }
       // A click: purr, and what can be done for it pops up; two quick ones, a
@@ -2022,7 +2267,16 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         else if (name.startsWith('toss:')) play(tossed[name.slice(5)](), performance.now());
         else if (name.startsWith('gpu:')) return visitGpu(name.slice(4));
         else if (name === 'run') stroll(true);
-        else if (name.startsWith('wish:')) play(wanted[name.slice(5)](), performance.now());
+        else if (name.startsWith('trap:')) {
+          const [, way, index] = name.split(':');
+          const panel = [...document.querySelectorAll('[data-cat-perch]')][Number(index)];
+          state.escapeAs = way;
+          const edge = page(panel.getBoundingClientRect());
+          state.x = edge.left + (edge.right - edge.left) * 0.55;
+          state.y = edge.top + (edge.bottom - edge.top) * 0.4;
+          trap(panel, performance.now());
+          state.escapeAs = null;
+        } else if (name.startsWith('wish:')) play(wanted[name.slice(5)](), performance.now());
         else if (name === 'slip') {
           stroll(true);
           const edge = page(state.perch.getBoundingClientRect());
@@ -2083,10 +2337,16 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       // Seconds since the last frame, so its pace is the same at any frame rate.
       const dt = Math.min(0.05, Math.max(0, time - last) / 1000);
       last = time;
+      // Trapped in a panel: it keeps to the panel's floor, between its walls.
+      if (state.inside) {
+        const edge = page(state.inside.getBoundingClientRect());
+        state.y = edge.bottom - 10;
+        if (!state.squeezing) state.x = Math.min(edge.right - 34, Math.max(edge.left + 34, state.x));
+      }
       // Follow its panel as the page moves, riding along while the page
       // scrolls; once the scrolling has settled with its panel out of view, one
       // leap in from the edge it left by onto the nearest panel in view.
-      if (
+      else if (
         state.perch &&
         [
           'rest',
@@ -2845,9 +3105,11 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
   return createPortal(
     <div className="pointer-events-none absolute left-0 top-0 z-40" style={{ width: 0, height: 0 }}>
       {/* The thing it is playing with, behind it. */}
-      {things.map((item, index) => (
-        <CatThing key={item.id ?? `${item.kind}-${index}`} {...item} />
-      ))}
+      {things
+        .filter((item) => !item.front)
+        .map((item, index) => (
+          <CatThing key={item.id ?? `${item.kind}-${index}`} {...item} />
+        ))}
       <div ref={box} className="absolute left-0 top-0" style={{ width: WIDTH, height: HEIGHT }}>
         <svg
           viewBox={`${VIEW.x} ${VIEW.y} ${VIEW.width} ${VIEW.height}`}
@@ -3015,6 +3277,12 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
           </span>
         ))}
       </div>
+      {/* Things in front of it: cracks and shards of the glass it is trapped behind. */}
+      {things
+        .filter((item) => item.front)
+        .map((item, index) => (
+          <CatThing key={item.id ?? `${item.kind}-${index}`} {...item} />
+        ))}
     </div>,
     document.body,
   );

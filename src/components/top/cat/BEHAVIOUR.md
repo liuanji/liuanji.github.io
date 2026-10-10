@@ -168,6 +168,25 @@ Then she ignores the pointer for 3 s. Other reactions:
 | Dance | Equal pick (never the same twice running): happy paws, shuffle, twirl, moonwalk |
 | Send home | She leaps back into your name and roaming turns off |
 
+## Trapped in a card
+
+Held still (moving no more than 6 px) for at least 2 s over a card, well
+inside it (40 px or more below its top, the card 120 px tall or more), then let
+go: Mochi is trapped inside the card, shown only within its walls. She falls to
+its floor, looks round ("?"), trots to the nearer wall and paws at it, bats
+twice at something in the card (a picture or a block of text, which jiggles),
+slumps ("…"), and escapes one of three ways, an equal pick, never the same
+twice running:
+
+| Escape | What happens |
+|---|---|
+| Over the top | A crouch, a wiggle, and a big leap up out onto the card's top edge |
+| Breaking the glass | Paws pressed on the glass, two taps cracking it, a crash, shards flying, and a jump out |
+| Squeezing out | Flat against the nearer wall, she slides out through it, then hops up onto the top edge |
+
+Clicks while she is trapped only get a puzzled "?"; picking her up takes her
+out.
+
 ## Coming out
 
 - **Already roaming when the page loads** (and your name is in view): she

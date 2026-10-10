@@ -255,6 +255,35 @@ function Claws() {
   return <path d="M-6-1l3-3M-2-1l3-3M2-1l3-3" stroke="#C49A62" strokeWidth="1.1" strokeLinecap="round" opacity="0.8" />;
 }
 
+// Cracks in the glass, spreading as it is tapped (count: 1 to 3), centred on (0, 0).
+function Cracks({ count = 1 }) {
+  const lines = [
+    'M0 0l-9-6-5 1M0 0l8-8 3-6M0 0l10 3',
+    'M0 0l-6 11-6 4M0 0l4 12M-9-6l-4-8M8-8l9 0',
+    'M10 3l8 7M4 12l6 8M-6 11l-10 2M-14-5l-8-3M11-14l3-8',
+  ];
+  return (
+    <g
+      fill="none"
+      stroke="#7F8CA3"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      transform="scale(1.45)"
+    >
+      <circle r="2.4" fill="#E6EBF2" stroke="#7F8CA3" strokeWidth="0.9" />
+      {lines.slice(0, count).map((d) => (
+        <path key={d} d={d} />
+      ))}
+    </g>
+  );
+}
+
+// A shard of broken glass, centred on (0, 0).
+function Shard() {
+  return <path d="M-4-3l7-1-2 6z" fill="#E6EEF8" stroke="#A9B6C8" strokeWidth="0.8" strokeLinejoin="round" />;
+}
+
 const THINGS = {
   yarn: Yarn,
   butterfly: Butterfly,
@@ -272,6 +301,8 @@ const THINGS = {
   dough: Dough,
   comb: Comb,
   claws: Claws,
+  cracks: Cracks,
+  shard: Shard,
   bowl: TreatBowl,
 };
 // How far each reaches round its base, for the box it is drawn in.
@@ -292,6 +323,8 @@ const REACH = {
   dough: 22,
   comb: 14,
   claws: 8,
+  cracks: 38,
+  shard: 7,
   bowl: 20,
 };
 

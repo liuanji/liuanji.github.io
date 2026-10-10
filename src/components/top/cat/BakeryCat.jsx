@@ -443,6 +443,9 @@ export const ROAM_POSES = {
   // and with its owner: squirming belly-up for a rub, leaning into a brush,
   // posing for photos (a wink, and lounging like a film star).
   chatter: () => <Chattering />,
+  // Trapped in a panel: up on its hind legs, front paws pressed flat on the
+  // glass in front of it.
+  press: () => <Pressing />,
   scratch: () => <Scratching />,
   pat: () => <Patting />,
   squirm: () => <Squirming />,
@@ -1502,6 +1505,44 @@ function Sniffing() {
       <path d="M64 62.5l1 4M71 64l.4 4M77 67l-.8 3.6" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
       <g transform="translate(42 75) rotate(-14) scale(0.7) translate(-60 -46)">
         <Head mood="content" />
+      </g>
+    </g>
+  );
+}
+
+// Up on its hind legs, front paws pressed flat against the glass in front of
+// it (pink pads and toe beans showing), eyes wide.
+function Pressing() {
+  return (
+    <g>
+      <path d="M74 86c12 0 16-7 13-15 3-1 5 1 5 3" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M74 86c12 0 16-7 13-15 3-1 5 1 5 3" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <path
+        d="M47 89c-5 0-7-5-6-12 1.5-12 7-21 19-21s17.5 9 19 21c1 7-1 12-6 12z"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M53 88c-3-5-3-17 7-21 10 4 10 16 7 21z" fill={BELLY} />
+      <ellipse cx="52" cy="88.5" rx="5.2" ry="3" fill={BELLY} stroke={EDGE} strokeWidth="1.4" />
+      <ellipse cx="68" cy="88.5" rx="5.2" ry="3" fill={BELLY} stroke={EDGE} strokeWidth="1.4" />
+      <g transform="translate(60 44) scale(0.92) translate(-60 -46)">
+        <Head mood="hungry" />
+      </g>
+      <g>
+        <ellipse cx="46" cy="60" rx="5.6" ry="6" fill={BELLY} stroke={EDGE} strokeWidth="1.3" />
+        <ellipse cx="46" cy="62" rx="2.6" ry="2.2" fill={PINK} />
+        <circle cx="43.4" cy="57" r="1.1" fill={PINK} />
+        <circle cx="46" cy="56.2" r="1.1" fill={PINK} />
+        <circle cx="48.6" cy="57" r="1.1" fill={PINK} />
+      </g>
+      <g>
+        <ellipse cx="74" cy="60" rx="5.6" ry="6" fill={BELLY} stroke={EDGE} strokeWidth="1.3" />
+        <ellipse cx="74" cy="62" rx="2.6" ry="2.2" fill={PINK} />
+        <circle cx="71.4" cy="57" r="1.1" fill={PINK} />
+        <circle cx="74" cy="56.2" r="1.1" fill={PINK} />
+        <circle cx="76.6" cy="57" r="1.1" fill={PINK} />
       </g>
     </g>
   );
