@@ -182,8 +182,10 @@ Then she ignores the pointer for 3 s. Other reactions:
 ## A pop-up from her panel
 
 When you click something on the panel she is on (resting, sitting, walking,
-busy with a little doing, or asleep) and it opens a pop-up card (a GPU's
-details, a disk, a baker), she reacts **65%** of the time. A pop-up that opens
+busy with a little doing, asleep, or playing with the pointer) and it opens a
+pop-up card (a GPU's details, a disk, a baker), or keeps one open that hovering
+had opened, she reacts **65%** of the time, once each time it opens. A game
+with the pointer is dropped for it and not taken up again for 8 s. A pop-up that opens
 on hover alone, or from another panel, she ignores, and in quiet mode she
 ignores them all.
 

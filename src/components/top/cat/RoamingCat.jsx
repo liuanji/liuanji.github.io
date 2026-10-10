@@ -1962,11 +1962,20 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       const time = performance.now();
       const press = state.lastPress;
       const fromItsPanel = press && time - press.at < 1500 && state.perch?.contains?.(press.target);
-      if (!fromItsPanel || !['rest', 'sit', 'walk', 'act', 'sleep'].includes(state.mode) || onSide()) return;
+      if (!fromItsPanel || !['rest', 'sit', 'walk', 'act', 'sleep', 'tease', 'chase'].includes(state.mode) || onSide())
+        return;
+      // Once for each time a pop-up opens.
+      const wrapper = card.closest('[data-radix-popper-content-wrapper]');
+      if (state.popupSeen === wrapper) return;
+      state.popupSeen = wrapper;
       if (quietRef.current || (!state.forcePopup && Math.random() > POPUP_CHANCE)) return;
       const ways = [...Object.keys(popupReactions), 'startle'].filter((way) => way !== state.lastPopup);
       const way = state.forcePopup ?? ways[Math.floor(Math.random() * ways.length)];
       state.lastPopup = way;
+      // Any game with the pointer (which is there, having just clicked) is
+      // dropped for the pop-up, and not taken up again for a while.
+      state.dart = null;
+      state.chaseRest = time + 8000;
       if (way === 'startle') {
         // A jump where it is, and a stare at the thing.
         play(
@@ -2864,6 +2873,18 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     // The menu closes on a press anywhere else, or Escape; its options act here.
     const onPressAway = (event) => {
       state.lastPress = { target: event.target, at: performance.now() };
+      // A pop-up already opened by hovering, which the click then keeps open:
+      // as if it had opened now.
+      const trigger = event.target.closest?.('[aria-haspopup="dialog"]');
+      // (inside its panel, or the panel itself inside it)
+      if (trigger && state.perch?.contains && (state.perch.contains(trigger) || trigger.contains(state.perch))) {
+        setTimeout(() => {
+          const card =
+            trigger.getAttribute('aria-expanded') === 'true' &&
+            document.getElementById(trigger.getAttribute('aria-controls'));
+          if (card?.isConnected) onPopup(card);
+        }, 300);
+      }
       if (
         state.mode === 'tease' &&
         !state.dart &&
@@ -2918,6 +2939,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           const card = document.querySelector('[data-radix-popper-content-wrapper]')?.firstElementChild;
           if (!card) return false;
           state.forcePopup = name.slice(6);
+          state.popupSeen = null;
           onPopup(card);
           state.forcePopup = null;
         } else if (name === 'plummet') {
@@ -3007,6 +3029,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       // Seconds since the last frame, so its pace is the same at any frame rate.
       const dt = Math.min(0.05, Math.max(0, time - last) / 1000);
       last = time;
+      if (state.popupSeen && !state.popupSeen.isConnected) state.popupSeen = null;
       // Perched on a pop-up card that has closed: it drops down onto a panel.
       if (state.perch && !state.perch.isConnected && !state.inside) {
         state.perch = null;
