@@ -42,32 +42,37 @@ const SPRING_MS = 260;
 const SCARED_AT = 140;
 const SETTLE_MS = 1200;
 const DOZE_AFTER = 3 * 60 * 1000;
-// How it carries itself on what it has eaten lately: its pace, its face, how
-// soon it dozes off, how long it rests, how readily it leaps away, how far off
-// it notices the pointer, how likely it is to play keep-away with it, and what
-// else it gets up to now and then (a chance each time it stirs on a panel's top
-// edge). Starving, it drags itself about, begs and naps, too tired for games;
-// well fed, it kneads the panel ("makes biscuits"), gets the zoomies and plays
-// hard to get; full, it lolls belly-up and grooms.
+// How it carries itself on what it has eaten lately: its energy (the better
+// fed, the livelier: the more often it is up and strolling about, climbing and
+// hopping between panels rather than dozing on where it lies), its pace, its
+// face, how soon it dozes off, how long it rests between outings, how readily
+// it leaps away, how far off it notices the pointer, how likely it is to play
+// keep-away with it, and what else it gets up to now and then (a chance each
+// time it stirs on a panel's top edge). Starving, it drags itself about, begs
+// and naps, too tired for games; well fed, it kneads the panel ("makes
+// biscuits"), gets the zoomies and plays hard to get; full, it is at its
+// liveliest, though it still lolls belly-up and grooms.
 const FEELS = {
   napping: {
+    energy: 0.15,
     pace: 0.55,
     face: 'hungry',
     restFace: 'hungry',
     doze: 40 * 1000,
-    rest: [12, 24],
+    rest: [14, 26],
     leap: 0.35,
     notice: 150,
     tease: 0,
     begs: true,
-    acts: { beg: 0.3, sleep: 0.25 },
+    acts: { sleep: 0.45, beg: 0.25 },
   },
   hungry: {
+    energy: 0.4,
     pace: 0.8,
     face: 'hungry',
     restFace: 'content',
     doze: DOZE_AFTER,
-    rest: [8, 18],
+    rest: [9, 18],
     leap: 0.8,
     notice: 170,
     tease: 0.08,
@@ -75,34 +80,37 @@ const FEELS = {
     acts: { beg: 0.25, groom: 0.05 },
   },
   content: {
+    energy: 0.65,
     pace: 1,
     face: 'content',
     restFace: 'purring',
     doze: DOZE_AFTER,
-    rest: [8, 18],
+    rest: [6, 13],
     leap: 1,
     notice: 170,
     tease: 0.2,
     acts: { groom: 0.15, knead: 0.05 },
   },
   purring: {
+    energy: 0.85,
     pace: 1.2,
     face: 'content',
     restFace: 'purring',
     doze: DOZE_AFTER,
-    rest: [6, 14],
+    rest: [4, 9],
     leap: 1.1,
     notice: 210,
     tease: 0.4,
     acts: { knead: 0.2, zoom: 0.14, groom: 0.1 },
   },
   loaf: {
-    pace: 0.75,
+    energy: 1,
+    pace: 1.25,
     face: 'purring',
     restFace: 'purring',
     doze: DOZE_AFTER,
-    rest: [12, 24],
-    leap: 0.5,
+    rest: [3, 8],
+    leap: 1.2,
     notice: 170,
     tease: 0.15,
     acts: { belly: 0.22, groom: 0.18, knead: 0.12 },
@@ -202,7 +210,8 @@ const IDLE = {
   purring: ['butterfly', 'box', 'croissant', 'tail', 'dance', 'sneeze', 'crumb', 'sunbeam'],
   loaf: ['sunbeam', 'box', 'yawn', 'croissant', 'dance', 'sneeze'],
 };
-const IDLE_CHANCE = 0.4;
+// The chance of one each time it stirs, at no energy; the livelier, the likelier.
+const IDLE_CHANCE = 0.25;
 const BUNT_EVERY = 15 * 1000;
 
 // What a click on the cat offers.
@@ -423,6 +432,65 @@ export default function RoamingCat({ onHome, meal }) {
       state.until = time + random(...seconds) * 1000;
       // On a top edge, mostly a loaf, sometimes peeking over; on a side, clinging on.
       state.restPose = state.side !== 'top' ? 'cling' : Math.random() < 0.8 ? 'rest' : 'peek';
+    };
+    // A panel nearby to bolt to, on the far side of the cat from the pointer.
+    const escapePerch = () => {
+      const from = { x: state.x - window.scrollX, y: state.y - window.scrollY };
+      const pointer = { x: state.pointer.x - window.scrollX, y: state.pointer.y - window.scrollY };
+      return visiblePerches()
+        .filter((element) => element !== state.perch)
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          const centre = {
+            x: Math.min(rect.right - MARGIN, Math.max(rect.left + MARGIN, from.x)),
+            y: rect.top,
+          };
+          const distance = Math.hypot(centre.x - from.x, centre.y - from.y);
+          const away =
+            Math.hypot(centre.x - pointer.x, centre.y - pointer.y) > Math.hypot(from.x - pointer.x, from.y - pointer.y);
+          return { element, distance, away };
+        })
+        .filter(({ away, distance }) => away && distance < 600)
+        .sort((a, b) => a.distance - b.distance)[0]?.element;
+    };
+    // A game of keep-away: some games it is slow and easy to catch, some quick.
+    const startTease = (time) => {
+      const roll = Math.random();
+      Object.assign(state, {
+        mode: 'tease',
+        until: time + 7000,
+        lastNear: time,
+        lift: 0,
+        dart: null,
+        teaseFrom: time,
+        teasePace: roll < 0.4 ? 0.55 : roll < 0.8 ? 1 : 1.5,
+      });
+    };
+    // How quick it is in this game, flagging as the game goes on.
+    const teasePace = (time) => (state.teasePace ?? 1) * Math.max(0.6, 1 - (time - (state.teaseFrom ?? time)) / 15000);
+    // A dodge away from a grab: a quick hop off along its edge (or over the
+    // grab, at an end).
+    const dodge = (fromX, time) => {
+      if (!state.perch || onSide()) return;
+      const away = state.x >= fromX ? 1 : -1;
+      let to = onEdge(state.x + away * 150);
+      if (Math.abs(to - state.x) < 40) to = onEdge(state.x - away * 170);
+      state.dart = { from: state.x, to, started: time };
+      state.facing = to < state.x ? -1 : 1;
+      state.lastNear = time;
+    };
+    // Caught! It gives in, rolls belly-up and purrs.
+    const caught = (time) => {
+      state.dart = null;
+      state.resume = null;
+      state.chaseRest = time + 4000;
+      play(
+        [
+          { pose: 'belly', mood: 'purring', ms: 2400, start: () => (say('heart'), say('prr')) },
+          { pose: 'sit', mood: 'purring', ms: 1200, start: () => say('heart') },
+        ],
+        time,
+      );
     };
     const otherPerch = () => {
       const perches = visiblePerches().filter((element) => element !== state.perch);
@@ -759,6 +827,7 @@ export default function RoamingCat({ onHome, meal }) {
       if (press && state.mode !== 'held' && Math.hypot(event.pageX - press.x, event.pageY - press.y) > 5) {
         clearTimeout(press.timer);
         state.mode = 'held';
+        state.resume = null;
         state.side = 'top';
         state.perch = null;
       }
@@ -870,6 +939,14 @@ export default function RoamingCat({ onHome, meal }) {
     window.addEventListener('pointerup', onPointerUp);
     // The menu closes on a press anywhere else, or Escape; its options act here.
     const onPressAway = (event) => {
+      if (
+        state.mode === 'tease' &&
+        !state.dart &&
+        !event.target.closest?.('[data-cat]') &&
+        Math.hypot(event.pageX - state.x, event.pageY - (state.y - 20)) < 130
+      ) {
+        dodge(event.pageX, performance.now());
+      }
       if (state.menu && !menuBox.current?.contains(event.target) && !event.target.closest?.('[data-cat]')) {
         closeMenu();
       }
@@ -893,9 +970,10 @@ export default function RoamingCat({ onHome, meal }) {
     };
     // In development, one of its doings can be started by name from the console.
     if (import.meta.env.DEV) {
+      window.mochiState = state;
       window.mochi = (name) => {
         if (!state.perch || onSide() || state.mode !== 'rest') return false;
-        if (name === 'tease') Object.assign(state, { mode: 'tease', until: performance.now() + 7000, dart: null });
+        if (name === 'tease') startTease(performance.now());
         else play(doings[name](), performance.now());
         return true;
       };
@@ -904,6 +982,13 @@ export default function RoamingCat({ onHome, meal }) {
     state.onPointerDown = (event) => {
       event.preventDefault();
       const time = performance.now();
+      // Mid-game of keep-away, a click on it is a grab: mostly it is caught, but
+      // it may dodge at the last moment (the quicker it is, the likelier).
+      if (state.mode === 'tease') {
+        if (!state.dart && Math.random() < 0.3 * teasePace(time)) dodge(event.pageX, time);
+        else caught(time);
+        return;
+      }
       state.lastPlay = time;
       const press = { x: event.pageX, y: event.pageY, petting: false };
       press.timer = setTimeout(() => {
@@ -991,11 +1076,7 @@ export default function RoamingCat({ onHome, meal }) {
           act('beg', time);
         } else if (!busy && Math.random() < feel().tease) {
           // Keep-away: it plays hard to get.
-          state.mode = 'tease';
-          state.until = time + 7000;
-          state.lastNear = time;
-          state.lift = 0;
-          state.dart = null;
+          startTease(time);
           say('♪');
         } else if ((state.pointerSpeed ?? 0) > 700 && Math.abs(state.pointer.x - state.x) > 70 && Math.random() < 0.6) {
           state.chaseRest = time + 3000;
@@ -1074,7 +1155,16 @@ export default function RoamingCat({ onHome, meal }) {
           break;
         case 'land':
           show(onSide() ? 'cling' : 'crouch');
-          if (time > state.until) rest(time);
+          if (time > state.until) {
+            // Landed mid-game of keep-away: the game goes on here.
+            if (state.resume === 'tease' && !onSide()) {
+              const { teasePace: pace, teaseFrom: from } = state;
+              startTease(time);
+              Object.assign(state, { teasePace: pace, teaseFrom: from, until: time + 4000 });
+              say('♪');
+            } else rest(time);
+            state.resume = null;
+          }
           break;
         case 'rest': {
           show(state.restPose, state.restPose === 'rest' ? feel().restFace : feel().face);
@@ -1083,13 +1173,18 @@ export default function RoamingCat({ onHome, meal }) {
             break;
           }
           if (time < state.until || state.menu) break;
+          // Low on energy, it often just dozes on where it is.
+          if (Math.random() > feel().energy + 0.35) {
+            rest(time);
+            break;
+          }
           const bored = time - state.lastPlay > BORED_AFTER;
           const roll = Math.random();
           const perch = state.perch;
           const doing = !onSide() && !bored ? pickAct() : null;
           const choices = (IDLE[moodRef.current] ?? IDLE.content).filter((name) => name !== state.lastIdle);
           const idle =
-            !onSide() && !bored && Math.random() < IDLE_CHANCE
+            !onSide() && !bored && Math.random() < IDLE_CHANCE + 0.35 * feel().energy
               ? choices[Math.floor(Math.random() * choices.length)]
               : null;
           if (idle) {
@@ -1139,7 +1234,15 @@ export default function RoamingCat({ onHome, meal }) {
           }
           along();
           show(onSide() ? 'climb' : 'walk', feel().face);
-          if (next === state.goal) rest(time);
+          if (next === state.goal) {
+            // Full of beans, it may set straight off again somewhere else.
+            const edge = page(state.perch.getBoundingClientRect());
+            if (Math.random() < 0.5 * feel().energy) {
+              state.goal = onSide()
+                ? random(edge.top + 40, edge.bottom - 30)
+                : random(edge.left + MARGIN, edge.right - MARGIN);
+            } else rest(time);
+          }
           break;
         }
         case 'chase': {
@@ -1234,16 +1337,18 @@ export default function RoamingCat({ onHome, meal }) {
         case 'tease': {
           // Keep-away: whenever the pointer comes close it scampers off along
           // its edge, glancing back between dashes; cornered at an end, it
-          // hops right over the pointer to the other side.
+          // hops clean over the pointer to the far side, and now and then it
+          // bolts to another panel nearby, away from the pointer, and carries
+          // on the game there.
           const dx = state.pointer.x - state.x;
           const close =
             time - state.pointer.at < 1500 && Math.abs(dx) < 110 && Math.abs(state.pointer.y - (state.y - 20)) < 120;
           if (close) state.lastNear = time;
           const edge = edgeNow();
           if (state.dart) {
-            const k = Math.min(1, (time - state.dart.started) / 420);
+            const k = Math.min(1, (time - state.dart.started) / 520);
             state.x = state.dart.from + (state.dart.to - state.dart.from) * k;
-            state.lift = 34 * Math.sin(Math.PI * k);
+            state.lift = 48 * Math.sin(Math.PI * k);
             show('leap');
             if (k >= 1) {
               state.dart = null;
@@ -1251,9 +1356,20 @@ export default function RoamingCat({ onHome, meal }) {
             }
           } else if (close) {
             const away = dx > 0 ? -1 : 1;
-            const next = state.x + away * CHASE * 1.6 * dt;
-            if (next < edge.left + MARGIN || next > edge.right - MARGIN) {
-              const to = onEdge(state.pointer.x - away * 90);
+            const next = state.x + away * CHASE * 1.6 * teasePace(time) * dt;
+            const cornered = next < edge.left + MARGIN || next > edge.right - MARGIN;
+            // Very close, or cornered: a chance to bolt to another panel.
+            const pressed = Math.hypot(dx, state.pointer.y - (state.y - 20)) < 60;
+            let bolt = null;
+            if ((cornered || pressed) && time > (state.boltRoll ?? 0)) {
+              state.boltRoll = time + 1500;
+              if (Math.random() < (cornered ? 0.5 : 0.35) * Math.min(1, teasePace(time))) bolt = escapePerch();
+            }
+            if (bolt) {
+              state.resume = 'tease';
+              leapTo(bolt, state.x);
+            } else if (cornered) {
+              const to = onEdge(state.pointer.x - away * 170);
               state.dart = { from: state.x, to, started: time };
               state.facing = to < state.x ? -1 : 1;
             } else {
