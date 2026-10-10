@@ -239,7 +239,8 @@ export default function RoamingCat({ onHome, meal }) {
       const time = performance.now();
       if (between && time < between.until) return;
       between = null;
-      const side = state.mode === 'leap' || state.mode === 'held' ? 'top' : state.side;
+      const side =
+        state.mode === 'leap' || state.mode === 'held' ? 'top' : state.mode === 'fall' ? state.targetSide : state.side;
       // On a side it clings on upright, drawn out to the right of the edge and
       // mirrored for a left side; elsewhere it faces the way it is going.
       const flip = side === 'left' ? -1 : side === 'right' ? 1 : -state.facing;
@@ -317,18 +318,20 @@ export default function RoamingCat({ onHome, meal }) {
         return;
       }
       const to = spotOn(perch, along, side);
+      // Let go, it glides straight down to its spot; otherwise it leaps there.
+      const falling = duration === DROP_MS;
       Object.assign(state, {
-        mode: 'leap',
+        mode: falling ? 'fall' : 'leap',
         from: { x: state.x, y: state.y },
         to,
         target: perch,
         targetSide: side,
         started: performance.now(),
         duration,
-        height: duration === DROP_MS ? 10 : 30 + Math.abs(to.y - state.y) * 0.25,
+        height: 30 + Math.abs(to.y - state.y) * 0.25,
       });
       state.side = 'top';
-      state.facing = to.x < state.x ? -1 : 1;
+      if (!falling) state.facing = to.x < state.x ? -1 : 1;
     };
     const feel = () => FEELS[moodRef.current] ?? FEELS.content;
     // One of its mood's own doings, or a nap, or a dash along its panel.
@@ -437,6 +440,12 @@ export default function RoamingCat({ onHome, meal }) {
       const time = performance.now();
       state.lastPlay = time;
       if (state.mode === 'held') {
+        // From hanging by its scruff at the pointer to standing on its feet,
+        // without moving on screen.
+        state.x += FEET.x - SCRUFF.x;
+        state.y += FEET.y - SCRUFF.y;
+        // It stays put where it was put a moment, before it plays again.
+        state.chaseRest = time + 2500;
         // Dropped beside a panel's side: it clings on there, where it was let go.
         const beside = [...document.querySelectorAll('[data-cat-perch]')]
           .flatMap((element) => {
@@ -450,7 +459,7 @@ export default function RoamingCat({ onHome, meal }) {
           .filter(({ element, side, distance }) => distance > -14 && distance < 50 && sideFits(element, side))
           .sort((a, b) => Math.abs(a.distance) - Math.abs(b.distance))[0];
         if (beside) {
-          leapTo(beside.element, event.pageY, DROP_MS, beside.side);
+          leapTo(beside.element, state.y, DROP_MS, beside.side);
           return;
         }
         // Dropped elsewhere: onto the panel under the pointer, else the nearest in view.
@@ -604,6 +613,23 @@ export default function RoamingCat({ onHome, meal }) {
         time - state.pointer.at < 1500 &&
         Math.hypot(state.pointer.x - state.x, state.pointer.y - (state.y - 18)) < feel().notice;
 
+      // The pointer comes near while it is resting, strolling or busy with
+      // something of its own: it comes to play (hopping up off a panel's side
+      // first), or, hungry, begs.
+      const busy = state.mode === 'act' && state.act.pose !== 'beg';
+      if (pointerNear && time > state.chaseRest && (state.mode === 'rest' || state.mode === 'walk' || busy)) {
+        if (onSide()) {
+          state.chaseRest = 0;
+          leapTo(state.perch, state.pointer.x, HOP_MS);
+        } else if (feel().begs && !busy && Math.random() < 0.6) {
+          state.chaseRest = time + 3000;
+          act('beg', time);
+        } else {
+          state.mode = 'chase';
+          state.until = time + 6000;
+        }
+      }
+
       switch (state.mode) {
         case 'leap': {
           // Nearly a steady pace across, an arc up and down, and the cat tilted
@@ -626,7 +652,24 @@ export default function RoamingCat({ onHome, meal }) {
             state.side = state.targetSide;
             along();
             state.mode = 'land';
-            state.until = time + 220;
+            state.until = time + 320;
+          }
+          break;
+        }
+        case 'fall': {
+          // Let go: easing down onto its spot, still dangling for a top edge,
+          // already clinging on for a side.
+          const t = Math.min(1, (time - state.started) / state.duration);
+          const eased = 1 - (1 - t) ** 3;
+          state.x = state.from.x + (state.to.x - state.from.x) * eased;
+          state.y = state.from.y + (state.to.y - state.from.y) * eased;
+          show(state.targetSide === 'top' ? 'held' : 'cling');
+          if (t >= 1) {
+            state.perch = state.target;
+            state.side = state.targetSide;
+            along();
+            state.mode = 'land';
+            state.until = time + 320;
           }
           break;
         }
@@ -636,17 +679,6 @@ export default function RoamingCat({ onHome, meal }) {
           break;
         case 'rest': {
           show(state.restPose, state.restPose === 'rest' ? feel().restFace : feel().face);
-          if (pointerNear && time > state.chaseRest && !onSide()) {
-            // Hungry, it begs its owner rather than plays.
-            if (feel().begs && Math.random() < 0.6) {
-              state.chaseRest = time + 8000;
-              act('beg', time);
-              break;
-            }
-            state.mode = 'chase';
-            state.until = time + 6000;
-            break;
-          }
           if (time - state.pointer.at > feel().doze && !onSide()) {
             state.mode = 'sleep';
             break;
@@ -686,11 +718,6 @@ export default function RoamingCat({ onHome, meal }) {
           break;
         }
         case 'walk': {
-          if (pointerNear && time > state.chaseRest && !onSide()) {
-            state.mode = 'chase';
-            state.until = time + 6000;
-            break;
-          }
           // Along the top, or climbing up or down a side.
           const at = onSide() ? state.y : state.x;
           const step = STROLL * feel().pace * dt * Math.sign(state.goal - at);
@@ -735,7 +762,7 @@ export default function RoamingCat({ onHome, meal }) {
           }
           if (pointerNear) state.lastNear = time;
           if (time > state.until || time - (state.lastNear ?? time) > 1000) {
-            state.chaseRest = time + 6000;
+            state.chaseRest = time + 3000;
             rest(time, [4, 10]);
           }
           break;
