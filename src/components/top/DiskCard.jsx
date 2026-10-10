@@ -329,7 +329,7 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
           className="font-tight text-lg font-semibold leading-none tabular-nums text-inkwell"
           style={level ? { color: READING_STYLES[level].color } : undefined}
         >
-          {Math.round(share * 100)}%
+          {(share * 100).toFixed(1)}%
         </span>
       </div>
       <div>

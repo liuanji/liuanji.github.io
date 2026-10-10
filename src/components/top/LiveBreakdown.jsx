@@ -1,5 +1,5 @@
 import { HOST_STATUS } from './config';
-import { useEasedValue } from './useGrowingShare';
+import { useEasedValue, useGrowingShare } from './useGrowingShare';
 import { BoxTile } from './DetailBoxes';
 import { formatMemory, formatMemoryOf, formatPercent, formatPower, hasCurrentData, summarize } from './format';
 import { MetricIcon } from './MetricIcons';
@@ -79,6 +79,13 @@ function breakdownRows(key, hosts, now) {
   });
 }
 
+// A row's bar, growing from empty as the box opens and gliding to each new
+// reading.
+function GrowingBar({ share, color }) {
+  const shown = useGrowingShare(share);
+  return <span className="block h-full rounded-full" style={{ width: `${shown * 100}%`, backgroundColor: color }} />;
+}
+
 function BreakdownDetails({ metricKey, hosts, now, summary, share }) {
   const metric = TREND_METRICS[metricKey];
   const rows = breakdownRows(metricKey, hosts, now);
@@ -123,10 +130,7 @@ function BreakdownDetails({ metricKey, hosts, now, summary, share }) {
               className={`h-1.5 overflow-hidden rounded-full ${row.dim ? 'opacity-50' : ''}`}
               style={{ backgroundColor: `${metric.color}1F` }}
             >
-              <span
-                className="block h-full rounded-full"
-                style={{ width: `${Math.min(100, Math.max(0, row.share * 100))}%`, backgroundColor: metric.color }}
-              />
+              <GrowingBar share={row.share} color={metric.color} />
             </span>
             <span
               className={`max-w-[11rem] truncate text-right font-mono text-xs tabular-nums text-inkwell ${row.dim ? 'opacity-50' : ''}`}
