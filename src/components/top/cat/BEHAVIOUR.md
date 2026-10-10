@@ -70,20 +70,23 @@ A card visit with no running GPU card fully in view becomes (iv) instead.
 
 ### (ii) GPU card visits
 
-Only to a running GPU's card in the compact view, fully on screen. She cannot be
+Only to a GPU's card in the compact view, fully on screen: a running one, or
+for "add oil" an idle one (if only one kind is in view, she makes do with a
+visit that suits it). She cannot be
 dragged onto a card; she only jumps there herself. Each visit ends with a leap
 back to a panel.
 
 | Visit | Starving | Hungry | Content | Well fed | Full |
 |---|---|---|---|---|---|
-| Warm nap (on the hottest card: loaf, then melts flat asleep) | 100% | 60% | 17% | 6% | 6% |
-| Ring spin (dangles a paw; the ring turns once) | – | 20% | 13% | 12% | 12% |
-| Peekaboo (peeks over the card, ducks, pops up) | – | 20% | 9% | 6% | 6% |
-| Wobble (hops on it till it tips, reserve button and all; arches in fright; leaps off) | – | – | 16% | 20% | 20% |
-| Hamster wheel (runs on the ring, up to a turn a second; flung off, lands dizzy) | – | – | 16% | 20% | 20% |
-| Ring swing (hangs from the top of the ring by her front paws and swings; lets go) | – | – | 11% | 16% | 16% |
-| Steal (pushes the card off the nearer edge of the screen and comes back pleased; 6–9 s later a helicopter brings it back) | – | – | 9% | 10% | 10% |
-| Kick (three mule kicks, the card leaning further each time, till it topples off the bottom of the screen; a helicopter brings it back) | – | – | 9% | 10% | 10% |
+| Warm nap (on the hottest card: loaf, then melts flat asleep) | 100% | 55% | 16% | 5% | 5% |
+| Ring spin (dangles a paw; the ring turns once) | – | 15% | 12% | 11% | 11% |
+| Peekaboo (peeks over the card, ducks, pops up) | – | 15% | 8% | 6% | 6% |
+| Add oil (on an idle card: pours from a little oil can, cheers "加油!", and the card runs a while, bright, humming and glowing, then sputters out) | – | 15% | 8% | 8% | 8% |
+| Wobble (hops on it till it tips, reserve button and all; arches in fright; leaps off) | – | – | 15% | 19% | 19% |
+| Hamster wheel (runs on the ring, up to a turn a second; flung off, lands dizzy) | – | – | 15% | 19% | 19% |
+| Ring swing (hangs from the top of the ring by her front paws and swings; lets go) | – | – | 10% | 15% | 15% |
+| Steal (pushes the card off the nearer edge of the screen and comes back pleased; 6–9 s later a helicopter brings it back) | – | – | 8% | 9% | 9% |
+| Kick (three mule kicks, the card leaning further each time, till it topples off the bottom of the screen; a helicopter brings it back) | – | – | 8% | 8% | 8% |
 
 Only one card is out at a time (another steal or kick becomes a wobble until it
 is back). Picked up mid-push or mid-kick, the helicopter comes after 2.5 s
@@ -204,8 +207,9 @@ out.
 Opened by clicking your name: how she has eaten, and the switch letting her
 roam. While she roams, a barely-there "•••" button beside the switch lists
 everything she can be asked to do: the moves (walk, run, sniff, spook,
-pounce), her other interactions, the GPU card visits (greyed out, with a note,
-unless a running GPU's card is fully in view when the list opens), the things
+pounce), her other interactions, the GPU card visits (greyed out unless a running
+GPU's card, or for "add oil" an idle one, is fully in view when the list
+opens), the things
 to do with you (belly rub, brushing, photo shoot, the five toy games), the four
 treat moments and the three tossed toys. Picked, she does it at once (hopping
 up first off a side or a GPU card). Trips, slips and being trapped are not in

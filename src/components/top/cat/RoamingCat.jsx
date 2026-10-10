@@ -104,7 +104,7 @@ const FEELS = {
     tease: 0.08,
     plan: { move: 0.35, card: 0.2, bubble: 0.05, other: 0.4 },
     moves: { walk: 0.6, run: 0.1, leap: 0.2, side: 0.1 },
-    gpus: { warm: 0.6, spin: 0.2, peekaboo: 0.2 },
+    gpus: { warm: 0.55, spin: 0.15, peekaboo: 0.15, oil: 0.15 },
     begs: true,
     acts: ['beg', 'groom'],
   },
@@ -119,7 +119,17 @@ const FEELS = {
     tease: 0.2,
     plan: { move: 0.3, card: 0.25, bubble: 0.1, other: 0.35 },
     moves: { walk: 0.45, run: 0.2, leap: 0.2, side: 0.15 },
-    gpus: { warm: 0.17, spin: 0.13, wobble: 0.16, wheel: 0.16, peekaboo: 0.09, swing: 0.11, steal: 0.09, kick: 0.09 },
+    gpus: {
+      warm: 0.16,
+      spin: 0.12,
+      wobble: 0.15,
+      wheel: 0.15,
+      peekaboo: 0.08,
+      swing: 0.1,
+      steal: 0.08,
+      kick: 0.08,
+      oil: 0.08,
+    },
     acts: ['groom', 'knead'],
   },
   purring: {
@@ -133,7 +143,17 @@ const FEELS = {
     tease: 0.4,
     plan: { move: 0.3, card: 0.28, bubble: 0.12, other: 0.3 },
     moves: { walk: 0.35, run: 0.3, leap: 0.2, side: 0.15 },
-    gpus: { wobble: 0.2, wheel: 0.2, swing: 0.16, spin: 0.12, peekaboo: 0.06, warm: 0.06, steal: 0.1, kick: 0.1 },
+    gpus: {
+      wobble: 0.19,
+      wheel: 0.19,
+      swing: 0.15,
+      spin: 0.11,
+      peekaboo: 0.06,
+      warm: 0.05,
+      steal: 0.09,
+      kick: 0.08,
+      oil: 0.08,
+    },
     acts: ['knead', 'zoom', 'groom'],
   },
   loaf: {
@@ -147,7 +167,17 @@ const FEELS = {
     tease: 0.15,
     plan: { move: 0.3, card: 0.3, bubble: 0.14, other: 0.26 },
     moves: { walk: 0.3, run: 0.35, leap: 0.2, side: 0.15 },
-    gpus: { wobble: 0.2, wheel: 0.2, swing: 0.16, spin: 0.12, peekaboo: 0.06, warm: 0.06, steal: 0.1, kick: 0.1 },
+    gpus: {
+      wobble: 0.19,
+      wheel: 0.19,
+      swing: 0.15,
+      spin: 0.11,
+      peekaboo: 0.06,
+      warm: 0.05,
+      steal: 0.09,
+      kick: 0.08,
+      oil: 0.08,
+    },
     acts: ['belly', 'groom', 'knead'],
   },
 };
@@ -244,11 +274,16 @@ function perchBelow(x, y) {
 }
 
 // The running GPUs' tiles in view, to visit.
+function tileInView(element) {
+  const rect = element.getBoundingClientRect();
+  return rect.width > 40 && rect.top > TOP_CLEAR && rect.bottom < window.innerHeight - 10;
+}
 function runningGpus() {
-  return [...document.querySelectorAll('[data-cat-gpu][data-busy]')].filter((element) => {
-    const rect = element.getBoundingClientRect();
-    return rect.width > 40 && rect.top > TOP_CLEAR && rect.bottom < window.innerHeight - 10;
-  });
+  return [...document.querySelectorAll('[data-cat-gpu][data-busy]')].filter(tileInView);
+}
+// The idle GPUs' tiles in view, to get running.
+function idleGpus() {
+  return [...document.querySelectorAll('[data-cat-gpu]:not([data-busy])')].filter(tileInView);
 }
 
 // A gentle shake of a panel, as if knocked on.
@@ -724,7 +759,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
       let kind = pick(plan);
       // A card visit with no running GPU in view, or a wish it is too low for,
       // becomes one of its other doings.
-      if (kind === 'card' && !runningGpus().length) kind = 'other';
+      if (kind === 'card' && !runningGpus().length && !idleGpus().length) kind = 'other';
       if (kind === 'card') {
         visitGpu(pick(feel().gpus));
       } else if (kind === 'bubble') {
@@ -933,7 +968,22 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
     // back to a panel.
     // A GPU's tile it has set wobbling or tipped: let go (springing back if
     // tipped) as it leaves, however it leaves.
+    // An idle tile it got running: stopped (sputtering out, or at once).
+    const stopOilRun = (sputter = false) => {
+      const run = state.oilRun;
+      if (!run) return;
+      state.oilRun = null;
+      run.hum.forEach((animation) => animation?.cancel());
+      if (sputter)
+        run.ring?.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(160deg)' }], {
+          duration: 1200,
+          easing: 'ease-out',
+        });
+      run.face.style.opacity = '';
+      setTimeout(() => (run.face.style.transition = ''), 600);
+    };
     const releaseTile = () => {
+      stopOilRun();
       const held = state.tileHeld;
       if (!held) return;
       state.tileHeld = null;
@@ -1053,6 +1103,78 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
         { pose: 'sit', mood: 'hungry', ms: 500, start: () => say('!') },
         { pose: 'crouch', ms: 1, start: () => startKick(tile) },
       ],
+      // Getting an idle GPU going: a puzzled look, oil poured in from a little
+      // can ("glug"), a cheer ("加油!") and the tile runs a while (bright, its
+      // ring whirring, humming and glowing), then sputters out.
+      oil: (tile) => {
+        const face = tile.querySelector('.rounded-2xl') ?? tile;
+        const ring = tile.querySelector('[data-cat-ring]');
+        return [
+          { pose: 'sit', mood: 'hungry', ms: 700, start: () => say('?') },
+          {
+            pose: 'pour',
+            ms: 2200,
+            frame: (step, now, k) => {
+              if (Math.floor(k * 3) !== step.beat) {
+                step.beat = Math.floor(k * 3);
+                say('glug');
+              }
+            },
+          },
+          {
+            pose: 'cheer',
+            ms: 3800,
+            start: () => {
+              say('加油!');
+              face.style.transition = 'opacity 0.5s';
+              face.style.opacity = '1';
+              state.oilRun = {
+                face,
+                ring,
+                hum: [
+                  ring?.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], {
+                    duration: 1100,
+                    iterations: Infinity,
+                  }),
+                  tile.animate(
+                    [
+                      { transform: 'translate(0, 0)' },
+                      { transform: 'translate(0.7px, -0.5px)' },
+                      { transform: 'translate(-0.6px, 0.4px)' },
+                      { transform: 'translate(0, 0)' },
+                    ],
+                    { duration: 130, iterations: Infinity },
+                  ),
+                  face.animate(
+                    [
+                      { boxShadow: '0 0 0 0 rgba(91, 190, 152, 0)' },
+                      { boxShadow: '0 0 14px 2px rgba(91, 190, 152, 0.45)' },
+                    ],
+                    { duration: 900, direction: 'alternate', iterations: Infinity },
+                  ),
+                ],
+              };
+            },
+            frame: (step, now, k) => {
+              state.lift = Math.abs(Math.sin(k * 10 * Math.PI)) * 6;
+              if (Math.floor(k * 4) !== step.beat) {
+                step.beat = Math.floor(k * 4);
+                if (step.beat) say('~');
+              }
+            },
+          },
+          {
+            pose: 'sit',
+            mood: 'hungry',
+            ms: 1100,
+            start: () => {
+              stopOilRun(true);
+              say('…');
+            },
+          },
+          leaveTile(),
+        ];
+      },
       // Peekaboo: hiding behind the tile, peeking over its top, ducking down
       // and popping up again.
       peekaboo: () => [
@@ -1208,10 +1330,16 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
     };
     // Off to a running GPU's tile (the hottest, for a nap), and the visit once there.
     const visitGpu = (asked) => {
-      const tiles = runningGpus();
-      if (!tiles.length || !state.perch) return false;
-      // One tile stolen at a time.
-      const kind = (asked === 'steal' || asked === 'kick') && state.stolen ? 'wobble' : asked;
+      if (!state.perch) return false;
+      const running = runningGpus();
+      const idle = idleGpus();
+      // One tile stolen at a time; an idle tile to get running, or a running one
+      // for everything else (making do with whichever there is).
+      let kind = (asked === 'steal' || asked === 'kick') && state.stolen ? 'wobble' : asked;
+      if (kind === 'oil' && !idle.length) kind = running.length ? 'wobble' : null;
+      if (kind && kind !== 'oil' && !running.length) kind = idle.length ? 'oil' : null;
+      if (!kind) return false;
+      const tiles = kind === 'oil' ? idle : running;
       const tile =
         kind === 'warm'
           ? tiles.sort((a, b) => Number(b.dataset.heat ?? 0) - Number(a.dataset.heat ?? 0))[0]
@@ -3194,7 +3322,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
               // in view; else it just rests where it landed. Anything else
               // carries on wherever it landed.
               const tile = state.perch?.closest?.('[data-cat-gpu]');
-              const onCard = Boolean(tile) && runningGpus().includes(tile);
+              const onCard = Boolean(tile) && tileInView(tile);
               if (state.resume.onCard ? onCard : true) play(state.resume.steps(), time);
               else rest(time);
             } else if (state.resume === 'tease' && !onSide()) {
@@ -3695,6 +3823,7 @@ export default function RoamingCat({ onHome, meal, peek = false }) {
     });
     return () => {
       cancelAnimationFrame(frame);
+      stopOilRun();
       for (const tile of [state.steal?.tile, state.stolen?.tile]) {
         if (tile) Object.assign(tile.style, { transform: '', transformOrigin: '' });
       }

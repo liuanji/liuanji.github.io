@@ -98,6 +98,7 @@ const ACTIONS = [
       ['gpu:swing', 'Swing from a ring'],
       ['gpu:steal', 'Steal one'],
       ['gpu:kick', 'Kick one off'],
+      ['gpu:oil', 'Get an idle one running'],
     ],
   ],
   [
@@ -121,20 +122,22 @@ const ACTIONS = [
 
 // A barely-there button beside the roam switch with everything it can be
 // asked to do; picked, it does it.
-// Whether a running GPU's tile is fully in view, for the cat to visit.
-function gpuInView() {
-  return [...document.querySelectorAll('[data-cat-gpu][data-busy]')].some((element) => {
-    const rect = element.getBoundingClientRect();
-    return rect.width > 40 && rect.top > 120 && rect.bottom < window.innerHeight - 10;
-  });
+// Which GPUs' tiles are fully in view, running and idle, for the cat to visit.
+function gpusInView() {
+  const inView = (selector) =>
+    [...document.querySelectorAll(selector)].some((element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 40 && rect.top > 120 && rect.bottom < window.innerHeight - 10;
+    });
+  return { running: inView('[data-cat-gpu][data-busy]'), idle: inView('[data-cat-gpu]:not([data-busy])') };
 }
 
 const isGpuGroup = (actions) => actions[0][0].startsWith('gpu:');
 
 function ActionsMenu() {
-  const [gpus, setGpus] = useState(false);
+  const [gpus, setGpus] = useState({ running: false, idle: false });
   return (
-    <DropdownMenu onOpenChange={(open) => open && setGpus(gpuInView())}>
+    <DropdownMenu onOpenChange={(open) => open && setGpus(gpusInView())}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
@@ -152,16 +155,16 @@ function ActionsMenu() {
             {index > 0 && <DropdownMenuSeparator />}
             <DropdownMenuLabel className="py-1 text-[10px] font-normal uppercase tracking-wide text-data-grey">
               {group}
-              {isGpuGroup(actions) && !gpus && (
+              {isGpuGroup(actions) && !gpus.running && !gpus.idle && (
                 <span className="block whitespace-nowrap normal-case tracking-normal text-data-grey/70">
-                  Scroll a running GPU into view
+                  Scroll a GPU into view
                 </span>
               )}
             </DropdownMenuLabel>
             {actions.map(([code, label]) => (
               <DropdownMenuItem
                 key={code}
-                disabled={code.startsWith('gpu:') && !gpus}
+                disabled={code.startsWith('gpu:') && !(code === 'gpu:oil' ? gpus.idle : gpus.running)}
                 className="py-1 text-[11px]"
                 onSelect={() => window.dispatchEvent(new CustomEvent('bakery-cat-do', { detail: code }))}
               >

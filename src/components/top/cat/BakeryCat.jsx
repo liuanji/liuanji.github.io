@@ -161,7 +161,7 @@ function Head({ mood, hat }) {
 }
 
 // Sitting up, tail curled round, for every mood but the loaf and the nap.
-function Sitting({ mood, stage, raised = false }) {
+function Sitting({ mood, stage, raised = false, holding = false }) {
   return (
     <g transform={`translate(60 88) scale(${stage.scale}) translate(-60 -88)`}>
       <path d="M76 84c14 1 20-8 15-17-2-4-6-4-7 0" fill="none" stroke={EDGE} strokeWidth="7.4" strokeLinecap="round" />
@@ -175,8 +175,10 @@ function Sitting({ mood, stage, raised = false }) {
       />
       <path d="M52 89c-3-4-3-14 8-17 11 3 11 13 8 17z" fill={BELLY} />
       {/* Its front paws, one lifted off the ground when it is raised. */}
-      {!raised && <ellipse cx="52" cy="88.5" rx="5.6" ry="3.4" fill={BELLY} stroke={EDGE} strokeWidth="1.4" />}
-      <ellipse cx="68" cy="88.5" rx="5.6" ry="3.4" fill={BELLY} stroke={EDGE} strokeWidth="1.4" />
+      {!raised && !holding && (
+        <ellipse cx="52" cy="88.5" rx="5.6" ry="3.4" fill={BELLY} stroke={EDGE} strokeWidth="1.4" />
+      )}
+      {!holding && <ellipse cx="68" cy="88.5" rx="5.6" ry="3.4" fill={BELLY} stroke={EDGE} strokeWidth="1.4" />}
       <g transform={`translate(60 60) scale(${stage.head}) translate(-60 -60)`}>
         <Head mood={mood} hat={stage.hat} />
       </g>
@@ -446,6 +448,9 @@ export const ROAM_POSES = {
   // Pushing something along (to its left): leaning in, front paws braced flat
   // against it, hind legs digging in, straining.
   push: () => <Pushing />,
+  // Pouring from a little oil can held out in front (to its left), drops
+  // falling from the spout.
+  pour: () => <Pouring />,
   // A mule kick: front paws planted, both hind legs kicked straight out behind
   // (to its right, reaching x = 92).
   kick: () => <Kicking />,
@@ -1762,6 +1767,40 @@ function Kicking() {
         <Head mood="wink" />
       </g>
       <path d="M95 60l4-3M96 66h5M95 72l4 3" stroke="#CBD5E1" strokeWidth="1.2" strokeLinecap="round" />
+    </g>
+  );
+}
+
+// Pouring from a little golden oil can held out in front in both paws, tipped
+// so drops fall from its spout.
+function Pouring() {
+  return (
+    <g>
+      <Sitting mood="purring" stage={STAGES[2]} holding />
+      <path d="M51 74 45 69" fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
+      <path d="M51 74 45 69" fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+      <path d="M54 77 48 73" fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
+      <path d="M54 77 48 73" fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+      <g transform="rotate(-28 33 66)">
+        <path d="M40 62c5-1 7 3 6 6" fill="none" stroke="#B07A3E" strokeWidth="1.6" strokeLinecap="round" />
+        <rect x="27" y="60" width="13" height="11" rx="2.4" fill="#E3B655" stroke="#C9973D" strokeWidth="1.2" />
+        <path d="M27 63l-9-4" stroke="#C9973D" strokeWidth="2.2" strokeLinecap="round" />
+        <path d="M30 63h7" stroke="#F6E2B3" strokeWidth="1.2" strokeLinecap="round" />
+      </g>
+      <ellipse cx="44.5" cy="68.5" rx="3.6" ry="2.8" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
+      <ellipse cx="47" cy="73" rx="3.6" ry="2.8" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
+      {[0, 0.2, 0.4].map((delay) => (
+        <ellipse
+          key={delay}
+          cx="18.5"
+          cy="63"
+          rx="1.3"
+          ry="1.8"
+          fill="#C9973D"
+          className="motion-safe:animate-cat-drip"
+          style={{ animationDelay: `${-delay}s` }}
+        />
+      ))}
     </g>
   );
 }
