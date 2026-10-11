@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { CatScene, MOODS, STAGES, APPETITE, moodOf, stageOf } from './BakeryCat';
 import { DetailsPopover } from '../shared/DetailBoxes';
+import { joyLevel, useJoy } from './joy';
 import { Switch } from '../shared/controls';
 import {
   DropdownMenu,
@@ -37,6 +38,14 @@ function moodLine(mood, meal) {
       return `${NAME} is as full as a cat gets${source}.`;
   }
 }
+
+// Her spirits today (kept in this browser), as a word and a colour, and a line
+// for when they are low.
+const JOY_COLORS = { sad: '#9FB4E8', glum: '#B7C3D6', fine: '#E8B4BE', happy: '#E39AAE' };
+const JOY_LINES = {
+  sad: ` She's feeling low today; some play would cheer her up.`,
+  glum: ` A little attention would lift her spirits.`,
+};
 
 // Things it can be asked to do while it roams, as the roaming cat knows them.
 // The GPU card visits need a running GPU's tile fully in view.
@@ -123,6 +132,11 @@ const ACTIONS = [
       ['treat:beg', 'Hand-feed'],
       ['treat:hunt', 'Treat hunt'],
       ['treat:bowl', 'A little bowl'],
+      ['treat:taiyaki', 'A warm taiyaki'],
+      ['treat:cupcake', 'A birthday cupcake'],
+      ['treat:sushi', 'Sushi on a conveyor belt'],
+      ['treat:descent', 'Gradient descent'],
+      ['treat:fishing', 'Go fishing'],
     ],
   ],
   [
@@ -131,6 +145,11 @@ const ACTIONS = [
       ['toss:ball', 'Bouncy ball'],
       ['toss:feather', 'Drifting feather'],
       ['toss:mouse', 'Toy mouse'],
+      ['toss:roomba', 'Ride a robot vacuum'],
+      ['toss:plane', 'A paper aeroplane'],
+      ['toss:bag', 'A paper bag'],
+      ['toss:wrap', 'Bubble wrap'],
+      ['toss:kite', 'Fly a kite'],
     ],
   ],
 ];
@@ -237,6 +256,8 @@ function CatDetails({ meal, roaming, onRoam, quiet, onQuiet }) {
   const stage = stageOf(hours);
   const next = STAGES.find((item) => item.from > hours);
   const today = meal?.today ?? 0;
+  const joy = useJoy();
+  const spirits = joyLevel(joy);
   return (
     // (data-cat-card: the roaming cat leaves its own card be.)
     <div data-cat-card>
@@ -246,7 +267,10 @@ function CatDetails({ meal, roaming, onRoam, quiet, onQuiet }) {
       <h4 className="mt-4 font-tight text-base font-semibold leading-tight text-inkwell">
         {roaming ? `${NAME} is out roaming the page` : MOODS[mood].title(NAME)}
       </h4>
-      <p className="mt-1 text-sm leading-relaxed text-data-grey">{moodLine(mood, meal)}</p>
+      <p className="mt-1 text-sm leading-relaxed text-data-grey">
+        {moodLine(mood, meal)}
+        {JOY_LINES[spirits] ?? ''}
+      </p>
       <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-border-light pt-3 font-mono text-[11px]">
         <dt className="text-data-grey">Fed this week</dt>
         <dd className="text-right tabular-nums text-inkwell">{cookies(meal?.week)} cookies</dd>
@@ -261,9 +285,21 @@ function CatDetails({ meal, roaming, onRoam, quiet, onQuiet }) {
               style={{ width: `${Math.min(100, (today / APPETITE) * 100)}%` }}
             />
           </span>
-          <span className="w-[4ch] text-right">
+          <span className="w-[5ch] text-right">
             {today >= APPETITE ? 'full' : `${Math.round((today / APPETITE) * 100)}%`}
           </span>
+        </dd>
+        {/* Her spirits today, kept in this browser and fresh each day: playing
+            with her lifts them, being left alone lowers them. */}
+        <dt className="text-data-grey">Mood</dt>
+        <dd className="flex items-center justify-end gap-2 text-inkwell">
+          <span className="h-1.5 w-24 overflow-hidden rounded-full bg-[#F1E8EC]">
+            <span
+              className="block h-full rounded-full transition-[width] duration-500"
+              style={{ width: `${joy}%`, backgroundColor: JOY_COLORS[spirits] }}
+            />
+          </span>
+          <span className="w-[5ch] text-right">{spirits}</span>
         </dd>
         <dt className="text-data-grey">Age</dt>
         <dd className="text-right text-inkwell">{stage.label}</dd>

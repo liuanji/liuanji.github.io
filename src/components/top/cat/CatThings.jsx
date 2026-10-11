@@ -671,6 +671,467 @@ function Dream() {
   );
 }
 
+// Treats besides its cookies.
+// A warm taiyaki, a fish-shaped cake from the bakery, lying on the edge (its
+// bottom at y = 0) head to the left, steaming while hot (bake, 0 to 1), with
+// bites (count, up to 3) taken from its tail end.
+function Taiyaki({ count = 0, bake = 0 }) {
+  const bites = [
+    [17, -8, 5.6],
+    [10, -8.5, 6.6],
+    [2, -8, 7.6],
+  ].slice(0, count);
+  return (
+    <g>
+      {bake > 0.02 && (
+        <path
+          d="M-6-19q-2.4-3 0-6t0-6M0-21q-2.4-3 0-6t0-6M6-19q-2.4-3 0-6t0-6"
+          fill="none"
+          stroke="#D3DAE5"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          opacity={bake}
+          className="motion-safe:animate-pulse"
+        />
+      )}
+      <mask id="taiyaki-bites">
+        <rect x="-20" y="-20" width="44" height="24" fill="white" />
+        {bites.map(([x, y, r]) => (
+          <circle key={x} cx={x} cy={y} r={r} fill="black" />
+        ))}
+      </mask>
+      <g mask="url(#taiyaki-bites)">
+        <path
+          d="M-15-8C-15-14-9-16-2-15.6 5-15 10-13 12-10.4L17-14C18.4-9.6 18.4-6.4 17-2L12-5.6C10-2.8 5-.6-2-.4-9-.2-15-2-15-8Z"
+          fill="#E2A95E"
+          stroke="#B97A35"
+          strokeWidth="1.1"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M-3-11.4q2-2 4 0M3-11.4q2-2 4 0M0-7.4q2-2 4 0M6-7.4q2-2 4 0M-6-7.4q2-2 4 0"
+          fill="none"
+          stroke="#B97A35"
+          strokeWidth="0.8"
+          strokeLinecap="round"
+          opacity="0.8"
+        />
+        <path d="M-7.4-13q1.8 5 0 10" fill="none" stroke="#B97A35" strokeWidth="0.9" strokeLinecap="round" />
+        <circle cx="-11" cy="-9.6" r="1.3" fill="#5B4636" />
+        <path d="M-12-13.4q3-1.6 6-.6" fill="none" stroke="#F3CF96" strokeWidth="1.2" strokeLinecap="round" />
+      </g>
+    </g>
+  );
+}
+
+// A birthday cupcake on the edge (its bottom at y = 0): a pleated paper case,
+// a swirl of frosting (bake: how much of it is left, 0 to 1) with sprinkles,
+// and a candle, lit (count 1), or blown out and smoking (count 0).
+function Cupcake({ count = 1, bake = 1 }) {
+  return (
+    <g>
+      <path d="M-9.4-12h18.8L6.4 0h-12.8z" fill="#BFD3F2" stroke="#8EA6DF" strokeWidth="1" strokeLinejoin="round" />
+      <path d="M-6.2-11.4l1 11M-2.1-11.4l.4 11M2.1-11.4l-.4 11M6.2-11.4l-1 11" stroke="#8EA6DF" strokeWidth="0.7" />
+      <path d="M-9.8-12c.4-1.8 1.6-2.8 3-2.8h13.6c1.4 0 2.6 1 3 2.8z" fill="#C89A6A" />
+      {bake > 0.02 && (
+        <g transform={`translate(0 -13) scale(1 ${bake.toFixed(3)}) translate(0 13)`}>
+          <path
+            d="M-10.4-13c-1.2-3.6 1.4-5.8 4.4-5.6-.6-3.6 2.6-5.8 6-5 3.2-.8 6.4 1.4 5.8 5 3-.2 5.6 2 4.4 5.6z"
+            fill="#FFF4EC"
+            stroke="#E7C9C2"
+            strokeWidth="1"
+            strokeLinejoin="round"
+          />
+          <path d="M-5.6-17.6q5.6 2.2 11.2 0M-2.8-21.6q2.8 1.4 5.6 0" fill="none" stroke="#E7C9C2" strokeWidth="0.8" />
+          {[
+            [-6, -15.2, 30, '#B9D6B2'],
+            [3, -16, -40, '#BFD3F2'],
+            [-1.6, -19.6, 70, '#F2C27D'],
+            [6.4, -14.4, 10, '#F2B8C2'],
+          ].map(([x, y, angle, color]) => (
+            <rect
+              key={x}
+              x={x - 1.6}
+              y={y - 0.6}
+              width="3.2"
+              height="1.2"
+              rx="0.6"
+              fill={color}
+              transform={`rotate(${angle} ${x} ${y})`}
+            />
+          ))}
+        </g>
+      )}
+      {bake > 0.6 && (
+        <g>
+          <rect x="-1.2" y="-33" width="2.4" height="9.6" rx="0.8" fill="#F2B8C2" stroke="#D98E9C" strokeWidth="0.6" />
+          <path d="M-1.2-30.6l2.4-1.4M-1.2-27.4l2.4-1.4" stroke="white" strokeWidth="0.7" />
+          <path d="M0-33v-1.6" stroke="#5B6474" strokeWidth="0.6" />
+          {count > 0 ? (
+            <g className="motion-safe:animate-pulse">
+              <circle cx="0" cy="-37.6" r="4.6" fill="#FCE9B8" opacity="0.45" />
+              <path d="M0-41.6c-2.4 3-2.6 5-.2 6.4 2.6-1.4 2.6-3.4.2-6.4z" fill="#F4C46A" />
+              <path d="M0-39.2c-1 1.4-1 2.4 0 3 1-.6 1-1.6 0-3z" fill="#FCE9B8" />
+            </g>
+          ) : (
+            <path d="M0-35c-2-3 2-5 0-8s2-5 0-8" fill="none" stroke="#CBD5E1" strokeWidth="1" strokeLinecap="round" />
+          )}
+        </g>
+      )}
+    </g>
+  );
+}
+
+// A frosting moustache, its middle at (0, 0).
+function Frosting() {
+  return (
+    <path
+      d="M-5.6 1c-1.2-2.4 1-4 3-3 .8-1.8 3.6-1.8 4.4 0 2-1 4.2.6 3 3z"
+      fill="#FFF4EC"
+      stroke="#E7C9C2"
+      strokeWidth="0.7"
+      strokeLinejoin="round"
+    />
+  );
+}
+
+// A little conveyor belt for sushi, lying along the edge from (0, 0) for rope
+// pixels to the right, the marks on its belt carried along (count: how far).
+function Conveyor({ rope = 160, count = 0 }) {
+  const marks = [];
+  for (let x = 4 + (((count % 10) + 10) % 10); x < rope - 3; x += 10) marks.push(x);
+  return (
+    <g>
+      <rect x="0" y="-7" width={rope} height="7" rx="3.5" fill="#B9C0CD" stroke="#8C95AB" strokeWidth="1" />
+      <path d={`M3.4-5.6H${rope - 3.4}`} stroke="#D6DBE4" strokeWidth="1.2" strokeLinecap="round" />
+      <path d={marks.map((x) => `M${x.toFixed(1)} -6v2.4`).join('')} stroke="#8C95AB" strokeWidth="0.8" />
+      <circle cx="3.6" cy="-3.5" r="2" fill="#A3ADBB" />
+      <circle cx={rope - 3.6} cy="-3.5" r="2" fill="#A3ADBB" />
+    </g>
+  );
+}
+
+// A plate of sushi standing at (0, 0): salmon or egg (tamago) nigiri, a
+// gunkan of salmon roe (ikura) wrapped in nori, or (empty) just the plate, its
+// rim's colour giving its price as in a sushi bar.
+const SUSHI_RIMS = { salmon: '#E7A8A0', tamago: '#9FB4E8', ikura: '#9CC193', empty: '#E7A8A0' };
+function Sushi({ variant = 'salmon' }) {
+  return (
+    <g>
+      <ellipse cx="0" cy="-1.6" rx="10" ry="2.4" fill="white" stroke={SUSHI_RIMS[variant]} strokeWidth="1.4" />
+      {(variant === 'salmon' || variant === 'tamago') && (
+        <rect x="-6" y="-7.6" width="12" height="5" rx="2.4" fill="#FBFAF6" stroke="#D9D4C8" strokeWidth="0.7" />
+      )}
+      {variant === 'salmon' && (
+        <g>
+          <path
+            d="M-7.4-7.6c0-2.4 3-3.4 7.4-3.4s7.4 1 7.4 3.4c-2 .8-12.8.8-14.8 0z"
+            fill="#F0A57C"
+            stroke="#D98A62"
+            strokeWidth="0.7"
+          />
+          <path
+            d="M-4.4-9.6l1.4 1.6M-1-10l1.4 1.8M2.4-9.8l1.4 1.6"
+            stroke="#FBE3D6"
+            strokeWidth="0.8"
+            strokeLinecap="round"
+          />
+        </g>
+      )}
+      {variant === 'tamago' && (
+        <g>
+          <rect x="-7" y="-11.4" width="14" height="4.2" rx="1.4" fill="#F4D58D" stroke="#D9B65E" strokeWidth="0.7" />
+          <rect x="-1.6" y="-11.8" width="3.2" height="9.4" fill="#5B6474" />
+        </g>
+      )}
+      {variant === 'ikura' && (
+        <g>
+          <rect x="-6.4" y="-9.4" width="12.8" height="7.6" rx="2" fill="#4A5262" />
+          <path d="M-5.4-8.4h10.8" stroke="#6B7484" strokeWidth="0.8" />
+          {[-3.8, -1.3, 1.3, 3.8, -2.5, 0, 2.5].map((x, index) => (
+            <circle
+              key={index}
+              cx={x}
+              cy={index < 4 ? -10.4 : -12.2}
+              r="1.4"
+              fill="#F2A07B"
+              stroke="#D9825C"
+              strokeWidth="0.5"
+            />
+          ))}
+        </g>
+      )}
+    </g>
+  );
+}
+
+// Gradient descent: a loss curve, as a little chart standing on the edge with
+// its lowest point (the global minimum) at (0, 0). From its start, LOSS.width
+// × LOSS.low to the right, it falls into a dip (a local minimum) at
+// LOSS.dip of the way along, over a hump, and down to the lowest point at
+// LOSS.low, rising a little after. Axes, "loss" and "θ".
+export const LOSS = {
+  width: 150,
+  dip: 0.32,
+  low: 0.8,
+  end: 0.95,
+  // Its height above the edge a share u of the way along.
+  height: (u) => 2 + (46 * (u - 0.8) ** 2) / 0.64 - 14 * Math.exp(-(((u - 0.32) / 0.07) ** 2)),
+};
+function Loss({ flip = 1 }) {
+  const points = Array.from({ length: 61 }, (_, index) => {
+    const u = (index / 60) * LOSS.end;
+    return [(LOSS.low - u) * LOSS.width, -LOSS.height(u)];
+  });
+  const line = points.map(([x, y], index) => `${index ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join('');
+  const start = points[0][0];
+  const end = points[points.length - 1][0];
+  // Its words read the right way round however it is turned.
+  const label = (x, y, text, extra = {}) => (
+    <text
+      x="0"
+      y="0"
+      transform={`translate(${x} ${y}) scale(${flip} 1)`}
+      textAnchor="middle"
+      fontFamily="JetBrains Mono, monospace"
+      fontSize="6"
+      fill="#A3ADBB"
+      {...extra}
+    >
+      {text}
+    </text>
+  );
+  return (
+    <g>
+      <path d={`${line}L${end.toFixed(1)} 0L${start.toFixed(1)} 0Z`} fill="#F3E6D6" opacity="0.7" />
+      <path d={`M${start + 4} -54V0H${end - 6}`} fill="none" stroke="#C2CAD6" strokeWidth="0.9" />
+      <path
+        d={`M${start + 2} -51.6l2-2.4 2 2.4M${end - 3.6} -2l-2.4 2 2.4 2`}
+        fill="none"
+        stroke="#C2CAD6"
+        strokeWidth="0.9"
+      />
+      <path d={line} fill="none" stroke="#D08C5B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      {label(start + 11, -46, 'loss')}
+      {label(end - 4, -5, 'θ')}
+    </g>
+  );
+}
+
+// Gone fishing: a little rod held at (0, 0), reaching up and out to the
+// right, its line hanging rope pixels from the tip with a float a little way
+// above the hook, and (count 1) a fish-shaped cookie caught on it.
+function Rod({ rope = 0, count = 0 }) {
+  const tip = { x: 34, y: -30 };
+  const end = tip.y + rope;
+  return (
+    <g>
+      <path d={`M0 0Q16-19 ${tip.x} ${tip.y}`} fill="none" stroke="#B07A3E" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="5" cy="-4.6" r="2.6" fill="#E3CCA6" stroke="#B07A3E" strokeWidth="0.9" />
+      {rope > 1 && (
+        <g>
+          <path d={`M${tip.x} ${tip.y}V${end}`} stroke="#A3ADBB" strokeWidth="0.7" />
+          {rope > 16 && (
+            <g>
+              <circle cx={tip.x} cy={end - 12} r="2.5" fill="#F2B8B0" stroke="#D98E86" strokeWidth="0.7" />
+              <path d={`M${tip.x - 2.5} ${end - 12}h5`} stroke="white" strokeWidth="1.2" />
+            </g>
+          )}
+          <path d={`M${tip.x} ${end}q0 3.4 2.4 3.4t2-2.6`} fill="none" stroke="#8E98A8" strokeWidth="0.9" />
+          {count > 0 && (
+            <g transform={`translate(${tip.x + 1.6} ${end + 9}) rotate(90)`}>
+              <path
+                d="M-5.4 0q5.4-4 10.8 0q-5.4 4-10.8 0zm10.8 0 2.8-2.4v4.8z"
+                fill="#E39A55"
+                stroke="#C47A35"
+                strokeWidth="0.7"
+              />
+            </g>
+          )}
+        </g>
+      )}
+    </g>
+  );
+}
+
+// Toys besides its old favourites.
+// A little robot vacuum on the edge (its wheels at y = 0): a soft light on
+// top, and a side brush whirling at its front (to the right).
+function Roomba() {
+  return (
+    <g>
+      <rect x="-26" y="-12" width="52" height="11" rx="5.5" fill="#D9DEE8" stroke="#8C95AB" strokeWidth="1.1" />
+      <path d="M-22.6-10.2h45.2" stroke="#EEF1F6" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M-25.4-4.4h50.8" stroke="#AEB7C6" strokeWidth="1.8" />
+      <circle cx="0" cy="-10.4" r="1.5" fill="#8FD3B4" className="motion-safe:animate-pulse" />
+      <ellipse cx="-14" cy="-0.6" rx="3" ry="1.3" fill="#5B6474" />
+      <ellipse cx="14" cy="-0.6" rx="3" ry="1.3" fill="#5B6474" />
+      <g
+        className="motion-safe:animate-spin"
+        style={{ transformBox: 'fill-box', transformOrigin: 'center', animationDuration: '0.6s' }}
+      >
+        <path
+          d="M24.5-5l4 1.2M24.5-5l-1.2 4M24.5-5l-4-1.2M24.5-5l1.2-4"
+          stroke="#8E98A8"
+          strokeWidth="0.8"
+          strokeLinecap="round"
+        />
+      </g>
+    </g>
+  );
+}
+
+// A paper aeroplane, its middle at (0, 0), flying to the right.
+function Plane() {
+  return (
+    <g transform="scale(1.35)">
+      <path d="M-13-1 14-4-11-9-8-3.6z" fill="white" stroke="#A3ADBB" strokeWidth="0.9" strokeLinejoin="round" />
+      <path d="M-8-3.6 14-4-13-1z" fill="#EEF1F6" stroke="#A3ADBB" strokeWidth="0.9" strokeLinejoin="round" />
+      <path d="M-4-6.6l3 1.2" stroke="#D9C2A0" strokeWidth="0.8" strokeLinecap="round" />
+    </g>
+  );
+}
+// A ball of crumpled paper, its middle at (0, 0).
+function PaperBall() {
+  return (
+    <g>
+      <circle r="4.6" fill="#F6F7F9" stroke="#A3ADBB" strokeWidth="0.9" />
+      <path d="M-3-1l2 1 1-2.4 2 1.4M-2 2.4l1.6-1.6 1.8 1.2" fill="none" stroke="#C2CAD6" strokeWidth="0.7" />
+    </g>
+  );
+}
+
+// A paper bag from the bakery, standing on the edge (its bottom at y = 0, its
+// open top BAG_HEIGHT up), crumpled at the rim, stamped with a little
+// croissant.
+export const BAG_HEIGHT = 30;
+function PaperBag() {
+  return (
+    <g>
+      <path
+        d="M-17 0-16-28-13.4-30-10-28.4-6.6-30.4-3.2-28.6 0-30.6 3.4-28.6 6.8-30.4 10.2-28.6 13.4-30.4 16-29 17 0Z"
+        fill="#DCBB8E"
+        stroke="#B48E5A"
+        strokeWidth="1.1"
+        strokeLinejoin="round"
+      />
+      <path d="M-11-27v26M11-27v26" stroke="#C9A877" strokeWidth="0.8" opacity="0.8" />
+      <path d="M-16.4-25.4h32.8" stroke="#C9A877" strokeWidth="0.8" />
+      <path
+        d="M-6-12.4c-.6-2 1-3.6 2.6-3.2.8-1.8 3.6-2 4.8-.4 1.6-1 3.8 0 3.6 2 1.6.4 1.8 2.4.2 3z"
+        fill="#E9C9A0"
+        stroke="#B48E5A"
+        strokeWidth="0.7"
+        strokeLinejoin="round"
+      />
+      <path d="M-2.6-12.6l.6-2.4M1.2-12.4v-2.8M4.2-12l-.6-2.2" stroke="#B48E5A" strokeWidth="0.6" />
+    </g>
+  );
+}
+
+// A strip of bubble wrap lying along the edge from (0, 0), 96 pixels to the
+// right, the first count of its twelve bubbles popped.
+function Wrap({ count = 0 }) {
+  return (
+    <g>
+      <rect x="0" y="-1.6" width="96" height="1.8" rx="0.9" fill="#E6EEF8" stroke="#A9B6C8" strokeWidth="0.7" />
+      {Array.from({ length: 12 }, (_, index) => {
+        const x = 4 + index * 8;
+        return index < count ? (
+          <path
+            key={index}
+            d={`M${x - 3.2} -1.8l1.6-.9 1.6.9 1.6-.9 1.6.9`}
+            fill="none"
+            stroke="#A9B6C8"
+            strokeWidth="0.7"
+          />
+        ) : (
+          <g key={index}>
+            <path d={`M${x - 3.4} -1.6a3.4 3.4 0 0 1 6.8 0z`} fill="#F4F8FD" stroke="#A9B6C8" strokeWidth="0.8" />
+            <circle cx={x - 1} cy="-3.4" r="0.7" fill="white" />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+// A kite, its middle at (0, 0): two soft panels on crossed sticks, a tail of
+// little bows fluttering below, and its string running to (tx, ty).
+function Kite({ tx = 0, ty = 60 }) {
+  return (
+    <g>
+      <path
+        d={`M0 4Q${(tx * 0.45).toFixed(1)} ${(ty * 0.5 + 16).toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)}`}
+        fill="none"
+        stroke="#A3ADBB"
+        strokeWidth="0.7"
+      />
+      <g
+        className="motion-safe:animate-cat-wave"
+        style={{ transformBox: 'fill-box', transformOrigin: 'center top', animationDuration: '0.9s' }}
+      >
+        <path d="M0 14q-4 6 0 12t0 12" fill="none" stroke="#A3ADBB" strokeWidth="0.8" />
+        <path
+          d="M-3 19.4 0 21.4-3 23.4zM3 19.4 0 21.4 3 23.4zM-3 31.4 0 33.4-3 35.4zM3 31.4 0 33.4 3 35.4z"
+          fill="#F2C27D"
+        />
+      </g>
+      <path d="M0-16 11-2 0 14-11-2z" fill="#F2B8C2" stroke="#D98E9C" strokeWidth="1" strokeLinejoin="round" />
+      <path d="M0-16 11-2 0 14z" fill="#BFD3F2" stroke="#8EA6DF" strokeWidth="1" strokeLinejoin="round" />
+      <path d="M0-16V14M-11-2H11" stroke="#C49A62" strokeWidth="0.8" />
+    </g>
+  );
+}
+
+// For a cat low in spirits.
+// A tear, falling, its top at (0, 0).
+function Tear() {
+  return (
+    <path
+      d="M0 0c-1.4 2.2-2.2 3.6-1 4.8s2.8 0 2.3-1.7C1.1 2.2.6 1.2 0 0z"
+      fill="#B9CBF2"
+      stroke="#8EA6DF"
+      strokeWidth="0.6"
+    />
+  );
+}
+// A little rain cloud of its own, its middle at (0, 0), rain falling from it
+// (count: how far the drops have fallen, for them to move).
+function RainCloud({ count = 0 }) {
+  const fall = ((count % 9) + 9) % 9;
+  return (
+    <g>
+      <g stroke="#9FB4E8" strokeWidth="1" strokeLinecap="round" opacity="0.8">
+        {[-12, -6, 0, 6, 12].map((x, index) => {
+          const y = 8 + ((fall + index * 3.4) % 18);
+          return <path key={x} d={`M${x} ${y.toFixed(1)}l-1 3.4`} />;
+        })}
+      </g>
+      <path
+        d="M-17 6c-4.4 0-5.6-6-1-7.4C-18-6-12-9-8-6.4-6.6-11 2-12 4.6-7c3.4-2.8 9-.6 8.8 3.6 4.6.2 5 8.4.2 9.4z"
+        fill="#D5DCE6"
+        stroke="#A9B6C8"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+    </g>
+  );
+}
+// A grumble: a scribbled tangle over a sulking cat's head, its middle at (0, 0).
+function Grumble() {
+  return (
+    <path
+      d="M-8 1c2-6 8-6 7-1s-8 4-6-1 9-5 10 0-4 6-6 2 4-7 8-4"
+      fill="none"
+      stroke="#8E98A8"
+      strokeWidth="1.1"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  );
+}
+
 // A wooden ladder, its top at (0, 0), reaching down rope pixels.
 function Ladder({ rope = 100 }) {
   const rungs = Array.from({ length: Math.max(1, Math.floor(rope / 11)) }, (_, index) => 6 + index * 11);
@@ -759,6 +1220,22 @@ const THINGS = {
   ufo: Ufo,
   bed: Bed,
   dream: Dream,
+  tear: Tear,
+  raincloud: RainCloud,
+  grumble: Grumble,
+  taiyaki: Taiyaki,
+  cupcake: Cupcake,
+  frosting: Frosting,
+  conveyor: Conveyor,
+  sushi: Sushi,
+  loss: Loss,
+  rod: Rod,
+  roomba: Roomba,
+  plane: Plane,
+  paperball: PaperBall,
+  paperbag: PaperBag,
+  wrap: Wrap,
+  kite: Kite,
   ladder: Ladder,
   rope: Rope,
   parachute: Parachute,
@@ -793,6 +1270,22 @@ const REACH = {
   ufo: 30,
   bed: 46,
   dream: 36,
+  tear: 6,
+  raincloud: 24,
+  grumble: 12,
+  taiyaki: 22,
+  cupcake: 22,
+  frosting: 8,
+  conveyor: 20,
+  sushi: 12,
+  loss: 30,
+  rod: 20,
+  roomba: 32,
+  plane: 16,
+  paperball: 6,
+  paperbag: 20,
+  wrap: 20,
+  kite: 24,
   ladder: 20,
   rope: 10,
   parachute: 30,
@@ -929,6 +1422,8 @@ export function CatThing({
   rope,
   variant,
   layer,
+  tx,
+  ty,
 }) {
   const Thing = THINGS[kind];
   const reach = REACH[kind];
@@ -946,7 +1441,18 @@ export function CatThing({
       }}
     >
       <g transform={`rotate(${rotate}) scale(${scale * flip} ${scale})`}>
-        <Thing count={count} string={string} flying={flying} bake={bake} rope={rope} variant={variant} layer={layer} />
+        <Thing
+          count={count}
+          string={string}
+          flying={flying}
+          bake={bake}
+          rope={rope}
+          variant={variant}
+          layer={layer}
+          flip={flip}
+          tx={tx}
+          ty={ty}
+        />
       </g>
     </svg>
   );

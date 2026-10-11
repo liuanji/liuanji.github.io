@@ -84,7 +84,7 @@ back to a panel.
 | Peekaboo (peeks over the card, ducks, pops up) | – | 15% | 8% | 6% | 6% |
 | Add oil (on an idle card: pours from a little oil can, cheers two or three of "加油!" (Chinese), "頑張れ!" (Japanese), "Semangat!" (Malay), "화이팅!" (Korean) and "Cố lên!" (Vietnamese), and the card runs a while (its rings showing a pretend reading), bright, humming and glowing, then sputters out) | – | 15% | 8% | 8% | 8% |
 | Wobble (hops on it till it tips, reserve button and all; arches in fright; leaps off) | – | – | 15% | 19% | 19% |
-| Hamster wheel (runs on the ring, up to a turn a second; flung off, lands dizzy) | – | – | 15% | 19% | 19% |
+| Hamster wheel (runs on the ring for about 4 s, unhurried, the ring up to about two-thirds of a turn a second; flung off, lands dizzy) | – | – | 15% | 19% | 19% |
 | Ring swing (hangs from the top of the ring by her front paws and swings; lets go) | – | – | 10% | 15% | 15% |
 | Steal (pushes the card off the nearer edge of the screen and comes back pleased; 6–9 s later a helicopter or a UFO brings it back) | – | – | 8% | 9% | 9% |
 | Kick (three mule kicks, the card leaning further each time, till it topples off the bottom of the screen; a helicopter or a UFO brings it back) | – | – | 8% | 8% | 8% |
@@ -203,10 +203,79 @@ Then she ignores the pointer for 3 s. Other reactions:
 
 | Menu item | What happens |
 |---|---|
-| Give a treat | Equal pick (never the same twice running): toss and catch, hand-feed, treat hunt, little bowl |
-| Toss a toy | Equal pick (never the same twice running): yarn, bouncy ball, drifting feather, toy mouse |
+| Give a treat | Equal pick (never the same twice running): toss and catch, hand-feed, treat hunt, little bowl, a warm taiyaki, a birthday cupcake, sushi on a conveyor belt, gradient descent, fishing |
+| Toss a toy | Equal pick (never the same twice running): yarn, bouncy ball, drifting feather, toy mouse, a robot vacuum ride, a paper aeroplane, a paper bag, bubble wrap, a kite |
 | Dance | Equal pick (never the same twice running): happy paws, shuffle, twirl, moonwalk |
 | Send home | She leaps back into your name and roaming turns off |
+
+### The newer treats and toys
+
+- **A warm taiyaki:** a fish-shaped cake from the bakery drops in beside her,
+  steaming. She sniffs it, blows on it ("fuu~") till the steam is gone, eats it
+  from the tail up in three bites, and licks her lips.
+- **A birthday cupcake:** its candle lit, she gazes at the flame, takes a breath
+  and blows it out ("fuu!"), cheers, eats the frosting, and sits back with a
+  frosting moustache, which she licks off.
+- **Sushi on a conveyor belt:** plates come along a little belt by her edge (egg,
+  salmon, salmon roe, salmon); she grabs the first salmon nigiri off its plate
+  and eats it, and the rest roll by.
+- **Gradient descent:** a little chart of a loss curve stands beside her and a
+  cookie is let go at the top. It rolls down into a dip on the way (a local
+  minimum) and stops; she goes round and nudges it ("∇"), and it rolls on over
+  the hump into the lowest point, rocking to a stop, where she eats it
+  ("converged!").
+- **Fishing:** with a little rod she casts over her edge; the float bobs a
+  while, a tug ("!"), and she reels in a fish-shaped cookie.
+- **A robot vacuum ride:** a robot vacuum trundles up ("whirr"); she hops on and
+  rides it, sitting proud, to the end of its run ("bonk") and back, loafing;
+  then hops off and it trundles away.
+- **A paper aeroplane:** it glides in, looping down; she leaps and catches it,
+  lands with it crumpled into a ball, and bats the ball off her edge.
+- **A paper bag:** a bakery bag; she dives in, the bag rustles and scoots along,
+  her head pops up out of the top ("♪"), ducks, pops up again, and out she hops.
+- **Bubble wrap:** her first step pops a bubble ("pop!") and she jumps; then she
+  marches the length of it, popping as she goes.
+- **A kite:** she runs along her edge with the string, the kite climbing behind;
+  sits and watches it dance in the wind ("♪"); the wind drops, the kite drifts
+  down, and she pounces on it.
+
+## Her spirits (Mood)
+
+A second bar on her card, below Tummy: how she is in herself today, 0 to 100.
+It is kept in this browser only and starts afresh at 55 each day.
+
+| Lifts her | Points | Knocks her | Points |
+|---|---|---|---|
+| A click on her | +3 | A fright at a pop-up card | −2 |
+| Petting | +5 | Dropped from up high | −4 |
+| A treat, or a toy tossed | +10 | Trapped in a card | −3 |
+| A game (and +6 more played through) | +8 | Falling off the page | −6 |
+| Answering a thought bubble | +12 | Left alone while out (no play for a minute) | −0.5 a minute |
+| Catching her at keep-away | +6 | | |
+| A dance | +5 | | |
+| Anything else asked of her from her card | +3 | | |
+
+| Spirits | What changes |
+|---|---|
+| Sad (under 20) | Energy × 0.6, slower, walks rather than runs, no keep-away, nothing lively (no dances, backflips, tail chases or zoomies), GPU visits only a warm nap (70%) or peekaboo (30%); 55% of her stirs become a sad doing instead; 60% of the time she ignores the pointer, turning away ("hmph"); a sad face |
+| Glum (20 to 40) | Energy × 0.85, a little slower, runs a third as often, keep-away halved, nothing lively, no boisterous GPU visits; 15% of her stirs become a sad doing; she ignores the pointer 20% of the time; a sad face at rest |
+| Fine (40 to 75) | As her mood says |
+| Happy (75 and up) | Energy + 0.1, keep-away × 1.5 (+5%), and 12% of her stirs become a dance or the zoomies (an even chance) |
+
+Her card adds a line when she is low ("She's feeling low today; some play would
+cheer her up").
+
+The sad doings, an equal pick (never the same twice running):
+
+- **Crying:** sat with her eyes squeezed shut, tears running and dropping, sobs;
+  then a sniffle and a wipe with a paw.
+- **A rain cloud:** a little rain cloud of her own gathers over her head and
+  rains on her while she sits there ("sigh…"); she lies down under it, and it
+  drifts off.
+- **Sulking:** down as a loaf, eyes shut and a pout, a grumble scribbled over
+  her head ("hmph").
+- **Moping:** she trails off slowly along her edge, head down, and sits there a
+  while ("sigh…").
 
 ## Pop-up cards
 
@@ -314,8 +383,8 @@ greyed out in her card's list.
 
 ## Her card
 
-Opened by clicking your name: how she has eaten, and the switch letting her
-roam. While she roams, a barely-there "•••" button beside the switch lists
+Opened by clicking your name: how she has eaten (and today's Tummy), her
+spirits (Mood), and the switch letting her roam. While she roams, a barely-there "•••" button beside the switch lists
 everything she can be asked to do, in two levels: first its kinds (moves, by
 itself, naps, with you, GPU cards, treats, toys, each with how many it holds),
 and a click on one shows what is in it, with a way back up. In all: the moves (walk, run, sniff, spook,

@@ -65,10 +65,17 @@ function Head({ mood, hat }) {
   const hissing = mood === 'hiss';
   // Drowsy: lids half down over its eyes.
   const drowsy = mood === 'drowsy';
+  // Low in spirits: ears down, eyes cast down under worried brows, a little
+  // frown; crying, eyes squeezed shut with tears running and a wobbly mouth;
+  // sulking, eyes shut flat and a pout.
+  const sad = mood === 'sad';
+  const crying = mood === 'cry';
+  const sulking = mood === 'sulk';
+  const low = sad || crying || sulking;
   const fright = mood === 'fright' || hissing;
   const ears = fright
     ? ['M42 45 28 37 48 37.5z', 'M78 45 92 37 72 37.5z', 'M42.5 43 32 38.4 46 38.6z', 'M77.5 43 88 38.4 74 38.6z']
-    : hungry
+    : hungry || low
       ? ['M42 44 36 30 50 37z', 'M78 44 84 30 70 37z', 'M43 41 40 33 47 37z', 'M77 41 80 33 73 37z']
       : ['M43 42 41 25 53 34z', 'M77 42 79 25 67 34z', 'M45 39 44 30 50 35z', 'M75 39 76 30 70 35z'];
   return (
@@ -107,6 +114,40 @@ function Head({ mood, hat }) {
             strokeLinecap="round"
           />
         </>
+      ) : sad ? (
+        <>
+          <circle cx="53" cy="46.6" r="2.9" fill={EYE} />
+          <circle cx="67" cy="46.6" r="2.9" fill={EYE} />
+          <circle cx="52.2" cy="47.6" r="0.9" fill="white" />
+          <circle cx="66.2" cy="47.6" r="0.9" fill="white" />
+          <path
+            d="M49.6 41.8l5.8-1.8M70.4 41.8l-5.8-1.8"
+            fill="none"
+            stroke={EDGE}
+            strokeWidth="1.2"
+            strokeLinecap="round"
+          />
+        </>
+      ) : crying ? (
+        <>
+          <path
+            d="M50 44.4q3 2.8 6 0M64 44.4q3 2.8 6 0"
+            fill="none"
+            stroke={EYE}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <path
+            d="M51 46.6q-.8 4.4.4 8.8M69 46.6q.8 4.4-.4 8.8"
+            fill="none"
+            stroke="#9FB4E8"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.85"
+          />
+        </>
+      ) : sulking ? (
+        <path d="M50 45l6 1.4M70 45l-6 1.4" fill="none" stroke={EYE} strokeWidth="1.8" strokeLinecap="round" />
       ) : drowsy ? (
         <>
           <path d="M50.2 45.4a2.8 2.8 0 0 0 5.6 0z" fill={EYE} />
@@ -161,7 +202,18 @@ function Head({ mood, hat }) {
         </>
       )}
       <path d="M58.4 50h3.2l-1.6 1.8z" fill={PINK} stroke={EDGE} strokeWidth="0.6" strokeLinejoin="round" />
-      {hissing ? (
+      {crying ? (
+        <path
+          d="M56.4 55.6q1.2-1.4 2.4 0t2.4 0 2.4 0"
+          fill="none"
+          stroke={EYE}
+          strokeWidth="1.1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ) : sad || sulking ? (
+        <path d="M57.4 55.4q2.6-2.2 5.2 0" fill="none" stroke={EYE} strokeWidth="1.1" strokeLinecap="round" />
+      ) : hissing ? (
         <>
           <path
             d="M54.6 53.2q5.4 7.4 10.8 0q-5.4 1.8-10.8 0z"
