@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MORPH_MS, ROAM_POSES, SETTLES, moodOf } from './BakeryCat';
 import { JOY_EVENT, JOY_FADE, changeJoy, joyLevel, readJoy } from './joy';
+import { keepMoment } from './scrapbook';
 import { BAG_HEIGHT, BED_LIFT, CONFETTI_S, CatThing, LOSS, WISHES, ToyIcon } from './CatThings';
 import { RING_SERIES } from '../shared/DetailBoxes';
 
@@ -802,8 +803,21 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       const level = JOY_FEELS[joyLevel(joy)];
       return level ? { ...base, ...level(base) } : base;
     };
+    // Her scrapbook (scrapbook.js): the first time she does each thing, a new
+    // page, with a little book rising off her. Not while she is doing what she
+    // was asked for from the list on her card (state.manual, till she next
+    // rests or something else of her own starts).
+    const saw = (id) => {
+      if (!state.manual && keepMoment(id)) say('page');
+    };
+    // A table of her doings, each noted (as group:name) as it starts.
+    const noted = (group, table) =>
+      Object.fromEntries(
+        Object.entries(table).map(([name, make]) => [name, (...args) => (saw(`${group}:${name}`), make(...args))]),
+      );
     // One of its mood's own doings, or a nap, or a dash along its panel.
     const act = (name, time) => {
+      saw(`act:${name}`);
       if (name === 'sleep') {
         state.mode = 'sleep';
         return;
@@ -822,6 +836,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       if (doing.say) say(doing.say);
     };
     const rest = (time, seconds = feel().rest) => {
+      state.manual = false;
       if (things.current) putThing(null);
       if (state.wish) wishFor(null);
       state.spin = null;
@@ -855,6 +870,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     };
     // A game of keep-away: some games it is slow and easy to catch, some quick.
     const startTease = (time) => {
+      saw('pointer:tease');
       const roll = Math.random();
       Object.assign(state, {
         mode: 'tease',
@@ -881,6 +897,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     };
     // Caught! It gives in, rolls belly-up and purrs.
     const caught = (time) => {
+      saw('pointer:caught');
       cheerUp(JOY.caught);
       state.dart = null;
       state.resume = null;
@@ -898,6 +915,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     // wind-up mouse zipping to and fro; bubbles floating up to be popped.
     const startGame = (kind, time) => {
       if (!state.perch || onSide()) return;
+      saw(`game:${kind}`);
       cheerUp(JOY.game);
       if (kind === 'yarn') {
         rollYarn();
@@ -945,6 +963,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     // What it does when it stirs on a panel's top edge: one of four kinds of
     // thing (its mood's plan), and within that one thing (see FEELS).
     const decide = (time) => {
+      state.manual = false;
       // Notices waiting for her viewer: now and then she goes to call them over.
       if (time > (state.notesRest ?? 0) && Math.random() < NOTES_CHANCE && visitNotes(notesIn('pill'), time)) return;
       // Low in spirits, she often does something sad instead; high, now and
@@ -1112,7 +1131,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       { pose: 'crouch', ms: 600 },
       { pose: 'sit', mood: 'purring', ms: 1000, start: () => (say('heart'), say('✦')) },
     ];
-    const dances = {
+    const dances = noted('dance', {
       // Happy paws: up on its hind legs, waving one paw then the other, and
       // now and then both thrown up with a hop.
       paws: () =>
@@ -1173,7 +1192,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           beat('wave', { hop: 12, face: dir, note: true, ms: BEAT * 1.6 }),
         ];
       },
-    };
+    });
     // Visits to a running GPU's tile: bouncing on it till it lurches and
     // tips (a fright, and off it leaps, the tile springing back); a warm nap
     // on the hottest; or pawing at its ring to spin it. Each ends with a leap
@@ -1282,7 +1301,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       ms: 1,
       start: () => leapTo(otherPerch() ?? state.home ?? visiblePerches()[0]),
     });
-    const gpuVisits = {
+    const gpuVisits = noted('gpu', {
       wobble: (tile) => {
         const side = Math.random() < 0.5 ? -1 : 1;
         const tipped = `translateY(5px) rotate(${side * 6}deg)`;
@@ -1482,7 +1501,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           leaveTile(),
         ];
       },
-    };
+    });
     // Swinging from a GPU's ring by its front paws, higher, then dying down;
     // then it lets go and drops to a panel.
     const ringSwing = (ring) => [
@@ -1668,7 +1687,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       }
       return false;
     };
-    const wanted = {
+    const wanted = noted('wish', {
       rub: () => [
         { pose: 'squirm', ms: 300, start: () => say('heart') },
         {
@@ -1732,11 +1751,12 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           { pose: 'sit', mood: 'purring', ms: 900, start: () => say('heart') },
         ];
       },
-    };
+    });
     // Trapped in a panel (dropped well inside it): it falls to the floor,
     // looks round, paws at a wall, bats at something in the panel (which
     // jiggles), and at last leaps up and out over the top onto its edge.
     const trap = (panel, time) => {
+      state.manual = false;
       cheerUp(JOY.trapped);
       const edge = page(panel.getBoundingClientRect());
       const floor = edge.bottom - 10;
@@ -2029,9 +2049,10 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       });
       const escape = () => {
         const ways = Object.keys(escapes).filter((way) => way !== state.lastEscape);
-        const way = ways[Math.floor(Math.random() * ways.length)];
+        const way = state.escapeAs ?? ways[Math.floor(Math.random() * ways.length)];
         state.lastEscape = way;
-        return escapes[state.escapeAs ?? way]();
+        saw(`escape:${way}`);
+        return escapes[way]();
       };
       Object.assign(state, { inside: panel, perch: panel, side: 'top', escaping: false, x: state.x, y: floor });
       const batAt = () => ({
@@ -2083,6 +2104,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       above: ['leap', 'parachute', 'abseil', 'heli', 'superhero', 'umbrella'],
     };
     const comeBack = (perch, fromAbove, time) => {
+      state.manual = false;
       const ways = WAYS_IN[fromAbove ? 'above' : 'below'].filter((way) => way !== state.lastWayIn);
       const way = ways[Math.floor(Math.random() * ways.length)];
       state.lastWayIn = way;
@@ -2103,6 +2125,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         rock: null,
       });
       state.facing = -side;
+      saw(`in:${state.enter.craft ?? way}`);
     };
     const arrive = (time) => {
       const { perch } = state.enter;
@@ -2127,7 +2150,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     // over its top, swat at it (it jiggles), nap on it, knead it, or sniff
     // along it. One over it, it never lets be. Not in quiet mode. When the
     // pop-up closes under it, it drops back down onto a panel.
-    const popupReactions = {
+    const popupReactions = noted('popup', {
       read: () => [
         { pose: 'read', ms: 3600, start: () => say('hmm') },
         { pose: 'sit', mood: 'purring', ms: 900, start: () => say('!') },
@@ -2170,7 +2193,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           { pose: 'sit', ms: 900, start: () => say('?') },
         ];
       },
-    };
+    });
     const startled = () => [
       {
         pose: 'startle',
@@ -2279,7 +2302,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       return dir > 0 ? edge.left - WIDTH / 2 - 10 : edge.right + WIDTH / 2 + 10;
     };
     // Its ways over (each only where it fits; see goWaysFor).
-    const goWays = {
+    const goWays = noted('over', {
       // A plain leap.
       leap: () => [goPause(onSide() ? 'cling' : 'crouch', SPRING_MS), goArc()],
       // Stalking it, rump waggling, then a long, low pounce and a skid to a stop.
@@ -2389,7 +2412,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         },
         goPause('sit', 500, { mood: 'purring' }),
       ],
-    };
+    });
     // The ways over that fit: a leap always; from a panel's top, a somersault,
     // a pounce and (with a run along its panel to make) a creep or a dash, the
     // last three not out from under the card; a climb when the card's near
@@ -2593,6 +2616,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       if (state.mode === 'sleep' && weights.nothing) weights.nothing *= 2;
       const outcome = state.forcePopup?.outcome ?? pick(weights);
       if (outcome === 'nothing') return;
+      state.manual = false;
       state.popupAt = time;
       // Any game with the pointer is dropped for it, and not taken up again
       // for a while.
@@ -2602,8 +2626,14 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       if (things.current) putThing(null);
       const blocked = kind === 'blocked';
       if (outcome === 'over' && goOver(card, blocked)) return;
-      if ((outcome === 'scared' || blocked) && runFrom(card, blocked, time)) return;
-      if (!onSide()) play(startled(), time);
+      if ((outcome === 'scared' || blocked) && runFrom(card, blocked, time)) {
+        saw('popup:scared');
+        return;
+      }
+      if (!onSide()) {
+        play(startled(), time);
+        saw('popup:startle');
+      }
     };
     const popupWatch = new MutationObserver((changes) => {
       for (const change of changes) {
@@ -2641,7 +2671,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     const popIn = (k) => 1 + 2.7 * (k - 1) ** 3 + 1.7 * (k - 1) ** 2;
     // Sat looking out at her viewer, waiting to be noticed.
     const hopeful = (frame) => ({ pose: 'sit', mood: 'content', ms: random(1800, 2400), frame });
-    const noteBids = {
+    const noteBids = noted('notes', {
       // Up on her haunches waving a paw, bobbing as she waves; twice.
       wave: () => {
         const waving = (call, ms) => ({
@@ -2733,7 +2763,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         { pose: 'sit', mood: 'purring', ms: 500, start: () => say('heart') },
         hopeful(),
       ],
-    };
+    });
     // Back from the notes to a panel in view, and (the notes opened) not
     // under them.
     const offNotes = (notes) => {
@@ -2757,7 +2787,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     // Cheering the all-clear: applause (a little burst of confetti going up
     // as she starts), or a thumbs up with a wink.
     const pickOf = (list) => list[Math.floor(Math.random() * list.length)];
-    const cheers = {
+    const cheers = noted('cheer', {
       applause: () => {
         const clapping = (ms, extra) => ({ pose: strides('clap2', 'clap', 170), mood: 'purring', ms, ...extra });
         return [
@@ -2784,7 +2814,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         },
         { pose: 'sit', mood: 'purring', ms: 900 },
       ],
-    };
+    });
     // Hidden for now (a little circle with the count): a sniff at it, a
     // puzzled pat or two, or a lie-down on it, purring.
     const curious = {
@@ -2866,6 +2896,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       state.bidding = null;
       state.resume = null;
       state.notesRest = time + NOTES_SEEN_MS;
+      saw('notes:noticed');
       cheerUp(JOY.noticed);
       fadeThing();
       play(
@@ -2884,7 +2915,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       );
     };
     // Mishaps along a walk (each carries on to where it was going).
-    const mishaps = {
+    const mishaps = noted('mishap', {
       sniff: (goal) => [{ pose: 'sniff', ms: 1400, start: () => say('sniff') }, { to: goal }],
       spook: (goal) => [
         {
@@ -2902,10 +2933,10 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         { pose: 'reach', ms: 300 },
         { pose: 'sit', mood: 'purring', ms: 900, start: () => say('!') },
       ],
-    };
+    });
     // Toys tossed to it (besides the yarn): a bouncy ball, a loose feather, a
     // toy mouse.
-    const tossed = {
+    const tossed = noted('toss', {
       // It bounces off along the edge, lower each time; it gives chase,
       // pounces, and bats it.
       ball: () => {
@@ -3299,8 +3330,8 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           { pose: 'sit', mood: 'purring', ms: 900, start: () => (draw({ opacity: 0 }), say('heart')) },
         ];
       },
-    };
-    const treats = {
+    });
+    const treats = noted('treat', {
       // Tossed from the pointer (or from above): it races to where it will
       // come down and leaps to catch it.
       toss: () => {
@@ -3630,7 +3661,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           { pose: 'groom', ms: 1300, start: () => say('heart') },
         ];
       },
-    };
+    });
     // Curled up asleep a while (lifted into a bed, if in one), z's rising, and
     // now and then (or for sure: dreams 1) a dream of a fish-shaped cookie in
     // a cloud over its head, with a murmur. scene(dream) gives the things
@@ -3668,7 +3699,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         }
       },
     });
-    const doings = {
+    const doings = noted('doing', {
       // A butterfly flutters by: it watches, wiggles its rump, and pounces as
       // the butterfly gets away.
       butterfly: () => {
@@ -3903,6 +3934,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         const kinds = Object.keys(BED_LIFT).filter((name) => name !== state.lastBed);
         const kind = BED_LIFT[asked] !== undefined ? asked : kinds[Math.floor(Math.random() * kinds.length)];
         state.lastBed = kind;
+        saw(`bed:${kind}`);
         const lift = BED_LIFT[kind];
         const keep = () => (state.lift = lift);
         if (kind === 'towel') {
@@ -4224,7 +4256,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           { pose: 'sit', ms: 700, start: () => say('!') },
         ];
       },
-    };
+    });
 
     // Treats and toys from its card; on a side, it hops up first.
     const onTreat = () => {
@@ -4260,6 +4292,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     };
     // A ball of yarn rolled along its edge, for it to run after and pounce on.
     const rollYarn = () => {
+      saw('game:yarn');
       const edge = page(state.perch.getBoundingClientRect());
       const goRight = state.x < (edge.left + edge.right) / 2;
       const end = goRight ? edge.right - MARGIN : edge.left + MARGIN;
@@ -4300,6 +4333,8 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       if (state.wish) wishFor(null);
       if (things.current) putThing(null);
       state.lastPlay = time;
+      // Asked for: not for her scrapbook.
+      state.manual = true;
       if (group === 'doing' && name === 'notes') {
         if (!visitNotes(notesIn('pill', 'clear', 'quiet'), time)) say('?');
       } else if (group === 'move') stroll(name === 'run');
@@ -4360,6 +4395,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         }
         state.resume = null;
         state.bidding = null;
+        state.manual = false;
         releaseTile();
         state.side = 'top';
         state.perch = null;
@@ -4418,6 +4454,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           event.clientY > pill.top - 90 &&
           event.clientY < pill.bottom
         ) {
+          state.manual = false;
           state.resume = { steps: () => atNotes(notes) };
           leapTo(notes, event.pageX, DROP_MS);
           state.scared = false;
@@ -4465,6 +4502,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         });
         if (!anyBelow) {
           Object.assign(state, { mode: 'plummet', started: time, from: { x: state.x, y: state.y }, perch: null });
+          saw('mishap:fall');
           cheerUp(JOY.fall);
           state.wasScared = state.scared;
           state.scared = false;
@@ -4488,6 +4526,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         const height = state.mode === 'fall' ? state.to.y - state.y : 0;
         if (height > SCARED_AT) {
           state.gravity = true;
+          saw('mishap:drop');
           cheerUp(JOY.drop);
           state.duration = Math.min(750, Math.max(300, Math.sqrt((2 * height) / 2600) * 1000));
         }
@@ -4578,6 +4617,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     state.takeWish = () => {
       const toy = state.wish;
       if (!toy) return;
+      state.manual = false;
       cheerUp(JOY.wish);
       wishFor(null);
       if (toy === 'treat') onTreat();
@@ -4585,8 +4625,10 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       else if (toy === 'dance') play(doings.dance(), performance.now());
       else startGame(toy, performance.now());
     };
+    // (What comes of these is a surprise, so it goes in her scrapbook.)
     state.choose = (kind) => {
       closeMenu();
+      state.manual = false;
       if (kind === 'treat') onTreat();
       else if (kind === 'toy') onToy();
       else if (kind === 'dance') {
@@ -4602,6 +4644,9 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     if (import.meta.env.DEV) {
       window.mochiState = state;
       window.mochi = (name) => {
+        // (Not for her scrapbook either; book:<id> keeps a page, to try it.)
+        if (name.startsWith('book:')) return keepMoment(name.slice(5));
+        state.manual = true;
         // joy:<0-100> sets her spirits.
         if (name.startsWith('joy:')) {
           joy = changeJoy(Number(name.slice(4)) - joy);
@@ -4701,6 +4746,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       const press = { x: event.pageX, y: event.pageY, petting: false };
       press.timer = setTimeout(() => {
         press.petting = true;
+        saw('pointer:pet');
         cheerUp(JOY.pet);
         if (!onSide() && state.mode !== 'go') state.mode = 'pet';
         say('heart');
@@ -4842,6 +4888,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       // first), or, hungry, begs.
       const busy = state.mode === 'act' && state.act.pose !== 'beg';
       if (pointerNear && time > state.chaseRest && (state.mode === 'rest' || state.mode === 'walk' || busy)) {
+        state.manual = false;
         if (!onSide() && Math.random() < (feel().ignores ?? 0)) {
           // Not in the mood: she turns away ("hmph").
           state.chaseRest = time + 5000;
@@ -4863,6 +4910,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         } else {
           state.mode = 'chase';
           state.until = time + 6000;
+          saw('pointer:chase');
         }
       }
       // The pointer resting still just above it: it comes to rub against it.
@@ -4879,6 +4927,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         state.pointer.y > state.y - 120
       ) {
         state.buntRest = time + BUNT_EVERY;
+        state.manual = false;
         play(doings.bunt(), time);
       }
 
@@ -5548,6 +5597,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
                 if (below) {
                   Object.assign(state, { mode: 'trip', until: time + 520, tripTo: below });
                   say('!');
+                  saw('mishap:trip');
                   break;
                 }
               } else {
@@ -5570,6 +5620,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
                 running: false,
                 mishap: null,
               });
+              saw('mishap:slip');
             } else if (state.running) Object.assign(state, { mode: 'skid', until: time + 380, running: false });
             else if (Math.random() < 0.5 * feel().energy) stroll();
             else rest(time);
@@ -6164,6 +6215,22 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
                   stroke="#F2C94C"
                   strokeWidth="1.6"
                   strokeLinecap="round"
+                />
+              </svg>
+            ) : kind === 'page' ? (
+              // A new page in her scrapbook: a little open book.
+              <svg viewBox="-9 -7 18 13" className="h-3.5 w-[18px]">
+                <path
+                  d="M0-3.2C-2.4-5-5.6-5.2-8-4v8.4c2.4-1.2 5.6-1 8 .8 2.4-1.8 5.6-2 8-.8V-4c-2.4-1.2-5.6-1-8 .8z"
+                  fill="#FFF8EE"
+                  stroke="#C49A62"
+                  strokeWidth="1"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M0-3.2v8.4M-5.6-1.6l3 .4M-5.6.6l3 .4M2.6-1.2l3-.4M2.6 1l3-.4"
+                  stroke="#D9B98A"
+                  strokeWidth="0.8"
                 />
               </svg>
             ) : kind === 'z' ? (

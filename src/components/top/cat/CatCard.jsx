@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { CatScene, MOODS, STAGES, APPETITE, moodOf, stageOf } from './BakeryCat';
 import { DetailsPopover } from '../shared/DetailBoxes';
 import { joyLevel, useJoy } from './joy';
+import { ScrapbookDialog } from './Scrapbook';
+import { SCRAPBOOK_SIZE, useScrapbook } from './scrapbook';
 import { Switch } from '../shared/controls';
 import {
   DropdownMenu,
@@ -251,7 +253,7 @@ function ActionsMenu({ quiet = false }) {
 
 // The card the cat button opens: the cat in its mood and at its age, how much
 // it ate this week and today, and how it grows.
-function CatDetails({ meal, roaming, onRoam, quiet, onQuiet }) {
+function CatDetails({ meal, roaming, onRoam, quiet, onQuiet, onScrapbook }) {
   const mood = moodOf(meal);
   const hours = meal?.lifetime_gpu_hours ?? 0;
   const stage = stageOf(hours);
@@ -259,6 +261,9 @@ function CatDetails({ meal, roaming, onRoam, quiet, onQuiet }) {
   const today = meal?.today ?? 0;
   const joy = useJoy();
   const spirits = joyLevel(joy);
+  const book = useScrapbook();
+  const pages = Object.keys(book.kept).length;
+  const fresh = Object.values(book.kept).filter((at) => at > book.viewed).length;
   return (
     // (data-cat-card: the roaming cat leaves its own card be.)
     <div data-cat-card>
@@ -302,6 +307,19 @@ function CatDetails({ meal, roaming, onRoam, quiet, onQuiet }) {
           </span>
           <span className="w-[5ch] text-right">{spirits}</span>
         </dd>
+        {/* The first time she did each thing (scrapbook.js), opened over the page. */}
+        <dt className="text-data-grey">Scrapbook</dt>
+        <dd className="text-right">
+          <button
+            type="button"
+            onClick={onScrapbook}
+            className="inline-flex items-center gap-1 rounded-sm tabular-nums text-inkwell underline decoration-[#CBD5E1] decoration-1 underline-offset-2 transition-colors hover:decoration-inkwell focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20"
+          >
+            {pages} of {SCRAPBOOK_SIZE}
+            {fresh > 0 && <span className="text-[#B0654F]">· {fresh} new</span>}
+            <ChevronRight className="h-3 w-3 text-data-grey" aria-hidden="true" />
+          </button>
+        </dd>
         <dt className="text-data-grey">Age</dt>
         <dd className="text-right text-inkwell">{stage.label}</dd>
         {next && (
@@ -332,19 +350,33 @@ function CatDetails({ meal, roaming, onRoam, quiet, onQuiet }) {
 // here (data-cat-home).
 export function CatButton({ user, meal, roaming, onRoam, quiet, onQuiet }) {
   const mood = moodOf(meal);
+  // (Kept here, not in the card, which may close while the scrapbook is open.)
+  const [scrapbook, setScrapbook] = useState(false);
   return (
-    <DetailsPopover
-      content={<CatDetails meal={meal} roaming={roaming} onRoam={onRoam} quiet={quiet} onQuiet={onQuiet} />}
-      width="w-[320px]"
-    >
-      <button
-        type="button"
-        data-cat-home
-        aria-label={`${user}. ${NAME}, your bakery cat, is ${MOODS[mood].label}. Show it.`}
-        className="rounded-sm bg-[linear-gradient(#CBD5E1,#CBD5E1)] bg-[length:0%_1.5px] bg-[position:0_100%] bg-no-repeat pb-0.5 text-inkwell transition-[background-size] duration-300 ease-out hover:bg-[length:100%_1.5px] focus-visible:bg-[length:100%_1.5px] focus-visible:outline-none data-[state=open]:bg-[length:100%_1.5px]"
+    <>
+      <DetailsPopover
+        content={
+          <CatDetails
+            meal={meal}
+            roaming={roaming}
+            onRoam={onRoam}
+            quiet={quiet}
+            onQuiet={onQuiet}
+            onScrapbook={() => setScrapbook(true)}
+          />
+        }
+        width="w-[320px]"
       >
-        {user}
-      </button>
-    </DetailsPopover>
+        <button
+          type="button"
+          data-cat-home
+          aria-label={`${user}. ${NAME}, your bakery cat, is ${MOODS[mood].label}. Show it.`}
+          className="rounded-sm bg-[linear-gradient(#CBD5E1,#CBD5E1)] bg-[length:0%_1.5px] bg-[position:0_100%] bg-no-repeat pb-0.5 text-inkwell transition-[background-size] duration-300 ease-out hover:bg-[length:100%_1.5px] focus-visible:bg-[length:100%_1.5px] focus-visible:outline-none data-[state=open]:bg-[length:100%_1.5px]"
+        >
+          {user}
+        </button>
+      </DetailsPopover>
+      <ScrapbookDialog open={scrapbook} onOpenChange={setScrapbook} name={NAME} />
+    </>
   );
 }

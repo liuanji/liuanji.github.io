@@ -454,6 +454,41 @@ toys. Picked, she does it at once (hopping
 up first off a side or a GPU card). Trips, slips and being trapped are not in
 the list.
 
+Her card also shows how full her scrapbook is (below), with how many pages
+are new since you last looked; a click opens it.
+
+## Her scrapbook
+
+The first time she does each of 123 things, she keeps a page for it, and a
+little open book rises off her. It is kept in this browser (`scrapbook.js`),
+and opens over the page from her card: each kind with how many of it she has
+done, then a card for each, drawn in her pose there (with what she had with
+her, and where she was), with the date. Pages kept since you last looked are
+marked new; the ones still to come show only her outline, faintly.
+
+What counts is what she does by herself (her doings, naps, dances, GPU card
+visits, calls at your notes, pop-up reactions, ways back into view, mishaps
+and escapes) and how she takes what you give her or do with her (treats, toys
+and dances from her menu, an answered wish, a game, petting, catching her,
+putting her down on your notes). What you ask for from the list on her card
+does not count: it only makes her do it, till she next settles.
+
+| Kind | Pages |
+|---|---|
+| By herself | 15: butterfly, box, croissant, tail chase, sneeze, crumb, bird watching, scratching, dough, backflip, grooming, kneading, belly-up, begging, zoomies |
+| Naps | 12: the six beds, sunbeam, nodding off, flopping over, dreaming, curling up, a yawn |
+| Dances | 4: happy paws, shuffle, twirl, moonwalk |
+| With you | 14: batting at the pointer, keep-away, caught, petting, a rub against your hand, a pounce on the pointer, belly rub, brushing, photo shoot, and the five games |
+| Treats | 9: each treat moment |
+| Toys | 8: each tossed toy |
+| GPU cards | 9: each visit |
+| Your notes | 8: the five ways of calling you, "you noticed!", applause, a thumbs up |
+| Pop-up cards | 15: the six things on top, startled, scared off, and seven ways over |
+| Back into view | 11: every way in but the plain leap, the helicopter and the UFO apart |
+| Mishaps | 7: trip, slip, spook, sniff, a speck, off the page, dropped from up high |
+| Trapped | 7: each escape |
+| Low days | 4: crying, a rain cloud, sulking, moping |
+
 ## Back into view
 
 When the page has scrolled her panel away and the scrolling has settled for
