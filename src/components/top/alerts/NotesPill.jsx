@@ -184,10 +184,11 @@ export default function NotesPill({ notes, me = null, children }) {
   }, [any]);
 
   // A mouse resting on the pill grows it; leaving the card shrinks it again
-  // after a moment, so a brief slip past the edge does not.
+  // after a moment, so a brief slip past the edge does not. (Not with a button
+  // held: something, such as the roaming cat, is being dragged over it.)
   useEffect(() => () => clearTimeout(leaveTimer.current), []);
   const hoverIn = (event) => {
-    if (event.pointerType !== 'mouse' || quiet) return;
+    if (event.pointerType !== 'mouse' || quiet || event.buttons) return;
     clearTimeout(leaveTimer.current);
     if (any) setOpen(true);
     else if (!peek && !open) {

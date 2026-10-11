@@ -2785,11 +2785,32 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         { pose: 'sit', mood: 'purring', ms: 900 },
       ],
     };
-    // What she does there, by what it shows as she lands: notices waiting,
-    // one of her ways of calling her viewer over (way, or any but the last);
-    // all clear, a cheer (way, or either); otherwise (hidden for now, or open)
-    // a sniff at it. Each turned to face into the page first, and ending with
-    // a last look ("?", or a heart for a cheer) and a leap back to a panel.
+    // Hidden for now (a little circle with the count): a sniff at it, a
+    // puzzled pat or two, or a lie-down on it, purring.
+    const curious = {
+      sniff: () => [{ pose: 'sniff', ms: 1300, start: () => say('sniff') }],
+      pat: () => [
+        { pose: 'pat', ms: 240, start: () => say('?') },
+        { pose: 'sit', ms: 320 },
+        { pose: 'pat', ms: 240 },
+        { pose: 'sit', ms: 800 },
+      ],
+      loaf: () => [{ pose: 'rest', mood: 'purring', ms: 2400, start: () => say('prr') }],
+    };
+    // An equal pick of names, never the one picked last for this key.
+    const pickAfresh = (key, names) => {
+      const fresh = names.filter((name) => name !== state.lastAt?.[key]);
+      const name = pickOf(fresh.length ? fresh : names);
+      state.lastAt = { ...state.lastAt, [key]: name };
+      return name;
+    };
+    // What she does there, by what it shows as she lands (each an equal pick,
+    // never the same twice running): notices waiting, one of her ways of
+    // calling her viewer over (or way); all clear, a cheer (or way); open, a
+    // look at them as at a pop-up card (reading them through her glasses,
+    // peeking over, kneading or sniffing along); hidden for now, one of the
+    // curious things. Each turned to face into the page first, and ending with
+    // a last look ("?", or a heart) and a leap back to a panel.
     const atNotes = (notes, way = null) => {
       const shown = notes.getAttribute('data-cat-notes');
       const steps = [
@@ -2812,9 +2833,12 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         state.notesRest = Math.max(state.notesRest ?? 0, performance.now() + NOTES_REST_MS);
         steps.push(...noteBids[bid](notes));
       } else if (shown === 'clear' || shown === 'clear-open') {
-        steps.push(...cheers[cheers[way] ? way : pickOf(Object.keys(cheers))]());
+        steps.push(...cheers[cheers[way] ? way : pickAfresh('cheer', Object.keys(cheers))]());
         last = 'heart';
-      } else steps.push({ pose: 'sniff', ms: 1300, start: () => say('sniff') });
+      } else if (shown === 'open') {
+        steps.push(...popupReactions[pickAfresh('look', ['read', 'peek', 'knead', 'sniff'])](notes));
+        last = 'heart';
+      } else steps.push(...curious[pickAfresh('curious', Object.keys(curious))]());
       return [
         ...steps,
         { pose: 'sit', ms: 700, start: () => (say(last), fadeThing()) },

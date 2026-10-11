@@ -386,7 +386,8 @@ back to a panel (6–9 s on the pill in all).
 - **Hidden for an hour, or gone:** she just goes.
 
 **All clear.** One of her other interactions (iv), in every mood but starving,
-and only while the croissant shows: she hops onto it and, an even chance,
+and only while the croissant shows: she hops onto it and, taking turns (never
+the same twice running),
 
 - **applauds:** claps ("all clear!", "bravo!" or "yay!") as a little burst of
   confetti goes up and flutters down, then another round; or
@@ -395,9 +396,13 @@ and only while the croissant shows: she hops onto it and, an even chance,
 Then a heart, and back to a panel.
 
 **Put there.** Dropped on (or just above) the pill, she stays on it and does
-what fits: calls you over while notices wait, cheers the all-clear, or (hidden
-for now, or open) sniffs at it. "Visit your notes" in her card's list (by
-itself) sends her over the same way.
+what fits, picked as above: calls you over while notices wait, or cheers the
+all-clear. Open, she has a look at your notes as at a pop-up card (reads them
+through her glasses, peeks over, kneads them or sniffs along them); hidden for
+now, she sniffs at the little circle, pats it, puzzled, or lies down on it
+purring. Each an equal pick, never the same twice running. Carrying her over
+the pill does not open it under her. "Visit your notes" in her card's list (by itself) sends her
+over the same way.
 
 ## Trapped in a card
 
