@@ -209,6 +209,37 @@ class DatabaseTest(unittest.TestCase):
         self.database.save_disks(DiskResult("brezel", 1_700_003_600, False, error="no disks", accounts=("carol",)))
         self.assertEqual(self.database.accounts(("brezel",)), {"brezel": ["carol"]})
 
+    def test_cleanup_reminders_stick_till_under_the_quota_asked_for(self) -> None:
+        def check(checked_at: int, used: int, alice: int) -> None:
+            # A 1000-byte disk: alice's folder, bob's, and the rest unowned.
+            usage = {
+                "checked_at": checked_at,
+                "mounts": {"/scratch2": [{"owner": "alice", "bytes": alice}, {"owner": "bob", "bytes": 100}]},
+            }
+            disks = (DiskStat("/scratch2", 1000, used, 1000 - used),)
+            self.database.save_disks(DiskResult("brezel", checked_at, True, disks, accounts=("alice", "bob"), usage=usage))
+
+        def asked() -> list:
+            return self.database.cleanup_flags(("brezel",))["brezel"].get("/scratch2", [])
+
+        # 80% full: the allowance is a third of the way from 30% down to 10%
+        # of the disk, about 233 bytes; alice (500) is asked to get under it.
+        check(1_700_000_000, 800, 500)
+        self.assertEqual(asked(), [{"user": "alice", "quota_bytes": 233, "since": 1_700_000_000}])
+        # The disk empties to half full (no allowance now): she is still asked.
+        check(1_700_003_600, 500, 500)
+        self.assertEqual([flag["user"] for flag in asked()], ["alice"])
+        # Under the old allowance by the new one is not enough...
+        check(1_700_007_200, 500, 300)
+        self.assertEqual(asked()[0]["quota_bytes"], 233)
+        # ...till she is under what she was asked for; then she is let off.
+        check(1_700_010_800, 500, 200)
+        self.assertEqual(asked(), [])
+        # Gone over again, she is asked again, from the allowance as it is now.
+        check(1_700_014_400, 900, 400)
+        self.assertEqual(asked()[0]["quota_bytes"], 167)
+        self.assertEqual(asked()[0]["since"], 1_700_014_400)
+
     def test_held_idle_counts_the_unbroken_run_of_idle_busy_minutes(self) -> None:
         def held(timestamp: int, utilization: float) -> CollectionResult:
             return CollectionResult(

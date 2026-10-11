@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import Settings
-from .database import Database
+from .database import Database, disk_users
 from .web import PERIODS
 
 
@@ -142,27 +142,16 @@ def public_uptime(
     }
 
 
-def disk_users(folders: list[dict[str, Any]], accounts: set[str]) -> list[dict[str, Any]]:
-    """A disk's usage per user, largest first: folders summed by owner, counting
-    only owners who are login accounts, so lost+found and other system folders
-    (owned by root) are left out."""
-    totals: dict[str, int] = {}
-    for folder in folders:
-        if folder["owner"] in accounts:
-            totals[folder["owner"]] = totals.get(folder["owner"], 0) + folder["bytes"]
-    return [
-        {"user": user, "bytes": size}
-        for user, size in sorted(totals.items(), key=lambda item: (-item[1], item[0]))
-    ]
-
-
 def public_disks(settings: Settings, database: Database, now: int | None = None) -> dict[str, Any]:
-    """Each host's disks, each with its share in use over every period; with a
-    scratch-usage summary, every disk also lists its users and the host says
-    when they were measured (usage_checked_at)."""
+    """Each host's disks, each with its share in use over every period and who
+    it has asked to clean up (cleanup: each with the quota they were asked to
+    get under and since when, till they do); with a scratch-usage summary,
+    every disk also lists its users and the host says when they were measured
+    (usage_checked_at)."""
     hosts = database.disks(settings.hosts)
     accounts = database.accounts(settings.hosts)
     usage = database.usage(settings.hosts)
+    flags = database.cleanup_flags(settings.hosts)
     moment = int(time.time()) if now is None else now
     history = database.disk_history(moment, time.localtime(moment).tm_gmtoff)
     for host in hosts:
@@ -171,6 +160,7 @@ def public_disks(settings: Settings, database: Database, now: int | None = None)
         for disk in host["disks"]:
             folders = summary["mounts"].get(disk["mount"]) if summary else None
             disk["users"] = None if folders is None else disk_users(folders, set(accounts[host["name"]]))
+            disk["cleanup"] = flags[host["name"]].get(disk["mount"], [])
             # Its share in use over each period, for the box's over-time view.
             disk["history"] = history.get(host["name"], {}).get(disk["mount"], {})
     checked = [host["checked_at"] for host in hosts if host["checked_at"] is not None]

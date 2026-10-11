@@ -76,6 +76,9 @@ export const SMALL_USER_BYTES = 100 * 1024 ** 3;
 // anyone holding more than an allowance of the disk is, and the allowance
 // shrinks steadily as the disk fills, from CLEANUP.share of the disk at
 // CLEANUP.from down to CLEANUP.floor when full (e.g. 20% at 85% full, 13% at 95%).
+// Once someone goes over, they are asked to get under that allowance till they
+// do, however the allowance changes after (the backend remembers it; keep its
+// CLEANUP_* in database.py in step with these).
 export const CLEANUP = { from: 0.7, share: 0.3, floor: 0.1 };
 export const READING_STYLES = {
   warm: { color: '#A15C07' },

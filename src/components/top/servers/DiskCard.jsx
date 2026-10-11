@@ -8,6 +8,7 @@ import { BoxFooter, DetailsPopover, GLYPH, Metric, QUIET } from '../shared/Detai
 import { pressurePhrase } from '../shared/easterEggs';
 import {
   cleanupAllowance,
+  cleanupQuota,
   diskLevel,
   diskShare,
   formatAgo,
@@ -360,7 +361,11 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
           <div>
             <ScrollList count={listed.length + (small.length ? 1 : 0)} rowRem={1.25} className="space-y-1">
               {listed.map((user) => {
-                const over = allowance != null && user.bytes > allowance;
+                // Over the allowance, or still over what they were asked to
+                // get under when they went over it.
+                const quota = cleanupQuota(disk, user.user);
+                const over = quota != null && user.bytes > quota;
+                const kept = over && (allowance == null || user.bytes <= allowance);
                 return (
                   <li
                     key={user.user}
@@ -375,12 +380,24 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
                     <span
                       className={`tabular-nums ${over ? 'font-medium' : 'text-inkwell'}`}
                       style={over ? { color: READING_STYLES.warm.color } : undefined}
-                      title={over ? `Over the ${formatBytes(allowance)} allowance` : undefined}
+                      title={
+                        kept
+                          ? `Still over the ${formatBytes(quota)} they were asked to get under`
+                          : over
+                            ? `Over the ${formatBytes(quota)} allowance`
+                            : undefined
+                      }
                     >
                       {formatBytes(user.bytes)}
-                      {over && <span className="sr-only"> (over the allowance)</span>}
+                      {over && (
+                        <span className="sr-only">
+                          {kept ? ' (still over what they were asked for)' : ' (over the allowance)'}
+                        </span>
+                      )}
                     </span>
-                    <span className="whitespace-nowrap text-right tabular-nums text-data-grey">{formatShare(user.bytes / counted)}</span>
+                    <span className="whitespace-nowrap text-right tabular-nums text-data-grey">
+                      {formatShare(user.bytes / counted)}
+                    </span>
                   </li>
                 );
               })}
@@ -400,6 +417,22 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
             {allowance != null && (
               <p className="mt-2 font-mono text-[11px] text-data-grey">
                 Allowance: <span style={{ color: READING_STYLES.warm.color }}>{formatBytes(allowance)}</span> each
+              </p>
+            )}
+            {/* With no allowance now, those still asked to get under the one
+                they went over earlier, and how far. */}
+            {allowance == null && listed.some((user) => user.bytes > (cleanupQuota(disk, user.user) ?? Infinity)) && (
+              <p className="mt-2 font-mono text-[11px] text-data-grey">
+                Still asked to clean up:{' '}
+                {listed
+                  .filter((user) => user.bytes > (cleanupQuota(disk, user.user) ?? Infinity))
+                  .map((user, index) => (
+                    <span key={user.user}>
+                      {index > 0 && ', '}
+                      <span style={{ color: READING_STYLES.warm.color }}>{user.user}</span> (under{' '}
+                      {formatBytes(cleanupQuota(disk, user.user))})
+                    </span>
+                  ))}
               </p>
             )}
           </div>
@@ -602,6 +635,12 @@ export function CleanupBanner({ reminders, onOpen }) {
   const [first] = reminders;
   const single = reminders.length === 1;
   const under = single ? ` to get under ${formatBytes(first.allowance)}` : '';
+  // Kept from when the disk was fuller: since when, and that it stays.
+  const day = (seconds) => new Date(seconds * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const kept =
+    single && first.kept
+      ? ` You went over the allowance here${first.since ? ` on ${day(first.since)}` : ''}; this reminder stays until you get under ${formatBytes(first.allowance)}, even with the disk emptier now.`
+      : '';
   return (
     <Banner icon={HardDrive} color={color} role={role} tinted={urgency === 'hot'}>
       <p className={`text-inkwell ${urgency === 'hot' ? 'font-medium' : ''}`}>
@@ -642,7 +681,8 @@ export function CleanupBanner({ reminders, onOpen }) {
           ? `Please clean up now: jobs writing to ${single ? 'this disk' : 'these disks'} may soon fail. Delete old checkpoints and data you no longer need${under}.`
           : urgency === 'warm'
             ? `Please clean up soon, deleting old checkpoints and data you no longer need${under}.`
-            : `Please clear out what you no longer need, such as old checkpoints${single ? `; at this fullness each person is asked to stay under ${formatBytes(first.allowance)}` : ''}.`}
+            : `Please clear out what you no longer need, such as old checkpoints${single && !first.kept ? `; at this fullness each person is asked to stay under ${formatBytes(first.allowance)}` : ''}.`}
+        {kept}
       </p>
     </Banner>
   );

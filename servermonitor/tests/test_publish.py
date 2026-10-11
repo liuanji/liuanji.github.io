@@ -122,6 +122,8 @@ class PublishTest(unittest.TestCase):
         scratch1, scratch2 = brezel["disks"]
         self.assertEqual(scratch1["users"], [{"user": "alice", "bytes": 700}, {"user": "bob", "bytes": 500}])
         self.assertIsNone(scratch2["users"])
+        # 65% full: nobody is asked to clean up yet.
+        self.assertEqual((scratch1["cleanup"], scratch2["cleanup"]), ([], []))
         self.assertIsNone(toast["usage_checked_at"])
 
     def test_gpu_timeline_and_week_pattern(self) -> None:

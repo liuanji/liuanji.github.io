@@ -104,15 +104,31 @@ export function cleanupAllowance(disk) {
   return share * (disk.used_bytes + disk.available_bytes);
 }
 
-// The disks, across every server, where user holds more than the allowance.
+// Someone who went over a disk's allowance is asked to get under it (as it
+// was then) till they do, however the allowance changes after, the backend
+// remembering it (disk.cleanup: who, the quota, since when). Their quota is
+// that, or the allowance now if lower; anyone else's, the allowance; null
+// while they are not asked.
+export function cleanupQuota(disk, user) {
+  const allowance = cleanupAllowance(disk);
+  const asked = disk.cleanup?.find((item) => item.user === user);
+  if (!asked) return allowance;
+  return allowance == null ? asked.quota_bytes : Math.min(allowance, asked.quota_bytes);
+}
+
+// The disks, across every server, where user holds more than their quota;
+// kept, a reminder the allowance now would not give (it stays from when they
+// went over), with since when.
 export function cleanupReminders(hosts, user) {
   return hosts.flatMap((host) =>
     host.disks.flatMap((disk) => {
-      const allowance = cleanupAllowance(disk);
+      const quota = cleanupQuota(disk, user);
       const mine = disk.users?.find((item) => item.user === user);
-      return allowance != null && mine && mine.bytes > allowance
-        ? [{ host: host.name, disk, bytes: mine.bytes, allowance }]
-        : [];
+      if (quota == null || !mine || mine.bytes <= quota) return [];
+      const allowance = cleanupAllowance(disk);
+      const asked = disk.cleanup?.find((item) => item.user === user);
+      const kept = Boolean(asked) && (allowance == null || mine.bytes <= allowance);
+      return [{ host: host.name, disk, bytes: mine.bytes, allowance: quota, kept, since: asked?.since ?? null }];
     }),
   );
 }

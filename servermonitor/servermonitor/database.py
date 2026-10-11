@@ -245,6 +245,20 @@ CREATE TABLE IF NOT EXISTS usage_state (
     usage TEXT NOT NULL
 ) WITHOUT ROWID;
 
+-- Cleanup reminders that stick: someone who went over a disk's cleanup
+-- allowance is asked to get under that allowance (quota_bytes, as it was when
+-- they went over, since then) until they do, however the allowance changes
+-- as the disk fills or empties; while the allowance is lower still, that
+-- applies.
+CREATE TABLE IF NOT EXISTS cleanup_flags (
+    host TEXT NOT NULL,
+    mount TEXT NOT NULL,
+    username TEXT NOT NULL,
+    quota_bytes INTEGER NOT NULL,
+    since INTEGER NOT NULL,
+    PRIMARY KEY (host, mount, username)
+) WITHOUT ROWID;
+
 CREATE TABLE IF NOT EXISTS app_metadata (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -339,6 +353,39 @@ def gpu_problems(gpu: dict[str, Any]) -> list[str]:
     elif gpu.get("rows_remap_pending"):
         problems.append("memory row remapping pending (needs a reset)")
     return problems
+
+
+# Cleanup reminders, in step with CLEANUP in the page's config.js: below
+# CLEANUP_FROM full nobody is asked; from there anyone holding more than an
+# allowance of the disk is, the allowance shrinking steadily from
+# CLEANUP_SHARE of the disk at CLEANUP_FROM to CLEANUP_FLOOR when full.
+CLEANUP_FROM = 0.7
+CLEANUP_SHARE = 0.3
+CLEANUP_FLOOR = 0.1
+
+
+def cleanup_allowance(used_bytes: int, available_bytes: int) -> float | None:
+    """How much one person may hold on a disk this full before being asked to
+    clean up, in bytes, or None while it has room to spare."""
+    usable = used_bytes + available_bytes
+    if not usable or used_bytes / usable < CLEANUP_FROM:
+        return None
+    progress = min(1.0, (used_bytes / usable - CLEANUP_FROM) / (1 - CLEANUP_FROM))
+    return (CLEANUP_SHARE - (CLEANUP_SHARE - CLEANUP_FLOOR) * progress) * usable
+
+
+def disk_users(folders: list[dict[str, Any]], accounts: set[str]) -> list[dict[str, Any]]:
+    """A disk's usage per user, largest first: folders summed by owner, counting
+    only owners who are login accounts, so lost+found and other system folders
+    (owned by root) are left out."""
+    totals: dict[str, int] = {}
+    for folder in folders:
+        if folder["owner"] in accounts:
+            totals[folder["owner"]] = totals.get(folder["owner"], 0) + folder["bytes"]
+    return [
+        {"user": user, "bytes": size}
+        for user, size in sorted(totals.items(), key=lambda item: (-item[1], item[0]))
+    ]
 
 
 def _hours(seconds: float) -> float:
@@ -704,6 +751,62 @@ class Database:
                     for disk in result.disks
                 ],
             )
+            self._update_cleanup_flags(connection, result.host, result.checked_at)
+
+    def _update_cleanup_flags(self, connection: sqlite3.Connection, host: str, now: int) -> None:
+        """After a disk check: anyone over a disk's cleanup allowance who was
+        not already asked is now, to get under that allowance; anyone asked
+        who is now under what they were asked for (or the allowance, if lower
+        now) is let off. Disks without a usage summary are left as they were."""
+        row = connection.execute("SELECT usage FROM usage_state WHERE host = ?", (host,)).fetchone()
+        if row is None:
+            return
+        mounts = json.loads(row["usage"]).get("mounts", {})
+        row = connection.execute("SELECT accounts FROM account_state WHERE host = ?", (host,)).fetchone()
+        accounts = set(json.loads(row["accounts"])) if row else set()
+        disks = connection.execute(
+            "SELECT mount, used_bytes, available_bytes FROM disk_state WHERE host = ?", (host,)
+        ).fetchall()
+        # Flags on disks the host no longer has go with them.
+        mounts_now = {disk["mount"] for disk in disks}
+        for (mount,) in connection.execute("SELECT DISTINCT mount FROM cleanup_flags WHERE host = ?", (host,)).fetchall():
+            if mount not in mounts_now:
+                connection.execute("DELETE FROM cleanup_flags WHERE host = ? AND mount = ?", (host, mount))
+        flags = {
+            (row["mount"], row["username"]): row["quota_bytes"]
+            for row in connection.execute("SELECT mount, username, quota_bytes FROM cleanup_flags WHERE host = ?", (host,))
+        }
+        for disk in disks:
+            folders = mounts.get(disk["mount"])
+            if folders is None:
+                continue
+            held = {item["user"]: item["bytes"] for item in disk_users(folders, accounts)}
+            allowance = cleanup_allowance(disk["used_bytes"], disk["available_bytes"])
+            for (mount, user), quota in flags.items():
+                if mount == disk["mount"] and held.get(user, 0) <= (quota if allowance is None else min(quota, allowance)):
+                    connection.execute(
+                        "DELETE FROM cleanup_flags WHERE host = ? AND mount = ? AND username = ?", (host, mount, user)
+                    )
+            if allowance is None:
+                continue
+            for user, size in held.items():
+                if size > allowance and (disk["mount"], user) not in flags:
+                    connection.execute(
+                        "INSERT INTO cleanup_flags (host, mount, username, quota_bytes, since) VALUES (?, ?, ?, ?, ?)",
+                        (host, disk["mount"], user, round(allowance), now),
+                    )
+
+    def cleanup_flags(self, hosts: Iterable[str]) -> dict[str, dict[str, list[dict[str, Any]]]]:
+        """Who each host's disks have asked to clean up, by host and mount: each
+        with the quota they were asked to get under and since when."""
+        flags: dict[str, dict[str, list[dict[str, Any]]]] = {host: {} for host in hosts}
+        with self.connect() as connection:
+            for row in connection.execute("SELECT * FROM cleanup_flags ORDER BY host, mount, username"):
+                if row["host"] in flags:
+                    flags[row["host"]].setdefault(row["mount"], []).append(
+                        {"user": row["username"], "quota_bytes": row["quota_bytes"], "since": row["since"]}
+                    )
+        return flags
 
     def disk_history(self, now: int, utc_offset: int) -> dict[str, dict[str, dict[str, dict[str, Any]]]]:
         """Each disk's share in use over every period of DISK_SERIES: per host and
