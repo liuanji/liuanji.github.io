@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 
 // The bakery cat: a small ginger tabby each user keeps on /top. It eats one
-// fish-shaped cookie per GPU-hour their jobs spend computing (GPU time weighted
-// by load, so GPUs held idle feed it nothing), shows how well it has eaten over
-// the last three days in its mood, and grows with their GPU hours ever. Drawn
-// in a 120 x 100 box with its feet on y = 88.
+// fish-shaped cookie per GPU-hour their jobs hold (the GPU hours on the
+// leaderboard, not weighted by load), shows how well it has eaten over the
+// last three days in its mood, and grows with their GPU hours ever. Drawn in a
+// 120 x 100 box with its feet on y = 88.
 
 const FUR = '#F2BE86';
 const STRIPE = '#E19A57';
@@ -63,6 +63,8 @@ function Head({ mood, hat }) {
   // Frightened: ears out flat to the sides, eyes wide; hissing, its brows
   // down too and its mouth open on two little fangs.
   const hissing = mood === 'hiss';
+  // Drowsy: lids half down over its eyes.
+  const drowsy = mood === 'drowsy';
   const fright = mood === 'fright' || hissing;
   const ears = fright
     ? ['M42 45 28 37 48 37.5z', 'M78 45 92 37 72 37.5z', 'M42.5 43 32 38.4 46 38.6z', 'M77.5 43 88 38.4 74 38.6z']
@@ -102,6 +104,18 @@ function Head({ mood, hat }) {
             fill="none"
             stroke={EDGE}
             strokeWidth="1.2"
+            strokeLinecap="round"
+          />
+        </>
+      ) : drowsy ? (
+        <>
+          <path d="M50.2 45.4a2.8 2.8 0 0 0 5.6 0z" fill={EYE} />
+          <path d="M64.2 45.4a2.8 2.8 0 0 0 5.6 0z" fill={EYE} />
+          <path
+            d="M49.4 45.2q3.6-1.4 7.2 0M63.4 45.2q3.6-1.4 7.2 0"
+            fill="none"
+            stroke={EYE}
+            strokeWidth="1.3"
             strokeLinecap="round"
           />
         </>
@@ -416,6 +430,8 @@ export const ROAM_POSES = {
   groom: () => <Grooming />,
   // Full: rolled over belly-up, paws in the air.
   belly: () => <BellyUp />,
+  // Asleep on its back, paws drooping in the air.
+  snooze: () => <BellyUp asleep />,
   // Sitting up, for a purr, a slow blink, petting or a treat.
   sit: ({ mood = 'content' }) => <Sitting mood={mood} stage={STAGES[2]} />,
   // Rolling over (the whole drawing turns), purring.
@@ -452,7 +468,8 @@ export const ROAM_POSES = {
   // Landed from a height: braced on wide-set legs, tail up, steadying itself.
   balance: () => <Balancing />,
   // Waking up: a long stretch, front paws out, rump up.
-  stretch: () => <Stretching />,
+  // (With a big yawn, when it is a yawning face it is stretching with.)
+  stretch: ({ mood }) => <Stretching yawning={mood === 'yawn'} />,
   // Peeking: just its head and front paws over an edge.
   peek: () => <Peeking />,
   // Coming out: its head rising from behind an edge, then a look round.
@@ -745,7 +762,7 @@ function Clinging({ mood, climbing = false }) {
 
 // Waking up: the long stretch, chest and front paws flat out along the floor,
 // rump and tail up.
-function Stretching() {
+function Stretching({ yawning = false }) {
   return (
     <g>
       <path d="M81 63c6-5 6-14 1-19-2-2-5-1-4 2" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
@@ -798,7 +815,7 @@ function Stretching() {
         transform="rotate(0 29 86.6)"
       />
       <g transform="translate(44 74) scale(0.68) translate(-60 -46)">
-        <Head mood="asleep" />
+        <Head mood={yawning ? 'yawn' : 'asleep'} />
       </g>
       <ellipse cx="35.5" cy="86.8" rx="3.6" ry="2.2" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
     </g>
@@ -2946,12 +2963,12 @@ function Grooming() {
 
 // Belly-up: lying back with its belly to the sky, head tipped back, front
 // paws curled at its chest and back legs loose in the air.
-function BellyUp() {
+function BellyUp({ asleep = false }) {
   return (
     <g>
       <path d="M83 85c6 1 10-1 12-4" fill="none" stroke={EDGE} strokeWidth="5.4" strokeLinecap="round" />
       <path d="M83 85c6 1 10-1 12-4" fill="none" stroke={FUR} strokeWidth="3.4" strokeLinecap="round" />
-      <g className="motion-safe:animate-cat-step" style={{ animationDuration: '1.6s' }}>
+      <g className="motion-safe:animate-cat-step" style={{ animationDuration: asleep ? '3.4s' : '1.6s' }}>
         <path d="M73 76l5-8" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
         <path d="M73 76l5-8" fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
         <path d="M78 78l8-5" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
@@ -2980,7 +2997,7 @@ function BellyUp() {
       <ellipse cx="62" cy="80" rx="22" ry="8.6" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
       <ellipse cx="63" cy="77.2" rx="15" ry="5" fill={BELLY} />
       <g transform="translate(39 76) rotate(-22) scale(0.66) translate(-60 -46)">
-        <Head mood="purring" />
+        <Head mood={asleep ? 'asleep' : 'purring'} />
       </g>
       <g>
         <path d="M50 75q-1-6 3-9" fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
@@ -3106,7 +3123,7 @@ const OUTLINES = {
     tail: [76, 84, 90, 85, 96, 76, 91, 67, 89, 63, 85, 63, 84, 67],
     widths: [7.4, 5],
     front: false,
-    head: [60, 46, 1],
+    head: [60, 46, 1, 0],
     paws: [52, 88.5, 5.6, 3.4, 68, 88.5, 5.6, 3.4, 1.4],
     legs: [0, 68, 76],
     shows: { chest: 1 },
@@ -3119,7 +3136,7 @@ const OUTLINES = {
     tail: [81, 84.5, 91.5, 87, 96, 82, 94, 76, 92.5, 72.5, 89, 72.5, 88, 75.5],
     widths: [6.2, 4],
     front: false,
-    head: [60, 59.5, 0.84],
+    head: [60, 59.5, 0.84, 0],
     paws: [52.5, 88.8, 5, 2.9, 67.5, 88.8, 5, 2.9, 1.3],
     legs: [0, 68, 76],
     shows: { chest: 0.4, stripes: 0.15 },
@@ -3132,27 +3149,56 @@ const OUTLINES = {
     tail: [86, 84, 85, 85.75, 82.75, 86.875, 80.125, 87.45, 77.5, 88.025, 74.5, 88.05, 72, 87.6],
     widths: [5, 3],
     front: true,
-    head: [60, 69, 0.7],
+    head: [60, 69, 0.7, 0],
     paws: [54.5, 87, 3.8, 2.1, 65.5, 87, 3.8, 2.1, 1.2],
     legs: [0, 68, 76],
     shows: { stripes: 1 },
+  },
+  // Curled up asleep (its own drawing, Curled): head tucked down and tipped,
+  // tail along the front, paws hidden.
+  sleep: {
+    body: [
+      34, 88, 30, 88, 28, 86, 28, 82.5, 28, 73.5, 40, 67.5, 59, 67.5, 78, 67.5, 90, 73.5, 90, 82.5, 90, 86, 88, 88, 84,
+      88, 67.33, 88, 50.67, 88, 34, 88,
+    ],
+    tail: [88, 83, 86.5, 85.5, 80.5, 87, 73.375, 87.625, 66.25, 88.25, 58, 88, 52, 87],
+    widths: [5.4, 3.2],
+    front: true,
+    head: [45, 75, 0.66, -10],
+    paws: [56, 87.4, 0, 0, 62, 87.4, 0, 0, 1.2],
+    legs: [0, 68, 76],
+    shows: { curl: 1 },
   },
   settling: {
     body: ellipseOutline(61.5, 77, 23.5, 10),
     tail: [85, 80, 90, 79.5, 95.5, 80.5, 97, 84, 98.5, 87.5, 93, 89.2, 88, 88.6],
     widths: [5.5, 3.4],
     front: false,
-    head: [52, 66, 0.72],
+    head: [52, 66, 0.72, 0],
     paws: [49.5, 87, 3.7, 2.15, 58.5, 87, 3.7, 2.15, 1.2],
     legs: [5, 70, 77],
     shows: { walkBelly: 0.35, walkStripes: 0.35, stripes: 0.2 },
+  },
+  // Nodding off where it sits: head drooped low, shoulders slumped a little.
+  nod: {
+    body: [
+      44, 89, 38, 89, 35, 83, 36.5, 75.5, 38.5, 63, 45, 56.5, 60, 56.5, 75, 56.5, 81.5, 63, 83.5, 75.5, 85, 83, 82, 89,
+      76, 89, 65.33, 89, 54.67, 89, 44, 89,
+    ],
+    tail: [76, 84, 90, 85, 96, 76, 91, 67, 89, 63, 85, 63, 84, 67],
+    widths: [7.4, 5],
+    front: false,
+    head: [60, 52.5, 0.97, 0],
+    paws: [52, 88.5, 5.6, 3.4, 68, 88.5, 5.6, 3.4, 1.4],
+    legs: [0, 68, 76],
+    shows: { chest: 1 },
   },
   walk: {
     body: ellipseOutline(63, 72, 21, 11.5),
     tail: [81, 70, 89, 69, 92, 61, 89, 53, 88, 50, 84, 50, 84, 53],
     widths: [6, 3.8],
     front: false,
-    head: [45, 59, 0.74],
+    head: [45, 59, 0.74, 0],
     paws: [46, 86.4, 3.6, 2.2, 54, 86.4, 3.6, 2.2, 1.2],
     legs: [10, 68, 76],
     shows: { walkBelly: 1, walkStripes: 1 },
@@ -3196,6 +3242,54 @@ export const SETTLES = {
     tail: [0.15, 1],
     legs: [0, 0.8],
     dip: 1.6,
+  },
+  // Nodding off (slowly), jerking awake (quickly), and giving in, lying down.
+  'sit>nod': {
+    keys: ['sit', 'nod'],
+    ms: 900,
+    head: [0, 1],
+    top: [0.1, 1],
+    base: [0.1, 1],
+    paws: [0, 1],
+    tail: [0, 1],
+    legs: [0, 1],
+    dip: 1,
+  },
+  'nod>sit': {
+    keys: ['nod', 'sit'],
+    ms: 240,
+    head: [0, 1],
+    top: [0, 1],
+    base: [0, 1],
+    paws: [0, 1],
+    tail: [0, 1],
+    legs: [0, 1],
+    dip: -1.4,
+  },
+  'nod>rest': {
+    keys: ['nod', 'lowering', 'rest'],
+    ms: 900,
+    head: [0, 0.85],
+    top: [0, 0.8],
+    base: [0.15, 1],
+    paws: [0.1, 1],
+    tail: [0.2, 1],
+    legs: [0, 1],
+    dip: 1.6,
+  },
+  // Curling up to sleep from a loaf: paws tucked away first, the body
+  // stretching long and low, the tail along the front, the head last, tucked
+  // down and tipped.
+  'rest>sleep': {
+    keys: ['rest', 'sleep'],
+    ms: 900,
+    head: [0.2, 1],
+    top: [0, 0.85],
+    base: [0, 0.85],
+    paws: [0, 0.45],
+    tail: [0.1, 0.9],
+    legs: [0, 1],
+    dip: 1,
   },
   'rest>walk': {
     keys: ['rest', 'settling', 'walk'],
@@ -3245,7 +3339,7 @@ function settleParts(plan, k) {
     when(plan.tail),
   ).value;
   const front = tailAt.t > 0.5 ? keys[tailAt.at + 1].front : keys[tailAt.at].front;
-  const [hx, hy] = through(
+  const [hx, hy, , hr] = through(
     keys.map((key) => key.head),
     when(plan.head),
   ).value;
@@ -3255,7 +3349,7 @@ function settleParts(plan, k) {
   ).value[2];
   const overall = smooth(k);
   const shows = {};
-  for (const name of ['chest', 'stripes', 'walkBelly', 'walkStripes']) {
+  for (const name of ['chest', 'stripes', 'walkBelly', 'walkStripes', 'curl']) {
     shows[name] = through(
       keys.map((key) => key.shows[name] ?? 0),
       overall,
@@ -3266,7 +3360,7 @@ function settleParts(plan, k) {
     tail: tailAt.value,
     widths: tailWidths,
     front,
-    head: [hx, hy + plan.dip * settle, hs],
+    head: [hx, hy + plan.dip * settle, hs, hr],
     paws: through(
       keys.map((key) => key.paws),
       when(plan.paws),
@@ -3321,7 +3415,7 @@ function OutlineCat({ parts, mood }) {
   const paw = (x, y, rx, ry, width, key) => (
     <ellipse key={key} cx={x} cy={y} rx={rx} ry={ry} fill={BELLY} stroke={EDGE} strokeWidth={width} />
   );
-  const [hx, hy, hs] = head;
+  const [hx, hy, hs, hr = 0] = head;
   // The walk's stripes and belly ride along on its back and underside as the
   // body sinks and rounds.
   const back = `translate(${(body[12] - 63).toFixed(2)} ${(body[13] - 60.5).toFixed(2)})`;
@@ -3361,6 +3455,15 @@ function OutlineCat({ parts, mood }) {
           transform={`translate(60 89) scale(1 ${0.4 + 0.6 * shows.chest}) translate(-60 -89)`}
         />
       )}
+      {shows.curl > 0.01 && (
+        <path
+          d="M64 70l1.5 3.5M72 70.5l.5 3.5M80 72.5l-1 3"
+          stroke={STRIPE}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          opacity={shows.curl}
+        />
+      )}
       {shows.stripes > 0.01 && (
         <path
           d="M37 75l4 2M36 81l4 1M83 75l-4 2M84 81l-4 1"
@@ -3371,9 +3474,11 @@ function OutlineCat({ parts, mood }) {
         />
       )}
       {front && tailDrawn}
-      {paw(paws[0], paws[1], paws[2], paws[3], paws[8], 'left')}
-      {paw(paws[4], paws[5], paws[6], paws[7], paws[8], 'right')}
-      <g transform={`translate(${hx.toFixed(2)} ${hy.toFixed(2)}) scale(${hs.toFixed(3)}) translate(-60 -46)`}>
+      {paws[2] > 0.6 && paw(paws[0], paws[1], paws[2], paws[3], paws[8], 'left')}
+      {paws[6] > 0.6 && paw(paws[4], paws[5], paws[6], paws[7], paws[8], 'right')}
+      <g
+        transform={`translate(${hx.toFixed(2)} ${hy.toFixed(2)}) rotate(${hr.toFixed(2)}) scale(${hs.toFixed(3)}) translate(-60 -46)`}
+      >
         <Head mood={mood} />
       </g>
     </g>
@@ -3403,6 +3508,8 @@ function Settling({ from, to, fromMood = 'content', toMood = 'content', settled 
 Object.assign(ROAM_POSES, {
   lowering: () => <OutlineCat parts={OUTLINES.lowering} mood="content" />,
   settling: () => <OutlineCat parts={OUTLINES.settling} mood="content" />,
+  // Nodding off, eyes shut.
+  nod: ({ mood }) => <OutlineCat parts={OUTLINES.nod} mood={mood} />,
 });
 
 // On the move from one everyday pose to another: through its in-betweens

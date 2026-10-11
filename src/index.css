@@ -164,3 +164,11 @@
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
+/* The same, letting go once done: held at its end, even translateY(0) leaves
+   the wrapper a stacking context (and the frame for fixed elements), which
+   puts the whole page, its navigation bar included, under anything layered
+   over it from the body, such as the roaming cat on /top. Its end is the
+   page's own look anyway (fully shown, not moved). */
+.page-enter-flat {
+  animation: slideAndFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}

@@ -5,8 +5,9 @@ live in `RoamingCat.jsx` (`FEELS`, `IDLE`, `ACTS`, `MISHAPS` and the `decide`
 function) and `CatThings.jsx` (`WISHES`); keep this file in step with them when
 they change.
 
-Mochi's **mood** comes from the cookies (computing GPU-hours) of the last three
-days, a day's worth at a time (`moodOf` in `BakeryCat.jsx`):
+Mochi's **mood** comes from the cookies (one per GPU hour, as on the
+leaderboard, not weighted by load) of the last three days, a day's worth at a
+time (`moodOf` in `BakeryCat.jsx`):
 
 | Mood | Cookies a day | Energy |
 |---|---|---|
@@ -121,11 +122,37 @@ of all stirs on a top edge is the kind's chance spread over the list.
 
 | Mood | The list | Each (of stirs) |
 |---|---|---|
-| Starving | yawn, sunbeam nap, crumb, sneeze, sleep, beg | ~8% |
-| Hungry | crumb, yawn, sneeze, butterfly, box, bird watching, beg, groom | 5% |
+| Starving | yawn, sunbeam nap, crumb, sneeze, a bed nap (twice over), nodding off, flopping over, dreaming, sleep, beg | ~4.8% (a bed nap ~9.6%) |
+| Hungry | crumb, yawn, sneeze, butterfly, box, bird watching, a bed nap (twice over), nodding off, flopping over, dreaming, beg, groom | ~3.4% (a bed nap ~6.8%) |
 | Content | butterfly, box, croissant, sunbeam nap, tail chase, yawn, sneeze, crumb, dance, bird watching, scratching, dough, backflip, groom, knead | ~2.3% |
 | Well fed | butterfly, box, croissant, tail chase, dance, sneeze, crumb, sunbeam nap, bird watching, scratching, dough, backflip, knead, zoomies, groom | 2% |
 | Full | sunbeam nap, box, yawn, croissant, dance, sneeze, scratching, dough, backflip, belly-up, groom, knead | ~2.2% |
+
+Hungry or starving, she naps a lot (well over half of her other interactions
+when starving):
+
+- **A bed nap:** one of her beds turns up beside her, an equal pick (never the
+  same bed twice running): a wicker bread basket lined with a gingham cloth, a
+  round proofing basket (banneton), a plush doughnut bed (iced and sprinkled),
+  a flour sack, or a croissant cushion. She goes over, sniffs it, hops in (or
+  up), turns round twice, lies down, kneads it a little, and curls up asleep
+  for 8–11 s, dreaming of a fish-shaped cookie 40% of the time ("mm…"); then a
+  stretch with a big yawn, out she hops, and the bed goes. Or, sleepy where
+  she is, she lies down and curls up, and a gingham tea towel drifts down over
+  her; when she wakes it slips off.
+- **Nodding off:** sitting, her eyelids droop and her head nods down, jerks up
+  ("!"), nods again, and she gives in: lies down, curls up asleep, and wakes
+  with a yawning stretch.
+- **Flopping over:** a big yawn, she lies down and rolls onto her back, fast
+  asleep with her paws in the air for 7–9 s; then she wakes ("?"), rolls back
+  over and sits up.
+- **Dreaming:** curled up asleep, she dreams of a fish-shaped cookie in a
+  cloud over her head ("mm…"), wakes, looks round for it ("?") and mews.
+- **Yawn:** a big yawn sitting up, or (an even chance) in a long stretch, front
+  paws out.
+
+Full, she hardly ever sleeps: her only nap is the sunbeam (~2.7% of her stirs),
+and she dozes off with the pointer still for 3 minutes only 3% of the time.
 
 - **Bird watching:** a bird flutters in and lands nearby; she chatters at it
   ("ek ek"), wiggles, pounces, and it flies off ("?").
@@ -158,7 +185,8 @@ Then she ignores the pointer for 3 s. Other reactions:
 - **Rubbing:** the pointer resting still just above her for 1.2–8 s: she
   comes to rub against it (at most every 15 s).
 - **Dozing:** no pointer movement for 3 minutes (40 s when starving): she
-  falls asleep; any movement wakes her.
+  falls asleep (full, only 3% of the time, once each still spell); any
+  movement wakes her.
 
 ## Clicks and drags
 
@@ -288,12 +316,15 @@ greyed out in her card's list.
 
 Opened by clicking your name: how she has eaten, and the switch letting her
 roam. While she roams, a barely-there "•••" button beside the switch lists
-everything she can be asked to do: the moves (walk, run, sniff, spook,
-pounce), her other interactions, the GPU card visits (greyed out unless a running
-GPU's card, or for "add oil" an idle one, is fully in view when the list
-opens), the things
-to do with you (belly rub, brushing, photo shoot, the five toy games), the four
-treat moments and the three tossed toys. Picked, she does it at once (hopping
+everything she can be asked to do, in two levels: first its kinds (moves, by
+itself, naps, with you, GPU cards, treats, toys, each with how many it holds),
+and a click on one shows what is in it, with a way back up. In all: the moves (walk, run, sniff, spook,
+pounce), her other interactions, her naps (each of the six beds, the sunbeam,
+nodding off, flopping over, dreaming, curling up, a yawn), the GPU card visits
+(greyed out unless a running GPU's card, or for "add oil" an idle one, is fully
+in view when the list opens), the things to do with you (belly rub, brushing,
+photo shoot, the five toy games), the four treat moments and the three tossed
+toys. Picked, she does it at once (hopping
 up first off a side or a GPU card). Trips, slips and being trapped are not in
 the list.
 

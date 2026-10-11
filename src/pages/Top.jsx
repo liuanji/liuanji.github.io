@@ -335,7 +335,7 @@ export default function Top() {
   ].filter(Boolean);
 
   return (
-    <div className="bg-paper min-h-screen page-enter">
+    <div className="bg-paper min-h-screen page-enter-flat">
       <GhostNav />
       <main className="pt-24 pb-28">
         <div className="max-w-6xl mx-auto px-8">

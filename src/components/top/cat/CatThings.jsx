@@ -404,6 +404,273 @@ function Ufo({ rope = 40 }) {
   );
 }
 
+// Beds for a nap, each standing on the edge with its bottom middle at (0, 0):
+// the part behind the cat (layer "back") and the part in front of it, which
+// it sinks in behind (layer "front"). A wicker bread basket lined with a
+// gingham cloth; a round proofing basket (a banneton), ridged and floury; a
+// plush bed like a doughnut, iced and sprinkled; a flour sack; a big
+// croissant cushion; and a gingham tea towel, which it sleeps under (only a
+// front, draped over the far end of a curled-up cat facing left).
+const GINGHAM = { base: '#FBF1EE', check: '#E7B3AE', edge: '#D49A94' };
+function Gingham({ d, id }) {
+  return (
+    <g>
+      <clipPath id={id}>
+        <path d={d} />
+      </clipPath>
+      <path d={d} fill={GINGHAM.base} />
+      <g clipPath={`url(#${id})`} fill={GINGHAM.check} opacity="0.75">
+        {Array.from({ length: 14 }, (_, index) => (
+          <rect key={`v${index}`} x={-40 + index * 6} y="-40" width="3" height="60" opacity="0.6" />
+        ))}
+        {Array.from({ length: 10 }, (_, index) => (
+          <rect key={`h${index}`} x="-45" y={-40 + index * 6} width="90" height="3" opacity="0.6" />
+        ))}
+      </g>
+      <path d={d} fill="none" stroke={GINGHAM.edge} strokeWidth="1" strokeLinejoin="round" />
+    </g>
+  );
+}
+function Bed({ variant = 'basket', layer = 'back' }) {
+  const front = layer === 'front';
+  if (variant === 'basket') {
+    return front ? (
+      <g>
+        <path
+          d="M-37-15A37 7.5 0 0 0 37-15L33-2Q31 0 27 0H-27Q-31 0-33-2Z"
+          fill="#E4C08E"
+          stroke="#C49A62"
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M-34-6.6Q0 1 34-6.6M-35.4-11Q0-2.6 35.4-11M-24-6.6v6M-12-4.6v4.6M0-4v4M12-4.6v4.6M24-6.6v6"
+          fill="none"
+          stroke="#C49A62"
+          strokeWidth="0.8"
+          opacity="0.7"
+        />
+        <Gingham id="basket-cloth" d="M-37-15A37 7.5 0 0 0-14-8.2L-20 2-27-6-34 1Z" />
+      </g>
+    ) : (
+      <g>
+        <ellipse cx="0" cy="-15" rx="37" ry="7.5" fill="#D2A872" stroke="#C49A62" strokeWidth="1.2" />
+        <ellipse cx="0" cy="-14.4" rx="31" ry="5" fill="#C29560" />
+      </g>
+    );
+  }
+  if (variant === 'banneton') {
+    return front ? (
+      <g>
+        <path
+          d="M-34-16A34 8 0 0 0 34-16Q33-4 26-1Q23 0 18 0H-18Q-23 0-26-1Q-33-4-34-16Z"
+          fill="#EBD3A6"
+          stroke="#C9A46C"
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M-33.2-12Q0-1.6 33.2-12M-31-7.6Q0 1.2 31-7.6M-26.6-3.4Q0 3.6 26.6-3.4"
+          fill="none"
+          stroke="#C9A46C"
+          strokeWidth="1"
+          opacity="0.75"
+        />
+        <g fill="white" opacity="0.8">
+          <circle cx="-14" cy="-9" r="0.9" />
+          <circle cx="6" cy="-6" r="0.7" />
+          <circle cx="19" cy="-10" r="0.8" />
+          <circle cx="-4" cy="-3" r="0.6" />
+        </g>
+      </g>
+    ) : (
+      <g>
+        <ellipse cx="0" cy="-16" rx="34" ry="8" fill="#DDBF8C" stroke="#C9A46C" strokeWidth="1.2" />
+        <ellipse cx="0" cy="-15.4" rx="28" ry="5.4" fill="#F4ECDD" />
+        <ellipse cx="0" cy="-15.4" rx="20" ry="3.6" fill="none" stroke="#E2D2B4" strokeWidth="0.8" />
+      </g>
+    );
+  }
+  if (variant === 'donut') {
+    // A plush ring, thick and rounded: its far side rising behind the cat,
+    // its near side in front, iced pink and sprinkled, the icing dripping
+    // over its front, the cat curled up in the soft hollow in the middle.
+    const sprinkle = ([x, y, angle, color]) => (
+      <rect
+        key={`${x},${y}`}
+        x={x - 2}
+        y={y - 0.7}
+        width="4"
+        height="1.4"
+        rx="0.7"
+        fill={color}
+        transform={`rotate(${angle} ${x} ${y})`}
+      />
+    );
+    if (!front) {
+      return (
+        <g>
+          <ellipse cx="0" cy="-15" rx="44" ry="15" fill="#E3B783" stroke="#C99E6C" strokeWidth="1.2" />
+          <ellipse cx="0" cy="-18" rx="41" ry="11.5" fill="#F2C1CC" />
+          <ellipse cx="0" cy="-18" rx="29" ry="6" fill="#D6A877" />
+          <ellipse cx="0" cy="-17" rx="23" ry="3.6" fill="#E9C9A0" opacity="0.7" />
+          {[
+            [-35, -21, 30, '#B9D6B2'],
+            [-18, -26.6, -20, '#BFD3F2'],
+            [0, -27.4, 60, '#F2C27D'],
+            [17, -26.6, -40, '#B9D6B2'],
+            [35, -21.2, 20, '#BFD3F2'],
+          ].map(sprinkle)}
+        </g>
+      );
+    }
+    return (
+      <g>
+        <path
+          d="M-29-18A29 6 0 0 0 29-18L44-15A44 15 0 0 1-44-15Z"
+          fill="#E3B783"
+          stroke="#C99E6C"
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
+        <path d="M-38-7.6A44 15 0 0 0 38-7.6" fill="none" stroke="#D2A26C" strokeWidth="2.4" opacity="0.5" />
+        <path d="M-29-18A29 6 0 0 0 29-18L41-18A41 11.5 0 0 1-41-18Z" fill="#F2C1CC" />
+        <path
+          d="M-29.6-9.6v2.8a1.6 1.6 0 0 0 3.2 0v-3.4zM4-6.8v3a1.7 1.7 0 0 0 3.4 0v-3.1zM27.6-10.2v2.4a1.5 1.5 0 0 0 3 0v-3.2z"
+          fill="#F2C1CC"
+        />
+        <path
+          d="M-16-11.2Q0-8.8 16-11.2"
+          fill="none"
+          stroke="white"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          opacity="0.6"
+        />
+        {[
+          [-34, -13.6, 40, '#BFD3F2'],
+          [-17, -10.2, -30, '#F2C27D'],
+          [-3, -8.8, 70, '#B9D6B2'],
+          [15, -10.2, -10, '#BFD3F2'],
+          [33, -13.4, 30, '#F2C27D'],
+        ].map(sprinkle)}
+      </g>
+    );
+  }
+  if (variant === 'sack') {
+    if (front) return null;
+    return (
+      <g>
+        <path
+          d="M-37 0C-40-6-39-13-34-15.6-38-18-36-21-32-19.4-14-21.6 14-21.6 32-19.4 36-21 38-18 34-15.6 39-13 40-6 37 0Z"
+          fill="#EFE6D6"
+          stroke="#C8B89A"
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
+        <path d="M-31-16.8Q0-19 31-16.8" fill="none" stroke="#C8B89A" strokeWidth="0.8" strokeDasharray="2 1.6" />
+        <text
+          x="0"
+          y="-6"
+          textAnchor="middle"
+          fontFamily="JetBrains Mono, monospace"
+          fontSize="6.4"
+          fontWeight="600"
+          letterSpacing="0.8"
+          fill="#9AAAC8"
+        >
+          FLOUR
+        </text>
+        <path d="M-17-12.2l2 2.2M-15-12.2l-2 2.2M15-12.2l2 2.2M17-12.2l-2 2.2" stroke="#C9B38A" strokeWidth="0.8" />
+      </g>
+    );
+  }
+  if (variant === 'croissant') {
+    if (front) return null;
+    // Its lobes, from the tips (curling down) in to the plump middle one.
+    const lobes = [
+      [-33, -5, 7.5, 5.4, -40],
+      [33, -5, 7.5, 5.4, 40],
+      [-21, -10, 11.5, 9, -22],
+      [21, -10, 11.5, 9, 22],
+      [0, -12.5, 15, 12, 0],
+    ];
+    return (
+      <g>
+        {lobes.map(([x, y, rx, ry, angle]) => (
+          <g key={x} transform={`rotate(${angle} ${x} ${y})`}>
+            <ellipse cx={x} cy={y} rx={rx} ry={ry} fill="#EBBE7E" stroke="#C98E4A" strokeWidth="1.2" />
+            <path
+              d={`M${x - rx * 0.55} ${y - ry * 0.45}q${rx * 0.55} ${-ry * 0.42} ${rx * 1.1} 0`}
+              fill="none"
+              stroke="#F6DCAE"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+          </g>
+        ))}
+      </g>
+    );
+  }
+  // The tea towel, draped over the cat's back half: following the curve of
+  // its back, falling to the edge past its rump, a folded edge by its
+  // shoulder, a stripe along its hem and a little fringe.
+  if (!front) return null;
+  const towel =
+    'M-3.6-18.9C1-20.7 10-20.9 17-19.5 24-18.1 28.6-12.9 29.6-6L30.4 0H-2.4C-1.2-3.8-0.4-7.8-1.2-11.2-1.8-14-2.6-16.8-3.6-18.9Z';
+  return (
+    <g>
+      <Gingham id="towel" d={towel} />
+      <clipPath id="towel-hem">
+        <path d={towel} />
+      </clipPath>
+      <path d="M-4-3.4H31" stroke={GINGHAM.edge} strokeWidth="1.3" opacity="0.8" clipPath="url(#towel-hem)" />
+      <path
+        d="M-1.4-0.8C-0.4-4.6 0.4-8 -0.4-11.4-1-14-1.8-16.4-2.6-18.2"
+        fill="none"
+        stroke={GINGHAM.edge}
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      <path
+        d="M3-17.6Q11-19.8 19-17.6"
+        fill="none"
+        stroke="white"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        opacity="0.6"
+      />
+      <path
+        d={Array.from({ length: 12 }, (_, index) => `M${(0.2 + index * 2.6).toFixed(1)} 0.4v2`).join('')}
+        stroke={GINGHAM.edge}
+        strokeWidth="0.8"
+        strokeLinecap="round"
+      />
+    </g>
+  );
+}
+// How high a cat lies in (or on) each bed, from the edge.
+export const BED_LIFT = { basket: 2, banneton: 2, donut: 8, sack: 17, croissant: 21, towel: 0 };
+
+// A dream, in a cloud over a sleeping cat's head: a fish-shaped cookie. The
+// little bubbles leading up to it start at (0, 0).
+function Dream() {
+  return (
+    <g>
+      <circle cx="0" cy="0" r="1.6" fill="white" stroke="#CBD5E1" strokeWidth="0.9" />
+      <circle cx="5" cy="-6" r="2.6" fill="white" stroke="#CBD5E1" strokeWidth="0.9" />
+      <path
+        d="M4-20c-3-7 5-12 10-8 2-5 11-5 13 0 5-2 10 3 7 8 4 3 1 9-4 8-2 4-9 5-12 1-4 3-11 2-12-2-5 0-6-5-2-7z"
+        fill="white"
+        stroke="#CBD5E1"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+      <path d="M11-21.4q5-4 10 0q-5 4-10 0zm10 0 2.6-2.4v4.8z" fill="#E39A55" stroke="#C47A35" strokeWidth="0.6" />
+    </g>
+  );
+}
+
 // A wooden ladder, its top at (0, 0), reaching down rope pixels.
 function Ladder({ rope = 100 }) {
   const rungs = Array.from({ length: Math.max(1, Math.floor(rope / 11)) }, (_, index) => 6 + index * 11);
@@ -490,6 +757,8 @@ const THINGS = {
   puff: Puff,
   heli: Helicopter,
   ufo: Ufo,
+  bed: Bed,
+  dream: Dream,
   ladder: Ladder,
   rope: Rope,
   parachute: Parachute,
@@ -522,6 +791,8 @@ const REACH = {
   puff: 18,
   heli: 60,
   ufo: 30,
+  bed: 46,
+  dream: 36,
   ladder: 20,
   rope: 10,
   parachute: 30,
@@ -656,6 +927,8 @@ export function CatThing({
   flying,
   bake,
   rope,
+  variant,
+  layer,
 }) {
   const Thing = THINGS[kind];
   const reach = REACH[kind];
@@ -673,7 +946,7 @@ export function CatThing({
       }}
     >
       <g transform={`rotate(${rotate}) scale(${scale * flip} ${scale})`}>
-        <Thing count={count} string={string} flying={flying} bake={bake} rope={rope} />
+        <Thing count={count} string={string} flying={flying} bake={bake} rope={rope} variant={variant} layer={layer} />
       </g>
     </svg>
   );

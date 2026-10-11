@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { CatScene, MOODS, STAGES, APPETITE, moodOf, stageOf } from './BakeryCat';
 import { DetailsPopover } from '../shared/DetailBoxes';
 import { Switch } from '../shared/controls';
@@ -56,9 +57,7 @@ const ACTIONS = [
       ['doing:butterfly', 'Watch a butterfly'],
       ['doing:box', 'Sit in a box'],
       ['doing:croissant', 'Knock off a croissant'],
-      ['doing:sunbeam', 'Nap in a sunbeam'],
       ['doing:tail', 'Chase its tail'],
-      ['doing:yawn', 'Yawn'],
       ['doing:sneeze', 'Sneeze'],
       ['doing:crumb', 'Find a crumb'],
       ['doing:dance', 'Dance'],
@@ -70,8 +69,24 @@ const ACTIONS = [
       ['act:knead', 'Knead'],
       ['act:belly', 'Roll belly-up'],
       ['act:beg', 'Beg'],
-      ['act:sleep', 'Nap'],
       ['act:zoom', 'Zoomies'],
+    ],
+  ],
+  [
+    'Naps',
+    [
+      ['bed:basket', 'In a bread basket'],
+      ['bed:banneton', 'In a proofing basket'],
+      ['bed:donut', 'On a doughnut bed'],
+      ['bed:sack', 'On a flour sack'],
+      ['bed:croissant', 'On a croissant cushion'],
+      ['bed:towel', 'Under a tea towel'],
+      ['doing:sunbeam', 'In a sunbeam'],
+      ['doing:doze', 'Nod off'],
+      ['doing:flop', 'Flop over'],
+      ['doing:dream', 'Dream of cookies'],
+      ['act:sleep', 'Curl up'],
+      ['doing:yawn', 'Yawn'],
     ],
   ],
   [
@@ -139,8 +154,24 @@ const MOVES_CARDS = new Set(['gpu:wobble', 'gpu:steal', 'gpu:kick', 'gpu:spin', 
 
 function ActionsMenu({ quiet = false }) {
   const [gpus, setGpus] = useState({ running: false, idle: false });
+  // Two levels: the kinds of thing first; a click on one shows its things,
+  // with a way back up. It opens on the kinds each time.
+  const [kind, setKind] = useState(null);
+  const content = useRef(null);
+  // Into a kind and back, the menu keeps the focus (for the arrow keys).
+  useEffect(() => content.current?.focus(), [kind]);
+  const opened = ACTIONS.find(([group]) => group === kind);
+  const stay = (next) => (event) => {
+    event.preventDefault();
+    setKind(next);
+  };
   return (
-    <DropdownMenu onOpenChange={(open) => open && setGpus(gpusInView())}>
+    <DropdownMenu
+      onOpenChange={(open) => {
+        if (open) setGpus(gpusInView());
+        else setKind(null);
+      }}
+    >
       <DropdownMenuTrigger asChild>
         <button
           type="button"
@@ -152,19 +183,23 @@ function ActionsMenu({ quiet = false }) {
           ))}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="max-h-80 w-56 overflow-y-auto font-mono text-[11px]">
-        {ACTIONS.map(([group, actions], index) => (
-          <div key={group}>
-            {index > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuLabel className="py-1 text-[10px] font-normal uppercase tracking-wide text-data-grey">
-              {group}
-              {isGpuGroup(actions) && !gpus.running && !gpus.idle && (
-                <span className="block whitespace-nowrap normal-case tracking-normal text-data-grey/70">
-                  Scroll a GPU into view
-                </span>
-              )}
-            </DropdownMenuLabel>
-            {actions.map(([code, label]) => (
+      <DropdownMenuContent ref={content} align="end" className="max-h-80 w-56 overflow-y-auto font-mono text-[11px]">
+        {opened ? (
+          <>
+            <DropdownMenuItem
+              className="gap-1 py-1 text-[10px] uppercase tracking-wide text-data-grey"
+              onSelect={stay(null)}
+            >
+              <ChevronLeft className="h-3 w-3" aria-hidden="true" />
+              {opened[0]}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {isGpuGroup(opened[1]) && !gpus.running && !gpus.idle && (
+              <DropdownMenuLabel className="py-1 text-[10px] font-normal text-data-grey/70">
+                Scroll a GPU into view
+              </DropdownMenuLabel>
+            )}
+            {opened[1].map(([code, label]) => (
               <DropdownMenuItem
                 key={code}
                 disabled={
@@ -177,8 +212,18 @@ function ActionsMenu({ quiet = false }) {
                 {label}
               </DropdownMenuItem>
             ))}
-          </div>
-        ))}
+          </>
+        ) : (
+          ACTIONS.map(([group, actions]) => (
+            <DropdownMenuItem key={group} className="justify-between py-1 text-[11px]" onSelect={stay(group)}>
+              {group}
+              <span className="flex items-center gap-1 text-data-grey">
+                {actions.length}
+                <ChevronRight className="h-3 w-3" aria-hidden="true" />
+              </span>
+            </DropdownMenuItem>
+          ))
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

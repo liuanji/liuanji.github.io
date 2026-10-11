@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MORPH_MS, ROAM_POSES, SETTLES, moodOf } from './BakeryCat';
-import { CatThing, WISHES, ToyIcon } from './CatThings';
+import { BED_LIFT, CatThing, WISHES, ToyIcon } from './CatThings';
 import { RING_SERIES } from '../shared/DetailBoxes';
 
 // The bakery cat let out to roam the page. It lives on the edges of the panels
@@ -85,7 +85,9 @@ const MISHAPS = {
 // likely it is to play keep-away with it. Starving, it drags itself about,
 // begs and naps, too tired for games but glad of a warm GPU; well fed, it runs,
 // kneads the panel ("makes biscuits"), gets the zoomies, plays hard to get and
-// bounces on GPUs; full, it is at its liveliest.
+// bounces on GPUs; full, it is at its liveliest, and hardly ever sleeps (dozes:
+// the chance it dozes off when the pointer has been still for doze). Hungry,
+// it naps a lot: in its beds, nodding off, flopping over, dreaming of cookies.
 const FEELS = {
   napping: {
     energy: 0.15,
@@ -93,6 +95,7 @@ const FEELS = {
     face: 'hungry',
     restFace: 'hungry',
     doze: 40 * 1000,
+    dozes: 1,
     rest: [14, 26],
     notice: 150,
     tease: 0,
@@ -108,6 +111,7 @@ const FEELS = {
     face: 'hungry',
     restFace: 'content',
     doze: DOZE_AFTER,
+    dozes: 1,
     rest: [9, 18],
     notice: 170,
     tease: 0.08,
@@ -123,6 +127,7 @@ const FEELS = {
     face: 'content',
     restFace: 'purring',
     doze: DOZE_AFTER,
+    dozes: 1,
     rest: [6, 13],
     notice: 170,
     tease: 0.2,
@@ -147,6 +152,7 @@ const FEELS = {
     face: 'content',
     restFace: 'purring',
     doze: DOZE_AFTER,
+    dozes: 1,
     rest: [4, 9],
     notice: 210,
     tease: 0.4,
@@ -171,6 +177,8 @@ const FEELS = {
     face: 'purring',
     restFace: 'purring',
     doze: DOZE_AFTER,
+    // Full, it hardly ever sleeps.
+    dozes: 0.03,
     rest: [3, 8],
     notice: 170,
     tease: 0.15,
@@ -315,8 +323,9 @@ function shake(element) {
 // with the pointer: rubbing against it when it rests near, and pouncing on it
 // when it whips past.
 const IDLE = {
-  napping: ['yawn', 'sunbeam', 'crumb', 'sneeze'],
-  hungry: ['crumb', 'yawn', 'sneeze', 'butterfly', 'box', 'birdwatch'],
+  // (A bed twice: twice as likely as the others.)
+  napping: ['yawn', 'sunbeam', 'crumb', 'sneeze', 'bed', 'bed', 'doze', 'flop', 'dream'],
+  hungry: ['crumb', 'yawn', 'sneeze', 'butterfly', 'box', 'birdwatch', 'bed', 'bed', 'doze', 'flop', 'dream'],
   content: [
     'butterfly',
     'box',
@@ -541,6 +550,8 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       // the last change was only a moment ago (then it just changes).
       const changed = next !== shown.pose || flip !== shown.flip;
       const quick =
+        // (Mid-roll, the turn hides the change.)
+        state.spin != null ||
         (SWIPE.has(next) && SWIPE.has(shown.pose)) ||
         (GALLOP.has(next) && GALLOP.has(shown.pose)) ||
         (DANCE.has(next) &&
@@ -2710,6 +2721,43 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         ];
       },
     };
+    // Curled up asleep a while (lifted into a bed, if in one), z's rising, and
+    // now and then (or for sure: dreams 1) a dream of a fish-shaped cookie in
+    // a cloud over its head, with a murmur. scene(dream) gives the things
+    // about it to show, given the dream's own.
+    const nap = (scene = (dream) => dream, lift = 0, dreams = 0.4) => ({
+      pose: 'sleep',
+      ms: random(8000, 11000),
+      start: (step) => {
+        step.dreams = Math.random() < dreams;
+        const about = scene([]);
+        putThing(about.length ? about : null);
+      },
+      frame: (step, time, k) => {
+        state.lift = lift;
+        if (Math.random() < 0.006) say('z');
+        if (!step.dreams) return;
+        const shown = Math.min(1, Math.max(0, (k - 0.15) * 6), Math.max(0, (0.88 - k) * 6));
+        const dream =
+          shown > 0
+            ? [
+                {
+                  kind: 'dream',
+                  x: state.x + (state.facing < 0 ? -7 : 7),
+                  y: state.y - lift - 22,
+                  flip: state.facing < 0 ? 1 : -1,
+                  opacity: shown,
+                },
+              ]
+            : [];
+        const about = scene(dream);
+        putThing(about.length ? about : null);
+        if (!step.murmured && k > 0.5) {
+          step.murmured = true;
+          say('mm…');
+        }
+      },
+    });
     const doings = {
       // A butterfly flutters by: it watches, wiggles its rump, and pounces as
       // the butterfly gets away.
@@ -2837,11 +2885,143 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         { pose: 'balance', ms: 1300, rock: { amp: 8, freq: 1.6, decay: 1.6 }, start: () => say('~') },
         { pose: 'sit', mood: 'purring', ms: 700 },
       ],
-      // A big yawn.
-      yawn: () => [
-        { pose: 'sit', ms: 400 },
-        { pose: 'sit', mood: 'yawn', ms: 1500 },
-        { pose: 'sit', mood: 'purring', ms: 800 },
+      // A big yawn: sitting up, or in a long stretch, front paws out.
+      yawn: () =>
+        Math.random() < 0.5
+          ? [
+              { pose: 'sit', ms: 400 },
+              { pose: 'sit', mood: 'yawn', ms: 1500 },
+              { pose: 'sit', mood: 'purring', ms: 800 },
+            ]
+          : [
+              { pose: 'sit', mood: 'drowsy', ms: 500 },
+              { pose: 'stretch', mood: 'yawn', ms: 1600 },
+              { pose: 'sit', mood: 'drowsy', ms: 900 },
+            ],
+      // Hungry, it naps a lot. In one of its beds (not the one it used last,
+      // or the one asked for): a bread basket, a proofing basket, a doughnut
+      // bed, a flour sack or a croissant cushion turns up beside it; it goes
+      // over, sniffs it, climbs in (or up), turns round, lies down, kneads it
+      // a little, and curls up asleep, now and then dreaming of a cookie;
+      // then a yawning stretch, out, and the bed is gone. Or, sleepy where it
+      // is, it curls up and a tea towel drifts down over it, till it wakes
+      // and the towel slips off.
+      bed: (asked) => {
+        const kinds = Object.keys(BED_LIFT).filter((name) => name !== state.lastBed);
+        const kind = BED_LIFT[asked] !== undefined ? asked : kinds[Math.floor(Math.random() * kinds.length)];
+        state.lastBed = kind;
+        const lift = BED_LIFT[kind];
+        const keep = () => (state.lift = lift);
+        if (kind === 'towel') {
+          const towel = (extra = {}) => ({
+            kind: 'bed',
+            variant: 'towel',
+            layer: 'front',
+            front: true,
+            x: state.x,
+            y: state.y,
+            flip: state.facing < 0 ? 1 : -1,
+            ...extra,
+          });
+          return [
+            { pose: 'sit', mood: 'drowsy', ms: 900, start: () => say('~') },
+            { pose: 'rest', mood: 'drowsy', ms: 1300 },
+            {
+              pose: 'sleep',
+              ms: 1100,
+              frame: (step, time, k) =>
+                putThing(towel({ y: state.y - 34 * (1 - k) ** 2, opacity: Math.min(1, k * 3) })),
+            },
+            nap((dream) => [towel(), ...dream]),
+            {
+              pose: 'sleep',
+              ms: 500,
+              start: () => say('!'),
+              frame: (step, time, k) =>
+                putThing(towel({ x: state.x - state.facing * 26 * k, y: state.y + 4 * k, opacity: 1 - k })),
+            },
+            { pose: 'stretch', mood: 'yawn', ms: 1300, start: () => putThing(null) },
+            { pose: 'sit', mood: 'purring', ms: 800 },
+          ];
+        }
+        const dir = roomy();
+        const at = onEdge(state.x + dir * random(70, 110));
+        const out = onEdge(at + dir * 60) === at + dir * 60 ? at + dir * 60 : at - dir * 60;
+        const bed = (opacity = 1) => [
+          { kind: 'bed', variant: kind, layer: 'back', x: at, y: state.y, opacity },
+          { kind: 'bed', variant: kind, layer: 'front', front: true, x: at, y: state.y, opacity },
+        ];
+        return [
+          { pose: 'sit', mood: 'drowsy', ms: 900, start: () => ((state.facing = dir), putThing(bed()), say('!')) },
+          { to: at - dir * 36 },
+          { pose: 'sniff', ms: 900, start: () => say('sniff') },
+          hop(at, 24, lift),
+          // Round it turns, twice, and (a moment later, so it lies down
+          // through its in-betweens) down it lies.
+          {
+            pose: 'walk',
+            ms: 1100,
+            frame: (step, time, k) => {
+              keep();
+              state.facing = k < 0.6 && Math.floor((k / 0.6) * 4) % 2 ? -dir : dir;
+            },
+          },
+          { pose: 'rest', mood: 'drowsy', ms: 1100, frame: keep },
+          { pose: 'knead', mood: 'purring', ms: 1600, start: () => say('prr'), frame: keep },
+          { pose: 'rest', mood: 'asleep', ms: 600, frame: keep },
+          nap((dream) => [...bed(), ...dream], lift),
+          { pose: 'stretch', mood: 'yawn', ms: 1300, frame: keep, start: () => putThing(bed()) },
+          { ...hop(out, 24, 0), start: (step) => ((step.lifted = lift), hop(out, 24).start(step)) },
+          { pose: 'sit', ms: 900, start: () => putThing(bed(0)) },
+        ];
+      },
+      // Nodding off where it sits: eyelids drooping, its head nodding down,
+      // jerked up again ("!"), nodding again, till it gives in, lies down and
+      // curls up asleep; a yawning stretch when it wakes.
+      doze: () => [
+        { pose: 'sit', mood: 'drowsy', ms: 1500 },
+        { pose: 'nod', mood: 'asleep', ms: 1400 },
+        { pose: 'sit', mood: 'content', ms: 700, start: () => say('!') },
+        { pose: 'sit', mood: 'drowsy', ms: 1200 },
+        { pose: 'nod', mood: 'asleep', ms: 1600 },
+        { pose: 'rest', mood: 'asleep', ms: 1300 },
+        nap(),
+        { pose: 'stretch', mood: 'yawn', ms: 1300, start: () => putThing(null) },
+      ],
+      // A big yawn, and over it flops onto its back, fast asleep with its paws
+      // in the air; a while later it wakes ("?"), rolls back over and sits up.
+      flop: () => {
+        const roll = state.facing < 0 ? 1 : -1;
+        return [
+          { pose: 'sit', mood: 'drowsy', ms: 700 },
+          { pose: 'sit', mood: 'yawn', ms: 1400 },
+          { pose: 'rest', mood: 'drowsy', ms: 1100 },
+          { pose: 'rest', mood: 'drowsy', ms: 240, frame: (step, time, k) => (state.spin = roll * 50 * k) },
+          {
+            pose: 'snooze',
+            ms: 300,
+            start: () => say('~'),
+            frame: (step, time, k) => (state.spin = -roll * 25 * (1 - k)),
+          },
+          {
+            pose: 'snooze',
+            ms: random(7000, 9000),
+            start: () => (state.spin = null),
+            frame: () => Math.random() < 0.006 && say('z'),
+          },
+          { pose: 'belly', ms: 900, start: () => say('?') },
+          { pose: 'belly', ms: 240, frame: (step, time, k) => (state.spin = -roll * 50 * k) },
+          { pose: 'sit', ms: 300, frame: (step, time, k) => (state.spin = roll * 25 * (1 - k)) },
+          { pose: 'sit', mood: 'purring', ms: 800, start: () => (state.spin = null) },
+        ];
+      },
+      // Curled up asleep, dreaming of one of its fish-shaped cookies, with a
+      // murmur ("mm…"); it wakes, looks round for the cookie ("?") and mews.
+      dream: () => [
+        { pose: 'rest', mood: 'drowsy', ms: 1300 },
+        nap((dream) => dream, 0, 1),
+        { pose: 'sit', mood: 'hungry', ms: 900, start: () => (putThing(null), say('?')) },
+        { pose: 'beg', mood: 'hungry', ms: 1500, start: () => say('mew') },
       ],
       // A sneeze, with a little hop, and a startled look.
       sneeze: () => [
@@ -3129,6 +3309,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       else if (group === 'game') startGame(name, time);
       else if (group === 'treat' && treats[name]) play(treats[name](), time);
       else if (group === 'toss' && tossed[name]) play(tossed[name](), time);
+      else if (group === 'bed' && BED_LIFT[name] !== undefined) play(doings.bed(name), time);
       else if (group === 'gpu' && !visitGpu(name)) say('?');
     };
     window.addEventListener('bakery-cat-do', onDo);
@@ -3408,6 +3589,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         else if (['yarn', 'feather', 'laser', 'mouse', 'bubbles'].includes(name)) startGame(name, performance.now());
         else if (name.startsWith('treat:')) play(treats[name.slice(6)](), performance.now());
         else if (name.startsWith('toss:')) play(tossed[name.slice(5)](), performance.now());
+        else if (name.startsWith('bed:')) play(doings.bed(name.slice(4)), performance.now());
         else if (name.startsWith('gpu:')) return visitGpu(name.slice(4));
         else if (name === 'run') stroll(true);
         else if (name.startsWith('popup:')) {
@@ -4225,9 +4407,17 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           break;
         case 'rest': {
           show(state.restPose, state.restPose === 'rest' ? feel().restFace : feel().face);
+          // The pointer still a long while: it dozes off (one roll for each
+          // still spell; full, it hardly ever does).
           if (time - state.pointer.at > feel().doze && !onSide()) {
-            state.mode = 'sleep';
-            break;
+            if (state.dozeRoll !== state.pointer.at) {
+              state.dozeRoll = state.pointer.at;
+              state.dozesOff = Math.random() < (feel().dozes ?? 1);
+            }
+            if (state.dozesOff) {
+              state.mode = 'sleep';
+              break;
+            }
           }
           if (time < state.until || state.menu) break;
           if (state.perch?.hasAttribute('data-cat-gpu')) {
