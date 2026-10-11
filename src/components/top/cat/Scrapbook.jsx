@@ -233,8 +233,7 @@ export function ScrapbookDialog({ open, onOpenChange, name }) {
                   {name}’s scrapbook
                 </Dialog.Title>
                 <Dialog.Description className="mt-1 max-w-prose text-sm leading-relaxed text-data-grey">
-                  The first time she did each thing, kept in this browser. What she does by herself counts, and how she
-                  takes what you give her; what you ask for from her list does not.
+                  Her firsts, fresh from the oven and kept in this browser.
                 </Dialog.Description>
               </div>
               <Dialog.Close
