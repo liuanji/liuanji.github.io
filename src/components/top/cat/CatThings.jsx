@@ -351,6 +351,59 @@ function Helicopter({ rope = 40 }) {
   );
 }
 
+// A little flying saucer (the helicopter's stand-in, half the time), its
+// middle at (0, 0): a glass dome with a small alien in it, soft lights round
+// its rim, and a beam of light shining down to (0, rope) (none at 0).
+function Ufo({ rope = 40 }) {
+  const spread = 10 + rope * 0.28;
+  const lights = ['#F2C27D', '#F2B8C2', '#BFD3F2', '#B9D6B2', '#F2C27D'];
+  return (
+    <g>
+      {rope > 2 && (
+        <g>
+          <path d={`M-7 4L${-spread} ${rope}H${spread}L7 4z`} fill="#FFF3C4" opacity="0.45" />
+          <path d={`M-4 4L${-spread * 0.55} ${rope}H${spread * 0.55}L4 4z`} fill="#FFF8DE" opacity="0.55" />
+          {[0.35, 0.65, 0.95].map((at) => (
+            <ellipse
+              key={at}
+              cx="0"
+              cy={4 + (rope - 4) * at}
+              rx={7 + (spread - 7) * at}
+              ry={1.4 + at}
+              fill="none"
+              stroke="#EAD79A"
+              strokeWidth="0.8"
+              opacity="0.6"
+            />
+          ))}
+        </g>
+      )}
+      <path d="M-10.5-2.5a10.5 10 0 0 1 21 0z" fill="#DCE8F5" stroke="#9BB0CC" strokeWidth="1" />
+      <ellipse cx="0" cy="-5.6" rx="3.8" ry="3.4" fill="#BCD7B4" />
+      <path d="M-1.8-8.6l-1.2-2.8M1.8-8.6l1.2-2.8" stroke="#9CC193" strokeWidth="0.8" strokeLinecap="round" />
+      <circle cx="-3" cy="-11.6" r="0.8" fill="#9CC193" />
+      <circle cx="3" cy="-11.6" r="0.8" fill="#9CC193" />
+      <circle cx="-1.4" cy="-6" r="1" fill="#3B3346" />
+      <circle cx="1.4" cy="-6" r="1" fill="#3B3346" />
+      <path d="M-6-8.4q2-3 5.6-3.2" fill="none" stroke="white" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
+      <ellipse cx="0" cy="0" rx="24" ry="6.5" fill="#C9CEDB" stroke="#8C95AB" strokeWidth="1.2" />
+      <ellipse cx="0" cy="-1.6" rx="17" ry="2.4" fill="#DCE0EA" />
+      {[-15, -7.5, 0, 7.5, 15].map((x, index) => (
+        <circle
+          key={x}
+          cx={x}
+          cy="2.4"
+          r="1.4"
+          fill={lights[index]}
+          className="motion-safe:animate-pulse"
+          style={{ animationDelay: `${-index * 0.3}s` }}
+        />
+      ))}
+      <ellipse cx="0" cy="5" rx="7" ry="2.2" fill="#A9B2C6" />
+    </g>
+  );
+}
+
 // A wooden ladder, its top at (0, 0), reaching down rope pixels.
 function Ladder({ rope = 100 }) {
   const rungs = Array.from({ length: Math.max(1, Math.floor(rope / 11)) }, (_, index) => 6 + index * 11);
@@ -436,6 +489,7 @@ const THINGS = {
   dirt: Dirt,
   puff: Puff,
   heli: Helicopter,
+  ufo: Ufo,
   ladder: Ladder,
   rope: Rope,
   parachute: Parachute,
@@ -467,6 +521,7 @@ const REACH = {
   dirt: 8,
   puff: 18,
   heli: 60,
+  ufo: 30,
   ladder: 20,
   rope: 10,
   parachute: 30,

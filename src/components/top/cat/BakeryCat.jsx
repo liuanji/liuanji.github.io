@@ -60,28 +60,52 @@ function Head({ mood, hat }) {
   const sneezing = mood === 'sneeze';
   const chattering = mood === 'chatter';
   const winking = mood === 'wink';
+  // Frightened: ears out flat to the sides, eyes wide; hissing, its brows
+  // down too and its mouth open on two little fangs.
+  const hissing = mood === 'hiss';
+  const fright = mood === 'fright' || hissing;
+  const ears = fright
+    ? ['M42 45 28 37 48 37.5z', 'M78 45 92 37 72 37.5z', 'M42.5 43 32 38.4 46 38.6z', 'M77.5 43 88 38.4 74 38.6z']
+    : hungry
+      ? ['M42 44 36 30 50 37z', 'M78 44 84 30 70 37z', 'M43 41 40 33 47 37z', 'M77 41 80 33 73 37z']
+      : ['M43 42 41 25 53 34z', 'M77 42 79 25 67 34z', 'M45 39 44 30 50 35z', 'M75 39 76 30 70 35z'];
   return (
     <>
-      <path
-        d={hungry ? 'M42 44 36 30 50 37z' : 'M43 42 41 25 53 34z'}
-        fill={FUR}
-        stroke={EDGE}
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        d={hungry ? 'M78 44 84 30 70 37z' : 'M77 42 79 25 67 34z'}
-        fill={FUR}
-        stroke={EDGE}
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path d={hungry ? 'M43 41 40 33 47 37z' : 'M45 39 44 30 50 35z'} fill={PINK} opacity="0.8" />
-      <path d={hungry ? 'M77 41 80 33 73 37z' : 'M75 39 76 30 70 35z'} fill={PINK} opacity="0.8" />
+      <path d={ears[0]} fill={FUR} stroke={EDGE} strokeWidth="1.6" strokeLinejoin="round" />
+      <path d={ears[1]} fill={FUR} stroke={EDGE} strokeWidth="1.6" strokeLinejoin="round" />
+      <path d={ears[2]} fill={PINK} opacity="0.8" />
+      <path d={ears[3]} fill={PINK} opacity="0.8" />
       <ellipse cx="60" cy="46" rx="20.5" ry="17" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
       <path d="M56 30.5v4.5M60 30v5.5M64 30.5v4.5" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
       <ellipse cx="60" cy="52" rx="8" ry="5.6" fill={BELLY} />
-      {winking ? (
+      {hissing ? (
+        // Screwed tight shut, > <.
+        <path
+          d="M49.6 43l5.8 2.6-5.8 2.6M70.4 43l-5.8 2.6 5.8 2.6"
+          fill="none"
+          stroke={EYE}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ) : fright ? (
+        // Big, glossy and wide, under little worried brows.
+        <>
+          <circle cx="53" cy="45.8" r="4" fill={EYE} />
+          <circle cx="67" cy="45.8" r="4" fill={EYE} />
+          <circle cx="54.4" cy="44.2" r="1.6" fill="white" />
+          <circle cx="68.4" cy="44.2" r="1.6" fill="white" />
+          <circle cx="51.6" cy="47.6" r="0.8" fill="white" />
+          <circle cx="65.6" cy="47.6" r="0.8" fill="white" />
+          <path
+            d="M49.4 39.6q3-1.8 6-.4M70.6 39.6q-3-1.8-6-.4"
+            fill="none"
+            stroke={EDGE}
+            strokeWidth="1.2"
+            strokeLinecap="round"
+          />
+        </>
+      ) : winking ? (
         <>
           <path d="M50 46q3-3.5 6 0" fill="none" stroke={EYE} strokeWidth="1.8" strokeLinecap="round" />
           <circle cx="67" cy="45.5" r="2.9" fill={EYE} />
@@ -123,7 +147,20 @@ function Head({ mood, hat }) {
         </>
       )}
       <path d="M58.4 50h3.2l-1.6 1.8z" fill={PINK} stroke={EDGE} strokeWidth="0.6" strokeLinejoin="round" />
-      {chattering ? (
+      {hissing ? (
+        <>
+          <path
+            d="M54.6 53.2q5.4 7.4 10.8 0q-5.4 1.8-10.8 0z"
+            fill="#9C4A55"
+            stroke={EDGE}
+            strokeWidth="0.7"
+            strokeLinejoin="round"
+          />
+          <path d="M56.2 53.8l1.1 2.4 1-2.1zM63.8 53.8l-1.1 2.4-1-2.1z" fill="white" />
+        </>
+      ) : fright ? (
+        <ellipse cx="60" cy="55.2" rx="1.7" ry="2.1" fill="#9C4A55" stroke={EDGE} strokeWidth="0.6" />
+      ) : chattering ? (
         <ellipse cx="60" cy="55" rx="2.2" ry="1.8" fill="#9C4A55" stroke={EDGE} strokeWidth="0.6" />
       ) : yawning ? (
         <>
@@ -481,7 +518,204 @@ export const ROAM_POSES = {
   cling: ({ mood = 'content' }) => <Clinging mood={mood} />,
   // Climbing up or down a card's side, paws taking turns.
   climb: () => <Clinging mood="content" climbing />,
+  // Over to a pop-up card: stalking it, rump waggling, before a pounce; and
+  // creeping up on it, low, a paw lifted (front, then hind).
+  stalk: () => <Stalking />,
+  creep: () => <Creeping />,
+  creep2: () => <Creeping hind />,
+  // Scared of one: puffed up like a Halloween cat, hissing; fleeing flat out,
+  // ears pinned back (in two strides, like a gallop); and cowering, pressed
+  // flat and trembling.
+  hiss: () => <Hissing />,
+  flee: () => <Fleeing />,
+  flee2: () => <Fleeing gathered />,
+  cower: () => <Cowering />,
 };
+
+// A bead of sweat off a frightened cat, its top at (x, y).
+function SweatDrop({ x, y }) {
+  return (
+    <path
+      d={`M${x} ${y}c-2 3-3 5-1.4 6.6s3.8 0 3.2-2.4c-.3-1.2-1-2.6-1.8-4.2z`}
+      fill="#B9CBF2"
+      stroke="#8EA6DF"
+      strokeWidth="0.8"
+    />
+  );
+}
+
+// Stalking, about to pounce: chest down by the ground with its forelegs
+// stretched out ahead, its back rising to a rump held high over hind legs
+// bunched under it, tail out low behind with its tip turned up, eyes locked on
+// ahead. (The waggle of its rump is its whole drawing rocking.)
+function Stalking() {
+  return (
+    <g>
+      <path d="M89 75c6 1 11 1.6 15-.4q2-1 1.4-3.8" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M89 75c6 1 11 1.6 15-.4q2-1 1.4-3.8" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <path d="M48 86.2H25M52 86.8H31" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M48 86.2H25M52 86.8H31" stroke={FUR} strokeWidth="3.7" strokeLinecap="round" />
+      <ellipse cx="23.6" cy="87" rx="3.4" ry="2" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
+      <ellipse cx="29.6" cy="87.6" rx="3.4" ry="2" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
+      <ellipse cx="79.6" cy="87.3" rx="3.4" ry="2.1" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
+      <ellipse cx="86.4" cy="87.3" rx="3.4" ry="2.1" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
+      <path
+        d="M46 86.6C41 84.6 42 77 48 74.4C58 70 70 63.6 80 63.4C88 63.2 92.4 70 91 77C90 82.4 87 86 82 86C72 83.6 60 87.4 46 86.6z"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M77.6 69c5.4 1.4 8 6.6 6 12.6" fill="none" stroke={EDGE} strokeWidth="1.2" strokeLinecap="round" />
+      <ellipse cx="62" cy="83.4" rx="10" ry="2.4" fill={BELLY} transform="rotate(-6 62 83.4)" />
+      <path d="M62 68.6l1.4 3.4M69 66.4l1 3.4M76 65l.4 3.4" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+      <g transform="translate(41 73.6) scale(0.7) translate(-60 -46)">
+        <Head mood="chatter" />
+      </g>
+    </g>
+  );
+}
+
+// Creeping up on something: low and long, belly near the ground, legs bent,
+// head down and forward, tail held out low behind; a front paw lifted
+// mid-step, or (hind) a back one.
+function Creeping({ hind = false }) {
+  const leg = (d) => (
+    <>
+      <path d={d} fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={d} fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  );
+  const paw = (x, y, angle = 0) => (
+    <ellipse
+      cx={x}
+      cy={y}
+      rx="3.4"
+      ry="2.1"
+      fill={BELLY}
+      stroke={EDGE}
+      strokeWidth="1.2"
+      transform={`rotate(${angle} ${x} ${y})`}
+    />
+  );
+  return (
+    <g>
+      <path d="M84 74c7 1 13 3 18 7q2 1.4 3.6 0" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M84 74c7 1 13 3 18 7q2 1.4 3.6 0" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      {leg('M54 79l-3 4 1 3.6')}
+      {paw(51.6, 87.2)}
+      {leg('M72 79l3 4-1 3.6')}
+      {paw(74.4, 87.2)}
+      {hind ? (
+        <>
+          {leg('M48 79l-4 4 .4 3.6')}
+          {paw(44, 87.2)}
+          {leg('M79 79l6 1.6 4 .4')}
+          {paw(90, 81, 20)}
+        </>
+      ) : (
+        <>
+          {leg('M48 79l-5 3-5 .4')}
+          {paw(36.4, 82.6, -10)}
+          {leg('M79 79l3 4 .4 3.6')}
+          {paw(83, 87.2)}
+        </>
+      )}
+      <ellipse cx="64" cy="76" rx="22" ry="7.6" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <ellipse cx="62" cy="80.6" rx="12" ry="2.6" fill={BELLY} />
+      <path d="M63 68.6l1 3.4M70 68.8l.4 3.4M77 70l-.8 3" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+      <g transform="translate(42 67.4) scale(0.7) translate(-60 -46)">
+        <Head mood="chatter" />
+      </g>
+    </g>
+  );
+}
+
+// Puffed up in fright like a Halloween cat: up on stiff, straight legs, back
+// arched high with every hair on end, tail a bottle brush, ears flat back,
+// hissing; trembling all over.
+function Hissing() {
+  // The outline of its arched back, bristling: points round the arch, every
+  // other one standing out.
+  const back = Array.from({ length: 21 }, (_, index) => {
+    const angle = Math.PI + (Math.PI * index) / 20;
+    const out = index % 2 ? 1.1 : 1;
+    return `${(63 + 21 * out * Math.cos(angle)).toFixed(1)} ${(76 + 29 * out * Math.sin(angle)).toFixed(1)}`;
+  });
+  const leg = (d) => (
+    <>
+      <path d={d} fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d={d} fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+    </>
+  );
+  return (
+    <g className="motion-safe:animate-cat-tremble">
+      <path d="M81 68c4-9 6-22 3-35" fill="none" stroke={EDGE} strokeWidth="13" strokeLinecap="round" />
+      <path d="M81 68c4-9 6-22 3-35" fill="none" stroke={FUR} strokeWidth="10.4" strokeLinecap="round" />
+      <path
+        d="M78.4 38l-3.2-1.6M89.6 38.6l3.2-1.2M77.6 45l-3.4-.8M90.6 46l3.4-.4M77.8 52.4l-3.4-.2M90.4 53.6l3.2.2M78.6 60l-3.2.4M89 61l3 .8"
+        stroke={EDGE}
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+      {leg('M47 74l-2 12M52 74.6l-.6 11.6')}
+      {leg('M74 74.6l.6 11.6M79 74l2 12')}
+      <ellipse cx="44.6" cy="87.4" rx="3.2" ry="2" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
+      <ellipse cx="51.2" cy="87.6" rx="3.2" ry="2" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
+      <ellipse cx="74.8" cy="87.6" rx="3.2" ry="2" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
+      <ellipse cx="81.4" cy="87.4" rx="3.2" ry="2" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
+      <path
+        d={`M${back.join(' L')} Q63 71.6 42 76z`}
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <ellipse cx="63" cy="73.4" rx="10" ry="2.4" fill={BELLY} />
+      <path d="M58 52l1 4.2M65 50.6l-.2 4.4M72 53.4l-1 4" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+      <g transform="translate(41 63) scale(0.76) translate(-60 -46)">
+        <Head mood="hiss" />
+      </g>
+    </g>
+  );
+}
+
+// Fleeing in a fright: galloping flat out with its ears pinned back and eyes
+// wide, a bead of sweat flying off, and dust lines streaming behind.
+function Fleeing({ gathered = false }) {
+  return (
+    <g>
+      <path d="M103 62h6M101 69h10M104 76h6" stroke="#CBD5E1" strokeWidth="1.6" strokeLinecap="round" />
+      <Galloping mood="fright" gathered={gathered} />
+      <SweatDrop x={gathered ? 61 : 56} y={gathered ? 43 : 42} />
+    </g>
+  );
+}
+
+// Cowering: pressed flat and low as a squashed loaf, tail tight round it, ears
+// out flat, eyes wide, a bead of sweat; trembling.
+function Cowering() {
+  return (
+    <g className="motion-safe:animate-cat-tremble">
+      <path
+        d="M36 88c-4 0-6.4-2-6.4-5 0-7.4 12.4-12.6 30.4-12.6s30.4 5.2 30.4 12.6c0 3-2.4 5-6.4 5z"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M36 79l4 1.6M84 79l-4 1.6" stroke={STRIPE} strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M88 85c-2 3-9 3.8-15 3" fill="none" stroke={EDGE} strokeWidth="5" strokeLinecap="round" />
+      <path d="M88 85c-2 3-9 3.8-15 3" fill="none" stroke={FUR} strokeWidth="3" strokeLinecap="round" />
+      <ellipse cx="54.5" cy="87.2" rx="3.8" ry="2" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
+      <ellipse cx="65.5" cy="87.2" rx="3.8" ry="2" fill={BELLY} stroke={EDGE} strokeWidth="1.2" />
+      <g transform="translate(60 74.4) scale(0.7) translate(-60 -46)">
+        <Head mood="fright" />
+      </g>
+      <SweatDrop x={73} y={58} />
+    </g>
+  );
+}
 
 // Hanging on to the side of a card (to the right of x = 60, mirrored for a
 // left side), front paws hooked over its edge, tail hanging down.
@@ -2834,11 +3068,354 @@ const TAILS = {
 };
 export const MORPH_MS = 520;
 
-// On the move from one everyday pose to another (sitting, lying down as a
-// loaf, curled asleep, peeking over an edge): its head, body, paws and tail
-// glide from where they were to where they will be, the head sinking or
-// rising, the body settling or straightening, its face changing halfway.
-function Morph({ from, to, fromMood = 'content', toMood = 'content', settled = false }) {
+// In-between drawings for its commonest moves, so that it goes from one pose
+// to the next through them instead of fading: lying down from sitting up,
+// through "lowering" (head and chest going down first, paws coming forward,
+// tail coming round), or from a walk, through "settling" (legs folding, body
+// sinking, head turning to the front, tail down); and the same back again,
+// sitting up or getting up to walk off. Each pose here is the same handful of
+// parts, in step with its own drawing (its body as five curves, from its lower
+// left round to its lower right and back along the bottom; its tail as two;
+// its head; its front paws; its legs and hind paws; and the touches that come
+// and go, as how much of each shows), so every drawing in between can be
+// worked out part by part, and the first and last are the poses' own.
+const clamp01 = (value) => Math.max(0, Math.min(1, value));
+const smooth = (k) => (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
+function ellipseOutline(cx, cy, rx, ry) {
+  const at = (deg) => [cx + rx * Math.cos((deg * Math.PI) / 180), cy + ry * Math.sin((deg * Math.PI) / 180)];
+  const along = (deg) => [-rx * Math.sin((deg * Math.PI) / 180), ry * Math.cos((deg * Math.PI) / 180)];
+  const arc = (from, to) => {
+    const reach = (4 / 3) * Math.tan(((to - from) * Math.PI) / 720);
+    const [start, end, out, back] = [at(from), at(to), along(from), along(to)];
+    return [
+      start[0] + reach * out[0],
+      start[1] + reach * out[1],
+      end[0] - reach * back[0],
+      end[1] - reach * back[1],
+      ...end,
+    ];
+  };
+  return [...at(135), ...arc(135, 180), ...arc(180, 270), ...arc(270, 360), ...arc(0, 45), ...arc(45, 135)];
+}
+const OUTLINES = {
+  sit: {
+    body: [
+      44, 89, 38, 89, 35, 83, 36.5, 75, 38.5, 62, 45, 55, 60, 55, 75, 55, 81.5, 62, 83.5, 75, 85, 83, 82, 89, 76, 89,
+      65.33, 89, 54.67, 89, 44, 89,
+    ],
+    tail: [76, 84, 90, 85, 96, 76, 91, 67, 89, 63, 85, 63, 84, 67],
+    widths: [7.4, 5],
+    front: false,
+    head: [60, 46, 1],
+    paws: [52, 88.5, 5.6, 3.4, 68, 88.5, 5.6, 3.4, 1.4],
+    legs: [0, 68, 76],
+    shows: { chest: 1 },
+  },
+  lowering: {
+    body: [
+      41, 88.6, 36, 88.6, 33.5, 84, 34.2, 77.5, 35.6, 66, 44, 60, 60, 60, 76, 60, 84.4, 66, 85.8, 77.5, 86.5, 84, 84,
+      88.6, 79, 88.6, 66.3, 88.6, 53.7, 88.6, 41, 88.6,
+    ],
+    tail: [81, 84.5, 91.5, 87, 96, 82, 94, 76, 92.5, 72.5, 89, 72.5, 88, 75.5],
+    widths: [6.2, 4],
+    front: false,
+    head: [60, 59.5, 0.84],
+    paws: [52.5, 88.8, 5, 2.9, 67.5, 88.8, 5, 2.9, 1.3],
+    legs: [0, 68, 76],
+    shows: { chest: 0.4, stripes: 0.15 },
+  },
+  rest: {
+    body: [
+      38, 88, 34, 88, 32, 85.5, 32, 81.5, 32, 71.5, 43, 64.5, 60, 64.5, 77, 64.5, 88, 71.5, 88, 81.5, 88, 85.5, 86, 88,
+      82, 88, 67.33, 88, 52.67, 88, 38, 88,
+    ],
+    tail: [86, 84, 85, 85.75, 82.75, 86.875, 80.125, 87.45, 77.5, 88.025, 74.5, 88.05, 72, 87.6],
+    widths: [5, 3],
+    front: true,
+    head: [60, 69, 0.7],
+    paws: [54.5, 87, 3.8, 2.1, 65.5, 87, 3.8, 2.1, 1.2],
+    legs: [0, 68, 76],
+    shows: { stripes: 1 },
+  },
+  settling: {
+    body: ellipseOutline(61.5, 77, 23.5, 10),
+    tail: [85, 80, 90, 79.5, 95.5, 80.5, 97, 84, 98.5, 87.5, 93, 89.2, 88, 88.6],
+    widths: [5.5, 3.4],
+    front: false,
+    head: [52, 66, 0.72],
+    paws: [49.5, 87, 3.7, 2.15, 58.5, 87, 3.7, 2.15, 1.2],
+    legs: [5, 70, 77],
+    shows: { walkBelly: 0.35, walkStripes: 0.35, stripes: 0.2 },
+  },
+  walk: {
+    body: ellipseOutline(63, 72, 21, 11.5),
+    tail: [81, 70, 89, 69, 92, 61, 89, 53, 88, 50, 84, 50, 84, 53],
+    widths: [6, 3.8],
+    front: false,
+    head: [45, 59, 0.74],
+    paws: [46, 86.4, 3.6, 2.2, 54, 86.4, 3.6, 2.2, 1.2],
+    legs: [10, 68, 76],
+    shows: { walkBelly: 1, walkStripes: 1 },
+  },
+};
+// The moves drawn through in-betweens: the poses they pass through, how long
+// they take, and when (as parts of the whole, from-to) each part makes its
+// move: the head, the top of the body and its base (the top leading, down or
+// up), the paws, the tail and the legs; and a little dip (or lift) of the head
+// and shoulders as it settles at the end.
+export const SETTLES = {
+  'sit>rest': {
+    keys: ['sit', 'lowering', 'rest'],
+    ms: 820,
+    head: [0, 0.8],
+    top: [0, 0.75],
+    base: [0.15, 1],
+    paws: [0.1, 1],
+    tail: [0.2, 1],
+    legs: [0, 1],
+    dip: 2,
+  },
+  'rest>sit': {
+    keys: ['rest', 'lowering', 'sit'],
+    ms: 680,
+    head: [0, 0.85],
+    top: [0, 0.8],
+    base: [0.1, 1],
+    paws: [0, 0.8],
+    tail: [0, 0.85],
+    legs: [0, 1],
+    dip: -1.6,
+  },
+  'walk>rest': {
+    keys: ['walk', 'settling', 'rest'],
+    ms: 760,
+    head: [0.05, 0.9],
+    top: [0, 0.9],
+    base: [0, 0.9],
+    paws: [0.1, 0.95],
+    tail: [0.15, 1],
+    legs: [0, 0.8],
+    dip: 1.6,
+  },
+  'rest>walk': {
+    keys: ['rest', 'settling', 'walk'],
+    ms: 440,
+    head: [0, 0.9],
+    top: [0.05, 1],
+    base: [0.05, 1],
+    paws: [0, 0.9],
+    tail: [0, 0.9],
+    legs: [0.1, 1],
+    dip: 0,
+  },
+};
+// Where a part is along a run of poses, u going from 0 to 1 through them.
+function through(values, u) {
+  const last = values.length - 1;
+  const at = Math.min(last - 1, Math.floor(u * last));
+  const t = u * last - at;
+  const [a, b] = [values[at], values[at + 1]];
+  return { value: Array.isArray(a) ? a.map((v, i) => v + (b[i] - v) * t) : a + (b - a) * t, t, at };
+}
+// The parts k of the way through one of those moves.
+function settleParts(plan, k) {
+  const keys = plan.keys.map((name) => OUTLINES[name]);
+  const when = ([from, to]) => smooth(clamp01((k - from) / (to - from)));
+  // Points high on the body move with its top, low ones with its base, as
+  // high and low go in the tallest of its poses.
+  const tall = [keys[0], keys[keys.length - 1]].sort((a, b) => a.body[13] - b.body[13])[0].body;
+  const [top, base] = [when(plan.top), when(plan.base)];
+  const settle = Math.sin(Math.PI * clamp01((k - 0.55) / 0.45));
+  const body = keys[0].body.map((_, index) => {
+    const point = index - (index % 2);
+    const low = clamp01((tall[point + 1] - tall[13]) / (tall[1] - tall[13]));
+    const u = top + (base - top) * low;
+    const value = through(
+      keys.map((key) => key.body[index]),
+      u,
+    ).value;
+    return index % 2 ? value + plan.dip * 0.6 * (1 - low) * settle : value;
+  });
+  const tailAt = through(
+    keys.map((key) => key.tail),
+    when(plan.tail),
+  );
+  const tailWidths = through(
+    keys.map((key) => key.widths),
+    when(plan.tail),
+  ).value;
+  const front = tailAt.t > 0.5 ? keys[tailAt.at + 1].front : keys[tailAt.at].front;
+  const [hx, hy] = through(
+    keys.map((key) => key.head),
+    when(plan.head),
+  ).value;
+  const hs = through(
+    keys.map((key) => key.head),
+    when([Math.min(0.9, plan.head[0] + 0.12), Math.min(1, plan.head[1] + 0.1)]),
+  ).value[2];
+  const overall = smooth(k);
+  const shows = {};
+  for (const name of ['chest', 'stripes', 'walkBelly', 'walkStripes']) {
+    shows[name] = through(
+      keys.map((key) => key.shows[name] ?? 0),
+      overall,
+    ).value;
+  }
+  return {
+    body,
+    tail: tailAt.value,
+    widths: tailWidths,
+    front,
+    head: [hx, hy + plan.dip * settle, hs],
+    paws: through(
+      keys.map((key) => key.paws),
+      when(plan.paws),
+    ).value,
+    legs: through(
+      keys.map((key) => key.legs),
+      when(plan.legs),
+    ).value,
+    shows,
+  };
+}
+// A pose drawn from its parts.
+function OutlineCat({ parts, mood }) {
+  const { body, tail, widths, front, head, paws, legs, shows } = parts;
+  const curve = (points) => {
+    let d = `M${points[0].toFixed(2)} ${points[1].toFixed(2)}`;
+    for (let index = 2; index < points.length; index += 6) {
+      d += `C${points
+        .slice(index, index + 6)
+        .map((value) => value.toFixed(2))
+        .join(' ')}`;
+    }
+    return d;
+  };
+  const tailPath = curve(tail);
+  const tailDrawn = (
+    <>
+      <path d={tailPath} fill="none" stroke={EDGE} strokeWidth={widths[0]} strokeLinecap="round" />
+      <path d={tailPath} fill="none" stroke={FUR} strokeWidth={widths[1]} strokeLinecap="round" />
+    </>
+  );
+  const [length, hindA, hindB] = legs;
+  const leg = (x) =>
+    length > 0.3 && (
+      <g key={x}>
+        <path
+          d={`M${x.toFixed(2)} ${(85 - length).toFixed(2)}V85`}
+          stroke={EDGE}
+          strokeWidth="6.6"
+          strokeLinecap="round"
+        />
+        <path
+          d={`M${x.toFixed(2)} ${(85 - length).toFixed(2)}V85`}
+          stroke={FUR}
+          strokeWidth="4.2"
+          strokeLinecap="round"
+        />
+      </g>
+    );
+  // Its hind paws, tucked away as its legs fold.
+  const tucked = clamp01(length / 10);
+  const paw = (x, y, rx, ry, width, key) => (
+    <ellipse key={key} cx={x} cy={y} rx={rx} ry={ry} fill={BELLY} stroke={EDGE} strokeWidth={width} />
+  );
+  const [hx, hy, hs] = head;
+  // The walk's stripes and belly ride along on its back and underside as the
+  // body sinks and rounds.
+  const back = `translate(${(body[12] - 63).toFixed(2)} ${(body[13] - 60.5).toFixed(2)})`;
+  const under = `translate(${(body[12] - 63).toFixed(2)} ${(body[1] - 80.13).toFixed(2)})`;
+  return (
+    <g>
+      {!front && tailDrawn}
+      {leg(paws[0])}
+      {leg(paws[4])}
+      {leg(hindA)}
+      {leg(hindB)}
+      {tucked > 0.02 && (
+        <g opacity={tucked}>
+          {paw(hindA, 86.4, 3.6 * (0.5 + 0.5 * tucked), 2.2 * (0.5 + 0.5 * tucked), 1.2, 'a')}
+          {paw(hindB, 86.4, 3.6 * (0.5 + 0.5 * tucked), 2.2 * (0.5 + 0.5 * tucked), 1.2, 'b')}
+        </g>
+      )}
+      <path d={`${curve(body)}z`} fill={FUR} stroke={EDGE} strokeWidth="1.6" strokeLinejoin="round" />
+      {shows.walkBelly > 0.01 && (
+        <ellipse cx="61" cy="77.5" rx="12" ry="4" fill={BELLY} opacity={shows.walkBelly} transform={under} />
+      )}
+      {shows.walkStripes > 0.01 && (
+        <path
+          d="M63 61.5l1 4M70 62l.5 4M77 64l-1 3.5"
+          stroke={STRIPE}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          opacity={shows.walkStripes}
+          transform={back}
+        />
+      )}
+      {shows.chest > 0.01 && (
+        <path
+          d="M52 89c-3-4-3-14 8-17 11 3 11 13 8 17z"
+          fill={BELLY}
+          opacity={shows.chest}
+          transform={`translate(60 89) scale(1 ${0.4 + 0.6 * shows.chest}) translate(-60 -89)`}
+        />
+      )}
+      {shows.stripes > 0.01 && (
+        <path
+          d="M37 75l4 2M36 81l4 1M83 75l-4 2M84 81l-4 1"
+          stroke={STRIPE}
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          opacity={shows.stripes}
+        />
+      )}
+      {front && tailDrawn}
+      {paw(paws[0], paws[1], paws[2], paws[3], paws[8], 'left')}
+      {paw(paws[4], paws[5], paws[6], paws[7], paws[8], 'right')}
+      <g transform={`translate(${hx.toFixed(2)} ${hy.toFixed(2)}) scale(${hs.toFixed(3)}) translate(-60 -46)`}>
+        <Head mood={mood} />
+      </g>
+    </g>
+  );
+}
+// One drawing k of the way through one of those moves (for looking them over).
+export function SettleFrame({ move, k, mood = 'content' }) {
+  return <OutlineCat parts={settleParts(SETTLES[move], k)} mood={mood} />;
+}
+// Drawn through its in-betweens, its face changing halfway.
+function Settling({ from, to, fromMood = 'content', toMood = 'content', settled = false }) {
+  const plan = SETTLES[`${from}>${to}`];
+  const [k, setK] = useState(settled ? 1 : 0);
+  useEffect(() => {
+    if (settled) return undefined;
+    const started = performance.now();
+    let frame = requestAnimationFrame(function step(now) {
+      const next = Math.min(1, (now - started) / plan.ms);
+      setK(next);
+      if (next < 1) frame = requestAnimationFrame(step);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [settled, plan]);
+  return <OutlineCat parts={settleParts(plan, k)} mood={k < 0.5 ? fromMood : toMood} />;
+}
+// The in-betweens on their own.
+Object.assign(ROAM_POSES, {
+  lowering: () => <OutlineCat parts={OUTLINES.lowering} mood="content" />,
+  settling: () => <OutlineCat parts={OUTLINES.settling} mood="content" />,
+});
+
+// On the move from one everyday pose to another: through its in-betweens
+// where it has them (see SETTLES), else gliding.
+function Morph(props) {
+  return SETTLES[`${props.from}>${props.to}`] ? <Settling {...props} /> : <Gliding {...props} />;
+}
+
+// Gliding from one everyday pose to another (sitting, lying down as a loaf,
+// curled asleep, peeking over an edge): its head, body, paws and tail glide
+// from where they were to where they will be, the head sinking or rising, the
+// body settling or straightening, its face changing halfway.
+function Gliding({ from, to, fromMood = 'content', toMood = 'content', settled = false }) {
   const [arrived, setArrived] = useState(settled);
   const [halfway, setHalfway] = useState(settled);
   useEffect(() => {

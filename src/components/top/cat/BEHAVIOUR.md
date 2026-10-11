@@ -85,12 +85,13 @@ back to a panel.
 | Wobble (hops on it till it tips, reserve button and all; arches in fright; leaps off) | – | – | 15% | 19% | 19% |
 | Hamster wheel (runs on the ring, up to a turn a second; flung off, lands dizzy) | – | – | 15% | 19% | 19% |
 | Ring swing (hangs from the top of the ring by her front paws and swings; lets go) | – | – | 10% | 15% | 15% |
-| Steal (pushes the card off the nearer edge of the screen and comes back pleased; 6–9 s later a helicopter brings it back) | – | – | 8% | 9% | 9% |
-| Kick (three mule kicks, the card leaning further each time, till it topples off the bottom of the screen; a helicopter brings it back) | – | – | 8% | 8% | 8% |
+| Steal (pushes the card off the nearer edge of the screen and comes back pleased; 6–9 s later a helicopter or a UFO brings it back) | – | – | 8% | 9% | 9% |
+| Kick (three mule kicks, the card leaning further each time, till it topples off the bottom of the screen; a helicopter or a UFO brings it back) | – | – | 8% | 8% | 8% |
 
 Only one card is out at a time (another steal or kick becomes a wobble until it
-is back). Picked up mid-push or mid-kick, the helicopter comes after 2.5 s
-instead.
+is back). Picked up mid-push or mid-kick, the helicopter (or UFO) comes after
+2.5 s instead. Whichever comes is an even chance: a helicopter carrying the card
+on its rope, or a UFO holding it in its beam of light.
 
 ### (iii) Thought bubbles
 
@@ -179,26 +180,76 @@ Then she ignores the pointer for 3 s. Other reactions:
 | Dance | Equal pick (never the same twice running): happy paws, shuffle, twirl, moonwalk |
 | Send home | She leaps back into your name and roaming turns off |
 
-## A pop-up from her panel
+## Pop-up cards
 
-When you click something on the panel she is on (resting, sitting, walking,
-busy with a little doing, asleep, or playing with the pointer) and it opens a
-pop-up card (a GPU's details, a disk, a baker), or keeps one open that hovering
-had opened, she reacts **65%** of the time, once each time it opens. A game
-with the pointer is dropped for it and not taken up again for 8 s. A pop-up that opens
-on hover alone, or from another panel, she ignores, and in quiet mode she
-ignores them all.
+A pop-up card is a GPU's details, a disk, a baker and the like. Her own card
+doesn't count, and nor do menus and tooltips. She notices one when:
 
-| Reaction | Chance | What happens |
-|---|---|---|
-| Read | Equal pick (never the same twice running) | Hops on top and reads it through little round glasses ("hmm") |
-| Peek | ″ | Hops on and peeks over its top edge, ducks, peeks again |
-| Swat | ″ | Hops on and swats at it twice; the card jiggles |
-| Nap | ″ | Hops on, purrs and falls asleep on it |
-| Startle | ″ | Jumps where she is ("!") and stares at it |
+- **Clicked:** you click something on the panel she is on and it opens one, or
+  keeps open one that hovering had opened.
+- **Near:** one opens within 300 px of her (from her middle to the card's
+  nearest edge), by a click or a hover, while it is in view.
+- **Blocked:** one covers 35% or more of her, whether it opened over her or
+  she wandered in under it. Pop-ups are drawn over her, so this hides her.
+  She checks for this every 0.4 s.
 
-If the pop-up is too narrow, or its top would put her under the navigation
-bar, she stays put. When it closes under her, she drops onto the panel below.
+She notices only while resting, sitting, walking, busy with a little doing,
+asleep, or playing with the pointer, and only on a panel's top edge or side
+(not while trapped). She reacts once each time a card opens. A card she is
+blocked by she takes on again whenever she is under it 6 s or more after her
+last pop-up reaction. A game with the pointer is dropped for it and not taken
+up again for 8 s. In quiet mode she leaves them all be.
+
+| What she does | Clicked | Near | Blocked |
+|---|---|---|---|
+| Nothing | 20% | 35% | – |
+| Startle (jumps where she is, "!", and stares at it) | 10% | 10% | – |
+| Scared (runs away; see below) | 10% | 15% | 40% |
+| Goes over and onto it (see below) | 60% | 40% | 60% |
+
+Asleep, "nothing" counts double (she sleeps through more of them). If there is
+nowhere on the card to sit (it is too narrow, or its top is under the
+navigation bar or at the bottom of the window), "goes over" becomes a startle,
+or, when blocked, running away.
+
+**Going over.** She picks a spot along the card's top at random, and one of
+her ways there that fits, at random (never the same way twice running):
+
+| Way | When it fits |
+|---|---|
+| Leap | Always (from a panel's side, the leap or a climb, balloon or umbrella) |
+| Somersault (a crouch and a wiggle, a high flip head over heels, landing with both paws up, "✦") | From a panel's top |
+| Pounce (stalks it, rump waggling, then a long, low pounce and a skid to a stop) | From a panel's top, not when blocked |
+| Sneak (creeps along her panel, a paw at a time, up to 200 px, and hops on quietly) | From a panel's top, not when blocked, with 60 px or more to creep |
+| Dash (runs along her panel, up to 420 px, takes a flying leap and skids to a stop) | As for the sneak |
+| Climb (leaps to the card's nearer side, clings on, climbs up it, hops up over the top) | When that side has room (the card 120 px tall or more, clear of the window's edge) |
+| Balloon (floats up, then across, holding a balloon; lets go over her spot; the balloon floats off) | When the card's top is 40 px or more above her |
+| Umbrella (drifts down under an umbrella, swaying) | When the card's top is 60 px or more below her |
+
+Her leaps arc high enough to stay above the card, so she never passes behind
+it, and a sneak or a dash stops short of the card instead of running in under
+it. Once on top she does one of these, at random (never the same twice
+running):
+
+| On the card | What happens |
+|---|---|
+| Read | Reads it through little round glasses ("hmm") |
+| Peek | Peeks over its top edge, ducks, peeks again |
+| Swat | Swats at it twice, and the card jiggles |
+| Nap | Purrs and falls asleep on it |
+| Knead | Kneads it ("makes biscuits"), then lies down |
+| Sniff | Sniffs, walks along it, sniffs again, "?" |
+
+If the card closes before she gets there, or while she is on it, she drops onto
+the panel below.
+
+**Scared.** Puffed up like a Halloween cat, she hisses at it ("hsss!", with a
+jump). When blocked she bolts first and hisses once clear. Then she flees along
+her panel, ears pinned back, until she is clear of the card and at least 160 px
+from where she was. If her panel ends first, she runs to its end and leaps to
+the nearest panel in view that is clear of the card and further from it. Then
+she spends a while cowering, or hiding with just her eyes over her edge (an
+even chance), and peeks out before settling.
 
 ## Trapped in a card
 
@@ -227,11 +278,10 @@ out.
 
 A switch on her card (remembered in this browser). While it is on she moves
 and shakes nothing of the page's: no wobbling, stealing or kicking a GPU card,
-no spinning, running on or swinging from its ring (a visit that would becomes
-one of the calm ones: the warm nap, peekaboo or adding oil), no reacting to a
-pop-up card opened from her panel, no shaking her
-panel when she knocks, no jiggling things while trapped, no humming shake when
-an idle card runs. Everything else is as usual, and the card-moving visits are
+no spinning, running on or swinging from its ring (a visit that would do one of
+these becomes one of the calm ones: the warm nap, peekaboo or adding oil), no
+reacting to pop-up cards, no shaking her panel when she knocks, no jiggling
+things while trapped, no humming shake when an idle card runs. Everything else is as usual, and the card-moving visits are
 greyed out in her card's list.
 
 ## Her card
@@ -255,8 +305,13 @@ in (never the same twice running):
 
 | Left off the… | Ways back in |
 |---|---|
-| Bottom of the screen | Leaping in; up a ladder that slides up to the edge; floating up holding a balloon; bounced off a trampoline in a somersault; lowered by the helicopter; flying in like a superhero (cape streaming); bouncing up on a pogo stick; floating up inside a big bubble that pops |
-| Top of the screen | Leaping in; down under a parachute, swaying; abseiling down a rope; lowered by the helicopter; flying in like a superhero; drifting down under an umbrella |
+| Bottom of the screen | Leaping in; up a ladder that slides up to the edge; floating up holding a balloon; bounced off a trampoline in a somersault; lowered by the helicopter or a UFO; flying in like a superhero (cape streaming); bouncing up on a pogo stick; floating up inside a big bubble that pops |
+| Top of the screen | Leaping in; down under a parachute, swaying; abseiling down a rope; lowered by the helicopter or a UFO; flying in like a superhero; drifting down under an umbrella |
+
+The helicopter-or-UFO way in is an even chance between the two. The helicopter
+flies in with her hanging from its rope and lowers her onto the edge. The UFO
+glides in with her floating in its beam of light, beams her down, switches the
+beam off and zips away.
 
 Dropped over nothing (no panel anywhere below where she is let go), she falls
 off the bottom of the screen, tumbling (flailing if she was scared), and comes

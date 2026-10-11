@@ -193,7 +193,8 @@ function CatDetails({ meal, roaming, onRoam, quiet, onQuiet }) {
   const next = STAGES.find((item) => item.from > hours);
   const today = meal?.today ?? 0;
   return (
-    <div>
+    // (data-cat-card: the roaming cat leaves its own card be.)
+    <div data-cat-card>
       <div className="flex justify-center rounded-xl px-4 pb-2 pt-3" style={{ backgroundColor: '#F7F5F2' }}>
         <CatScene mood={mood} stage={stage} today={today} away={roaming} className="h-auto w-[250px]" />
       </div>

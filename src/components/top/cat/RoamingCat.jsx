@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MORPH_MS, ROAM_POSES, moodOf } from './BakeryCat';
+import { MORPH_MS, ROAM_POSES, SETTLES, moodOf } from './BakeryCat';
 import { CatThing, WISHES, ToyIcon } from './CatThings';
 import { RING_SERIES } from '../shared/DetailBoxes';
 
@@ -216,8 +216,8 @@ const MORPH_FACE = { sleep: 'asleep', peek: 'content', emerge: 'content', lurk: 
 const SWIPE = new Set(['sit', 'reach']);
 // And the moves of a dance, which change crisply on the beat.
 const DANCE = new Set(['cheer', 'wave', 'walk', 'sit']);
-// And the strides of a gallop.
-const GALLOP = new Set(['run', 'run2', 'skid']);
+// And the strides of a gallop, a flight or a creep.
+const GALLOP = new Set(['run', 'run2', 'skid', 'flee', 'flee2', 'creep', 'creep2']);
 
 const random = (from, to) => from + Math.random() * (to - from);
 const page = (rect) => ({
@@ -371,6 +371,46 @@ const CHEERS = ['加油!', '頑張れ!', 'Semangat!', '화이팅!', 'Cố lên!'
 // The GPU visits that move or shake a tile (or its ring), left out in quiet mode.
 const MOVES_TILES = new Set(['wobble', 'steal', 'kick', 'spin', 'wheel', 'swing']);
 
+// Pop-up cards (a GPU's details, a disk, a baker; not its own card): how near
+// one must open to be noticed (from the cat's middle to the card's nearest
+// edge), how much of the cat one must cover to have it blocked, how long it
+// leaves before taking on a card it is under again, and what it does about
+// one (see BEHAVIOUR.md): opened from its panel by a click, opened near it, or
+// over it (then it never lets it be).
+const POPUP_NEAR = 300;
+const POPUP_BLOCKS = 0.35;
+const POPUP_REST_MS = 6000;
+const POPUP_OUTCOMES = {
+  clicked: { nothing: 0.2, scared: 0.1, startle: 0.1, over: 0.6 },
+  near: { nothing: 0.35, scared: 0.15, startle: 0.1, over: 0.4 },
+  blocked: { scared: 0.4, over: 0.6 },
+};
+// What it may be up to for it to notice one.
+const POPUP_MODES = new Set(['rest', 'sit', 'walk', 'act', 'sleep', 'tease', 'chase']);
+
+// The pop-up card in a wrapper Radix put in the page: a dialog (not a menu or
+// a tooltip), and not the cat's own card.
+function popupCard(wrapper) {
+  const card = wrapper?.querySelector?.('[role="dialog"]');
+  return card && !card.querySelector('[data-cat-card]') ? card : null;
+}
+function openPopups() {
+  return [...document.querySelectorAll('[data-radix-popper-content-wrapper]')].map(popupCard).filter(Boolean);
+}
+// How much of the cat, standing at x, y, a box (in the page) covers, 0 to 1.
+function coverOf(edge, x, y) {
+  const wide = Math.min(x + WIDTH / 2, edge.right) - Math.max(x - WIDTH / 2, edge.left);
+  const high = Math.min(y, edge.bottom) - Math.max(y - HEIGHT, edge.top);
+  return wide > 0 && high > 0 ? (wide * high) / (WIDTH * HEIGHT) : 0;
+}
+// How far a box (in the page) is from a point.
+function gapTo(edge, x, y) {
+  return Math.hypot(Math.max(edge.left - x, 0, x - edge.right), Math.max(edge.top - y, 0, y - edge.bottom));
+}
+const easeInOut = (k) => (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
+// Two poses taken in turn, every so many milliseconds: the strides of a run.
+const strides = (one, two, every) => (time) => (Math.floor(time / every) % 2 ? one : two);
+
 // What a click on the cat offers.
 const OPTIONS = [
   ['treat', 'Give a treat'],
@@ -440,10 +480,19 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     // where a cat would make one.
     let shown = { pose: '', facing: 0, mood: '', side: '' };
     let between = null;
-    const show = (pose, mood = 'content') => {
+    const show = (wanted, mood = 'content') => {
       const time = performance.now();
       if (between && time < between.until) return;
       between = null;
+      // A move through in-betweens just over: it is in the pose it was going
+      // to (the move's last drawing is that very pose's, so no fading).
+      if (shown.settledInto) {
+        const into = shown.settledInto;
+        setLook((current) => ({ ...current, pose: into, morph: null, previous: null }));
+        shown = { ...shown, pose: into, settledInto: null };
+      }
+      // From a walk it lies down before sinking to peek over its edge.
+      const pose = wanted === 'peek' && shown.pose === 'walk' ? 'rest' : wanted;
       const side =
         state.mode === 'leap' || state.mode === 'held' ? 'top' : state.mode === 'fall' ? state.targetSide : state.side;
       // On a side it clings on upright, drawn out to the right of the edge and
@@ -451,11 +500,13 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       const flip = side === 'left' ? -1 : side === 'right' ? 1 : -state.facing;
       if (pose === shown.pose && flip === shown.flip && mood === shown.mood && side === shown.side) return;
       // Between two everyday poses, facing the same way: it moves from one to
-      // the other, then settles into the new pose.
+      // the other, then settles into the new pose. Through drawn in-betweens
+      // where it has them (lying down, sitting or getting up), which start and
+      // end on the poses' own drawings, so without fading in or out.
+      const settle = SETTLES[`${shown.pose}>${pose}`];
       if (
         pose !== shown.pose &&
-        MORPHS.has(pose) &&
-        MORPHS.has(shown.pose) &&
+        (settle || (MORPHS.has(pose) && MORPHS.has(shown.pose))) &&
         flip === shown.flip &&
         side === shown.side &&
         time - (shown.since ?? 0) > 300 &&
@@ -467,20 +518,20 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           fromMood: MORPH_FACE[shown.pose] ?? shown.mood,
           toMood: MORPH_FACE[pose] ?? mood,
         };
-        between = { until: time + MORPH_MS };
+        between = { until: time + (settle ? settle.ms : MORPH_MS) };
         setLook((current) => ({
           pose: 'morph',
           morph,
           flip,
           mood,
           side,
-          previous: current.pose,
+          previous: settle ? null : current.pose,
           previousMorph: current.morph,
           previousFlip: current.flip,
           previousMood: current.mood,
-          change: current.change + 1,
+          change: current.change + (settle ? 0 : 1),
         }));
-        shown = { pose: 'morph', flip, mood, side, since: time };
+        shown = { pose: 'morph', flip, mood, side, since: time, settledInto: settle ? pose : null };
         return;
       }
       const step = shown.pose && pose !== shown.pose && (BETWEEN[`${shown.pose}>${pose}`] ?? BETWEEN[`${shown.pose}>`]);
@@ -535,7 +586,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
             ? { amp: 10, freq: 2.2, decay: 3, from: state.started }
             : state.mode === 'trip'
               ? { amp: 12, freq: 5, decay: 0, from: state.until - 520 }
-              : state.mode === 'script' || state.mode === 'enter'
+              : state.mode === 'script' || state.mode === 'enter' || state.mode === 'go'
                 ? state.rock
                 : null;
         const turn = (box, origin, angle) => {
@@ -543,7 +594,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           tilt.current.style.transformOrigin = origin;
           tilt.current.style.transform = angle ? `rotate(${angle}deg)` : '';
         };
-        if (['script', 'enter', 'plummet'].includes(state.mode) && state.spin != null) {
+        if (['script', 'enter', 'plummet', 'go'].includes(state.mode) && state.spin != null) {
           // Turning head over heels (a backflip), round its middle.
           turn('fill-box', 'center', state.spin);
         } else if (state.mode === 'held') {
@@ -559,7 +610,8 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         } else {
           tilt.current.style.transformBox = 'fill-box';
           tilt.current.style.transformOrigin = 'center';
-          tilt.current.style.transform = state.mode === 'leap' ? `rotate(${(state.tilt ?? 0) * nose}deg)` : '';
+          tilt.current.style.transform =
+            state.mode === 'leap' || state.mode === 'go' ? `rotate(${(state.tilt ?? 0) * nose}deg)` : '';
         }
       }
     };
@@ -1404,7 +1456,10 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       });
       state.facing = -dir;
     };
-    // A stolen tile, to be brought back by helicopter in a while.
+    // What comes to bring a tile (or the cat) back: a helicopter or a UFO,
+    // half and half.
+    const craft = () => state.forceCraft ?? (Math.random() < 0.5 ? 'heli' : 'ufo');
+    // A stolen tile, to be brought back by helicopter (or UFO) in a while.
     const stolenAway = (steal, heliIn) => {
       state.stolen = {
         tile: steal.tile,
@@ -1412,6 +1467,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         dx: steal.dx,
         dir: steal.dir,
         heliAt: performance.now() + heliIn,
+        craft: craft(),
       };
       state.steal = null;
     };
@@ -1898,7 +1954,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       const side = to.x < window.scrollX + window.innerWidth / 2 ? -1 : 1;
       Object.assign(state, {
         mode: 'enter',
-        enter: { way, perch, to, started: time, screenTop, screenBottom, side },
+        enter: { way, perch, to, started: time, screenTop, screenBottom, side, craft: way === 'heli' ? craft() : null },
         x: to.x,
         y: fromAbove ? screenTop : screenBottom + 60,
         spin: null,
@@ -1921,12 +1977,14 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       const edge = page(perch.getBoundingClientRect());
       state.along = state.x - edge.left;
     };
-    // A pop-up card opened from the panel it is resting on (its owner clicked
-    // something there): now and then it reacts. It hops on and reads it through
-    // little glasses, peeks over its top, jumps in surprise, hops on and swats
-    // at it (it jiggles), or hops on and naps. Not in quiet mode. When the pop-up
-    // closes under it, it drops back down onto a panel.
-    const POPUP_CHANCE = 0.65;
+    // Pop-up cards. When one opens from its panel (its owner clicked something
+    // there) or near it, or comes down over it (or it finds itself under one),
+    // it may let it be, jump and stare at it, take fright and run off, or go
+    // over and up onto it (by one of its ways, to a spot along its top picked
+    // at random) and do something there: read it through little glasses, peek
+    // over its top, swat at it (it jiggles), nap on it, knead it, or sniff
+    // along it. One over it, it never lets be. Not in quiet mode. When the
+    // pop-up closes under it, it drops back down onto a panel.
     const popupReactions = {
       read: () => [
         { pose: 'read', ms: 3600, start: () => say('hmm') },
@@ -1957,56 +2015,464 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         { pose: 'rest', mood: 'purring', ms: 1500, start: () => say('prr') },
         { pose: 'sleep', ms: 6000, frame: () => Math.random() < 0.004 && say('z') },
       ],
+      knead: () => [
+        { pose: 'knead', mood: 'purring', ms: 3200, start: () => say('prr') },
+        { pose: 'rest', mood: 'purring', ms: 1400 },
+      ],
+      sniff: () => {
+        const edge = edgeNow();
+        return [
+          { pose: 'sniff', ms: 1200, start: () => say('sniff') },
+          { to: random(edge.left + MARGIN, edge.right - MARGIN) },
+          { pose: 'sniff', ms: 1000, start: () => say('sniff') },
+          { pose: 'sit', ms: 900, start: () => say('?') },
+        ];
+      },
     };
-    const onPopup = (card) => {
-      const time = performance.now();
+    const startled = () => [
+      {
+        pose: 'startle',
+        ms: 520,
+        start: () => say('!'),
+        frame: (step, now, k) => (state.lift = 26 * Math.sin(Math.PI * k)),
+      },
+      { pose: 'sit', mood: 'hungry', ms: 1200, start: () => say('?') },
+    ];
+
+    // Going over to a pop-up card ('go'): a run of phases, each placing it (x,
+    // y in the page) as k goes from 0 to 1 from where the last one left it.
+    // Its spot on the card is kept as a distance from the card's left (or, on
+    // its side, down from its top), so it follows the card.
+    const goSpot = () => {
+      const { card, along } = state.go;
+      const edge = page(card.getBoundingClientRect());
+      return { x: Math.min(edge.right - MARGIN, Math.max(edge.left + MARGIN, edge.left + along)), y: edge.top + 1 };
+    };
+    const goSide = () => {
+      const { card, side, down } = state.go;
+      const edge = page(card.getBoundingClientRect());
+      return { x: side === 'left' ? edge.left - 1 : edge.right + 1, y: edge.top + down };
+    };
+    // How high an arc onto the card's top must rise to keep above the card
+    // all the way (the card is drawn over the cat, so it would vanish behind
+    // it), from a little after it sets off.
+    const clearance = (from, target) => {
+      const edge = page(state.go.card.getBoundingClientRect());
+      let need = 0;
+      for (let k = 0.2; k < 0.98; k += 0.02) {
+        const eased = 0.5 * k + 0.25 * (1 - Math.cos(Math.PI * k));
+        const x = from.x + (target.x - from.x) * eased;
+        if (x < edge.left - WIDTH / 2 + 12 || x > edge.right + WIDTH / 2 - 12) continue;
+        const y = from.y + (target.y - from.y) * eased;
+        need = Math.max(need, (y - edge.top + 2) / (4 * k * (1 - k)));
+      }
+      return Math.min(260, need);
+    };
+    // An arc through the air to where to() says, nose up as it rises and down
+    // as it comes in to land, or turning head over heels forwards (spin).
+    const goArc = ({ to = goSpot, ms = LEAP_MS, height = null, pose = 'leap', spin = false, begin } = {}) => ({
+      pose,
+      ms,
+      start: (phase) => {
+        begin?.();
+        state.side = 'top';
+        const target = to();
+        state.facing = target.x < state.x ? -1 : 1;
+        phase.height = height ?? 30 + Math.abs(target.y - state.y) * 0.25;
+        if (to === goSpot) phase.height = Math.max(phase.height, clearance(phase.from, target));
+      },
+      frame: (phase, k) => {
+        const target = to();
+        const eased = 0.5 * k + 0.25 * (1 - Math.cos(Math.PI * k));
+        const pace = 0.5 + 0.25 * Math.PI * Math.sin(Math.PI * k);
+        const dx = target.x - phase.from.x;
+        state.x = phase.from.x + dx * eased;
+        state.y = phase.from.y + (target.y - phase.from.y) * eased - phase.height * 4 * k * (1 - k);
+        if (spin) state.spin = state.facing * 360 * easeInOut(k);
+        else {
+          const rise = phase.height * 4 * (1 - 2 * k) - (target.y - phase.from.y) * pace;
+          state.tilt = Math.max(-18, Math.min(18, (0.6 * Math.atan2(rise, Math.abs(dx * pace) + 60) * 180) / Math.PI));
+        }
+      },
+    });
+    // A pose held a while where it is (rocking, if it likes).
+    const goPause = (pose, ms, extra = {}) => ({ pose, ms, ...extra });
+    // Along the top of its own panel towards x (kept to the panel, and going
+    // no more than most), at a pace.
+    const goTrot = (x, speed, pose, most) => ({
+      pose,
+      start: (phase) => {
+        const edge = page(state.go.from.getBoundingClientRect());
+        const to = Math.min(edge.right - MARGIN, Math.max(edge.left + MARGIN, x()));
+        phase.to = Math.abs(to - state.x) > most ? state.x + Math.sign(to - state.x) * most : to;
+        phase.ms = (Math.abs(phase.to - state.x) / speed) * 1000;
+        if (phase.to !== state.x) state.facing = phase.to < state.x ? -1 : 1;
+      },
+      frame: (phase, k) => {
+        state.x = phase.from.x + (phase.to - phase.from.x) * k;
+        state.y = page(state.go.from.getBoundingClientRect()).top + 1;
+      },
+    });
+    // Skidding to a stop along the card's top, just landed.
+    const goSkid = () => ({
+      pose: 'skid',
+      ms: 400,
+      start: (phase) => (phase.dir = state.facing),
+      frame: (phase, k) => {
+        const edge = page(state.go.card.getBoundingClientRect());
+        const x = phase.from.x + phase.dir * 32 * (1 - (1 - k) ** 2);
+        state.x = Math.min(edge.right - MARGIN, Math.max(edge.left + MARGIN, x));
+        state.y = edge.top + 1;
+      },
+    });
+    // Where on its own panel it sets off from: as near the spot as its panel
+    // goes, short of it by a run-up, and not from under the card (from just
+    // clear of its near side instead).
+    const takeoff = (short) => () => {
+      const spot = goSpot();
+      const dir = Math.sign(spot.x - state.x) || 1;
+      const edge = page(state.go.card.getBoundingClientRect());
+      const x = spot.x - dir * short;
+      if (coverOf(edge, x, page(state.go.from.getBoundingClientRect()).top) < 0.1) return x;
+      return dir > 0 ? edge.left - WIDTH / 2 - 10 : edge.right + WIDTH / 2 + 10;
+    };
+    // Its ways over (each only where it fits; see goWaysFor).
+    const goWays = {
+      // A plain leap.
+      leap: () => [goPause(onSide() ? 'cling' : 'crouch', SPRING_MS), goArc()],
+      // Stalking it, rump waggling, then a long, low pounce and a skid to a stop.
+      pounce: () => [
+        goPause('stalk', 1000, {
+          rock: { amp: 3, freq: 5.5, decay: 0 },
+          start: () => (state.facing = goSpot().x < state.x ? -1 : 1),
+        }),
+        goArc({ ms: 560, height: 14 }),
+        goSkid(),
+      ],
+      // Creeping up along its panel, a paw at a time, and a quiet hop on.
+      sneak: () => [
+        goTrot(takeoff(70), STROLL * 1.3, strides('creep', 'creep2', 260), 200),
+        goPause('crouch', 260),
+        goArc({ ms: 560, height: 16 }),
+      ],
+      // A dash along its panel and a flying leap, skidding to a stop on it.
+      dash: () => [
+        goTrot(takeoff(110), CHASE * 2.2, strides('run', 'run2', 110), 420),
+        goArc({ ms: 600, height: 26 }),
+        goSkid(),
+      ],
+      // A somersault onto it, landed with both paws up.
+      flip: () => [
+        goPause('crouch', 420, { rock: { amp: 3.5, freq: 5.5, decay: 0 } }),
+        goArc({ ms: 820, height: 70, pose: 'tuck', spin: true }),
+        goPause('cheer', 800, { start: () => ((state.spin = null), say('✦')) }),
+      ],
+      // A leap to its side, clinging on, a climb up it, and a hop up over its top.
+      climb: () => [
+        goPause(onSide() ? 'cling' : 'crouch', SPRING_MS),
+        goArc({ to: goSide }),
+        goPause('cling', 300, { start: () => (state.side = state.go.side) }),
+        {
+          pose: 'climb',
+          start: (phase) => {
+            phase.down = state.go.down;
+            phase.ms = Math.max(500, ((phase.down - 40) / 70) * 1000);
+          },
+          frame: (phase, k) => {
+            state.go.down = phase.down + (40 - phase.down) * k;
+            const spot = goSide();
+            state.x = spot.x;
+            state.y = spot.y;
+          },
+        },
+        goArc({ ms: 440, height: 26 }),
+      ],
+      // Up and across holding a balloon, and, over its spot, letting go to drop
+      // onto it; the balloon floats off.
+      balloon: () => [
+        goPause(onSide() ? 'cling' : 'sit', 400, { mood: 'purring', start: () => say('!') }),
+        {
+          pose: 'hang',
+          mood: 'purring',
+          start: (phase) => {
+            const spot = goSpot();
+            state.side = 'top';
+            state.facing = spot.x < state.x ? -1 : 1;
+            phase.ms = Math.min(3000, Math.max(1600, Math.hypot(spot.x - state.x, spot.y - state.y) * 7));
+          },
+          frame: (phase, k, time) => {
+            // Up first to over the card's top, then across to over its spot.
+            const spot = goSpot();
+            const high = Math.min(phase.from.y, spot.y - 56);
+            const up = easeInOut(Math.min(1, k / 0.5));
+            const across = easeInOut(Math.max(0, (k - 0.3) / 0.7));
+            state.x =
+              phase.from.x + (spot.x - phase.from.x) * across + Math.sin(time / 400) * 6 * Math.sin(Math.PI * k);
+            state.y = phase.from.y + (high - phase.from.y) * up + (spot.y - 56 - high) * across;
+            putThing({ kind: 'balloon', x: state.x, y: state.y });
+          },
+        },
+        {
+          pose: 'leap',
+          ms: 420,
+          frame: (phase, k) => {
+            const spot = goSpot();
+            state.x = spot.x;
+            state.y = phase.from.y + (spot.y - phase.from.y) * k * k;
+            putThing({ kind: 'balloon', x: spot.x, y: phase.from.y - 170 * k, opacity: 1 - k });
+          },
+        },
+      ],
+      // Opening an umbrella and drifting down onto it, swaying.
+      umbrella: () => [
+        goPause(onSide() ? 'cling' : 'crouch', SPRING_MS),
+        {
+          pose: 'brolly',
+          start: (phase, time) => {
+            const spot = goSpot();
+            state.side = 'top';
+            state.facing = spot.x < state.x ? -1 : 1;
+            state.rock = { amp: 7, freq: 0.8, decay: 0, from: time };
+            phase.ms = Math.min(3000, Math.max(1600, Math.hypot(spot.x - state.x, spot.y - state.y) * 6));
+          },
+          frame: (phase, k, time) => {
+            const spot = goSpot();
+            const eased = easeInOut(k);
+            state.x =
+              phase.from.x + (spot.x - phase.from.x) * eased + Math.sin(time / 520) * 12 * Math.sin(Math.PI * k);
+            // A little hop up off its edge first.
+            const hop = k < 0.4 ? 26 * Math.sin(Math.PI * k * 2.5) : 0;
+            state.y = phase.from.y + (spot.y - phase.from.y) * eased - hop;
+          },
+        },
+        goPause('sit', 500, { mood: 'purring' }),
+      ],
+    };
+    // The ways over that fit: a leap always; from a panel's top, a somersault,
+    // a pounce and (with a run along its panel to make) a creep or a dash, the
+    // last three not out from under the card; a climb when the card's near
+    // side has room; a balloon up to a card above it, an umbrella down to one
+    // well below.
+    const goWaysFor = (card, spotX, blocked) => {
+      const edge = page(card.getBoundingClientRect());
+      const ways = onSide() ? ['leap'] : ['leap', 'flip'];
+      const panel = state.perch && !onSide() ? page(state.perch.getBoundingClientRect()) : null;
+      if (panel && !blocked && panel.right - panel.left > 2 * MARGIN + 40) {
+        ways.push('pounce');
+        const off = Math.min(
+          panel.right - MARGIN,
+          Math.max(panel.left + MARGIN, spotX - Math.sign(spotX - state.x) * 70),
+        );
+        if (Math.abs(off - state.x) > 60) ways.push('sneak', 'dash');
+      }
+      if (sideFits(card, state.x < (edge.left + edge.right) / 2 ? 'left' : 'right')) ways.push('climb');
+      if (edge.top < state.y - 40) ways.push('balloon');
+      if (edge.top > state.y + 60) ways.push('umbrella');
+      return ways;
+    };
+    const goOver = (card, blocked) => {
+      const rect = card.getBoundingClientRect();
+      // Nowhere on it to sit: too narrow, or its top under the navigation bar
+      // or down at the bottom of the window.
+      if (rect.width < 2 * MARGIN + 20 || rect.top < topClear() || rect.top > window.innerHeight - 30) return false;
+      const edge = page(rect);
+      const along = random(MARGIN, edge.right - edge.left - MARGIN);
+      const reactions = Object.keys(popupReactions).filter((name) => name !== state.lastPopup);
+      const reaction = state.forcePopup?.reaction ?? reactions[Math.floor(Math.random() * reactions.length)];
+      state.lastPopup = reaction;
+      const ways = goWaysFor(card, edge.left + along, blocked);
+      const fresh = ways.filter((name) => name !== state.lastGo);
+      const way =
+        state.forcePopup?.way ??
+        (fresh.length ? fresh : ways)[Math.floor(Math.random() * (fresh.length || ways.length))];
+      state.lastGo = way;
+      closeMenu();
+      releaseTile();
+      state.resume = { steps: () => popupReactions[reaction](card) };
+      state.go = {
+        card,
+        way,
+        along,
+        side: state.x < (edge.left + edge.right) / 2 ? 'left' : 'right',
+        // For a climb, how far down its side it lands.
+        down: Math.min(edge.bottom - edge.top - 30, random(70, 130)),
+        from: state.perch,
+        phases: goWays[way](),
+        index: -1,
+      };
+      Object.assign(state, { mode: 'go', spin: null, rock: null, tilt: 0, lift: 0 });
+      return true;
+    };
+    // There: onto the card's top, and on with what it came to do.
+    const landOn = (card, time) => {
+      putThing(null);
+      const edge = page(card.getBoundingClientRect());
+      Object.assign(state, {
+        go: null,
+        spin: null,
+        rock: null,
+        tilt: 0,
+        perch: card,
+        side: 'top',
+        mode: 'land',
+        until: time + 60,
+      });
+      state.along = state.x - edge.left;
+    };
+    // Its pop-up card gone from under it, or gone before it got there: down it
+    // drops onto the panel below, else the first in view.
+    const dropDown = () => {
+      state.perch = null;
+      say('!');
+      const perches = visiblePerches();
+      const below = perches
+        .map((element) => ({ element, edge: page(element.getBoundingClientRect()) }))
+        .filter(({ edge }) => edge.top > state.y - 20)
+        .sort((a, b) => a.edge.top - b.edge.top)[0]?.element;
+      const to = below ?? perches[0];
+      if (to) leapTo(to, state.x, DROP_MS);
+      else state.mode = 'idle';
+    };
+
+    // Scared of a pop-up card: puffed up and hissing at it (unless it came
+    // down over it, when it bolts first and hisses once clear), then off along
+    // its panel away from it as fast as it can go, till well clear of it; or,
+    // if its panel ends first, to the end and over to a panel well away from
+    // it. There, a while cowering or hiding with just its eyes over its edge,
+    // and a peek, before it settles.
+    const fleeing = strides('flee', 'flee2', 100);
+    const faceCard = (card) => {
+      if (!card.isConnected) return;
+      const edge = page(card.getBoundingClientRect());
+      state.facing = (edge.left + edge.right) / 2 < state.x ? -1 : 1;
+    };
+    const hissAt = (card) => ({
+      pose: 'hiss',
+      ms: 1100,
+      start: () => (faceCard(card), say('hsss!')),
+      frame: (step, now, k) => (state.lift = 22 * Math.sin(Math.PI * Math.min(1, k * 2.5))),
+    });
+    const afterFright = (card, hissed) => [
+      ...(hissed ? [] : [hissAt(card)]),
+      Math.random() < 0.5
+        ? { pose: 'cower', ms: 2000, start: () => faceCard(card) }
+        : { pose: 'lurk', ms: 2200, start: () => faceCard(card) },
+      { pose: 'peek', ms: 1400, start: () => say('?') },
+    ];
+    const runFrom = (card, blocked, time) => {
+      const edge = page(card.getBoundingClientRect());
+      const middle = (edge.left + edge.right) / 2;
+      // A panel to bolt to: in view, its far end from the card clear of it and
+      // further from it than the cat is now; the nearest such.
+      const refuge = () => {
+        const here = gapTo(edge, state.x, state.y - HEIGHT / 2);
+        return visiblePerches()
+          .filter((element) => element !== state.perch)
+          .map((element) => {
+            const panel = page(element.getBoundingClientRect());
+            const x = middle < (panel.left + panel.right) / 2 ? panel.right - MARGIN : panel.left + MARGIN;
+            return {
+              element,
+              x,
+              away: gapTo(edge, x, panel.top - HEIGHT / 2),
+              cover: coverOf(edge, x, panel.top),
+              distance: Math.hypot(x - state.x, panel.top - state.y),
+            };
+          })
+          .filter(({ away, cover, distance }) => cover < 0.05 && away > Math.max(here, 120) && distance < 800)
+          .sort((a, b) => a.distance - b.distance)[0];
+      };
+      const bolt = (to, hissed) => ({
+        pose: 'crouch',
+        ms: 120,
+        start: () => {
+          state.resume = { steps: () => afterFright(card, hissed) };
+          leapTo(to.element, to.x);
+        },
+      });
+      const panel = state.perch && !onSide() ? edgeNow() : null;
+      if (!panel || panel.right - panel.left < 2 * MARGIN + 40) {
+        const to = refuge();
+        if (!to) return false;
+        if (onSide()) {
+          state.resume = { steps: () => afterFright(card, false) };
+          leapTo(to.element, to.x);
+        } else play([bolt(to, false)], time);
+        return true;
+      }
+      const [low, high] = [panel.left + MARGIN, panel.right - MARGIN];
+      const away = state.x < middle ? -1 : 1;
+      // Clear of the card that way, and at least a good dash.
+      const clear = (dir) =>
+        dir < 0
+          ? Math.min(edge.left - WIDTH / 2 - 50, state.x - 160)
+          : Math.max(edge.right + WIDTH / 2 + 50, state.x + 160);
+      const dir = [away, -away].find((way) => clear(way) >= low && clear(way) <= high);
+      const steps = blocked ? [] : [hissAt(card)];
+      if (dir) steps.push({ pose: fleeing, to: clear(dir), speed: CHASE * 2.4 }, ...afterFright(card, !blocked));
+      else {
+        const to = refuge();
+        steps.push({ pose: fleeing, to: away < 0 ? low : high, speed: CHASE * 2.4 });
+        if (to) steps.push(bolt(to, !blocked));
+        else steps.push(...afterFright(card, !blocked));
+      }
+      play(steps, time);
+      return true;
+    };
+
+    // A pop-up card opened, kept open by a click, or found over it: whether it
+    // notices, and what it does about it.
+    const onPopup = (card, time = performance.now()) => {
+      if (quietRef.current || state.inside || !card?.isConnected || !POPUP_MODES.has(state.mode)) return;
+      const rect = card.getBoundingClientRect();
+      const edge = page(rect);
       const press = state.lastPress;
-      const fromItsPanel = press && time - press.at < 1500 && state.perch?.contains?.(press.target);
-      if (!fromItsPanel || !['rest', 'sit', 'walk', 'act', 'sleep', 'tease', 'chase'].includes(state.mode) || onSide())
-        return;
-      // Once for each time a pop-up opens.
+      const kind =
+        coverOf(edge, state.x, state.y) >= POPUP_BLOCKS
+          ? 'blocked'
+          : press && time - press.at < 1500 && state.perch?.contains?.(press.target)
+            ? 'clicked'
+            : rect.bottom > 0 &&
+                rect.top < window.innerHeight &&
+                gapTo(edge, state.x, state.y - HEIGHT / 2) < POPUP_NEAR
+              ? 'near'
+              : state.forcePopup
+                ? 'clicked'
+                : null;
+      if (!kind) return;
       const wrapper = card.closest('[data-radix-popper-content-wrapper]');
-      if (state.popupSeen === wrapper) return;
+      // Once each time one opens; one over it, whenever it finds itself under
+      // it again a while later.
+      if (kind === 'blocked' ? time - (state.popupAt ?? -Infinity) < POPUP_REST_MS : state.popupSeen === wrapper)
+        return;
       state.popupSeen = wrapper;
-      if (quietRef.current || (!state.forcePopup && Math.random() > POPUP_CHANCE)) return;
-      const ways = [...Object.keys(popupReactions), 'startle'].filter((way) => way !== state.lastPopup);
-      const way = state.forcePopup ?? ways[Math.floor(Math.random() * ways.length)];
-      state.lastPopup = way;
-      // Any game with the pointer (which is there, having just clicked) is
-      // dropped for the pop-up, and not taken up again for a while.
+      const weights = { ...POPUP_OUTCOMES[kind] };
+      if (state.mode === 'sleep' && weights.nothing) weights.nothing *= 2;
+      const outcome = state.forcePopup?.outcome ?? pick(weights);
+      if (outcome === 'nothing') return;
+      state.popupAt = time;
+      // Any game with the pointer is dropped for it, and not taken up again
+      // for a while.
       state.dart = null;
       state.chaseRest = time + 8000;
-      if (way === 'startle') {
-        // A jump where it is, and a stare at the thing.
-        play(
-          [
-            {
-              pose: 'startle',
-              ms: 520,
-              start: () => say('!'),
-              frame: (step, now, k) => (state.lift = 26 * Math.sin(Math.PI * k)),
-            },
-            { pose: 'sit', mood: 'hungry', ms: 1200, start: () => say('?') },
-          ],
-          time,
-        );
-        return;
-      }
-      const rect = card.getBoundingClientRect();
-      if (rect.width < 2 * MARGIN + 20 || rect.top < topClear()) return;
-      state.resume = { steps: () => popupReactions[way](card) };
-      leapTo(card, state.x);
+      if (state.wish) wishFor(null);
+      if (things.current) putThing(null);
+      const blocked = kind === 'blocked';
+      if (outcome === 'over' && goOver(card, blocked)) return;
+      if ((outcome === 'scared' || blocked) && runFrom(card, blocked, time)) return;
+      if (!onSide()) play(startled(), time);
     };
     const popupWatch = new MutationObserver((changes) => {
       for (const change of changes) {
         for (const node of change.addedNodes) {
-          const wrapper =
-            node.nodeType === 1 &&
-            (node.matches?.('[data-radix-popper-content-wrapper]')
+          if (node.nodeType !== 1) continue;
+          const card = popupCard(
+            node.matches('[data-radix-popper-content-wrapper]')
               ? node
-              : node.querySelector?.('[data-radix-popper-content-wrapper]'));
-          const card = wrapper?.firstElementChild;
-          if (card && !card.closest('[role="menu"]')) setTimeout(() => card.isConnected && onPopup(card), 150);
+              : node.querySelector('[data-radix-popper-content-wrapper]'),
+          );
+          // A moment for it to find its place first.
+          if (card) setTimeout(() => onPopup(card), 150);
         }
       }
     });
@@ -2705,6 +3171,11 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           stillSince: time,
         });
         if (state.wish) wishFor(null);
+        if (state.go) {
+          state.go = null;
+          putThing(null);
+          Object.assign(state, { spin: null, rock: null, tilt: 0 });
+        }
         state.resume = null;
         releaseTile();
         state.side = 'top';
@@ -2823,7 +3294,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         return;
       }
       if (press.petting) {
-        rest(time);
+        if (state.mode !== 'go') rest(time);
         return;
       }
       if (state.inside) {
@@ -2845,10 +3316,10 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           }
           openMenu();
         } else closeMenu();
-        if (onSide()) {
+        if (onSide() || state.mode === 'go') {
           say('prr');
           say('heart');
-          if (count >= 3) leapTo(state.perch, null, HOP_MS);
+          if (count >= 3 && state.mode !== 'go') leapTo(state.perch, null, HOP_MS);
           return;
         }
         if (count >= 3) {
@@ -2879,10 +3350,10 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       // (inside its panel, or the panel itself inside it)
       if (trigger && state.perch?.contains && (state.perch.contains(trigger) || trigger.contains(state.perch))) {
         setTimeout(() => {
-          const card =
-            trigger.getAttribute('aria-expanded') === 'true' &&
-            document.getElementById(trigger.getAttribute('aria-controls'));
-          if (card?.isConnected) onPopup(card);
+          if (trigger.getAttribute('aria-expanded') !== 'true') return;
+          const content = document.getElementById(trigger.getAttribute('aria-controls'));
+          const card = popupCard(content?.closest('[data-radix-popper-content-wrapper]'));
+          if (card) onPopup(card);
         }, 300);
       }
       if (
@@ -2927,6 +3398,11 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     if (import.meta.env.DEV) {
       window.mochiState = state;
       window.mochi = (name) => {
+        // craft:heli or craft:ufo (or craft: for either) for what comes next.
+        if (name.startsWith('craft:')) {
+          state.forceCraft = name.slice(6) || null;
+          return true;
+        }
         if (!state.perch || onSide() || state.mode !== 'rest') return false;
         if (name === 'tease') startTease(performance.now());
         else if (['yarn', 'feather', 'laser', 'mouse', 'bubbles'].includes(name)) startGame(name, performance.now());
@@ -2935,11 +3411,15 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         else if (name.startsWith('gpu:')) return visitGpu(name.slice(4));
         else if (name === 'run') stroll(true);
         else if (name.startsWith('popup:')) {
-          state.lastPress = { target: state.perch, at: performance.now() };
-          const card = document.querySelector('[data-radix-popper-content-wrapper]')?.firstElementChild;
+          // popup:<outcome>[:<way>[:<reaction>]], or popup:<reaction> (over, by a leap).
+          const card = openPopups()[0];
           if (!card) return false;
-          state.forcePopup = name.slice(6);
+          const [, first, way, reaction] = name.split(':');
+          state.forcePopup = popupReactions[first]
+            ? { outcome: 'over', way: 'leap', reaction: first }
+            : { outcome: first, way, reaction };
           state.popupSeen = null;
+          state.popupAt = null;
           onPopup(card);
           state.forcePopup = null;
         } else if (name === 'plummet') {
@@ -3007,7 +3487,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       const press = { x: event.pageX, y: event.pageY, petting: false };
       press.timer = setTimeout(() => {
         press.petting = true;
-        if (!onSide()) state.mode = 'pet';
+        if (!onSide() && state.mode !== 'go') state.mode = 'pet';
         say('heart');
         press.hearts = setInterval(() => (state.press === press ? say('heart') : clearInterval(press.hearts)), 900);
       }, 450);
@@ -3031,17 +3511,17 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       last = time;
       if (state.popupSeen && !state.popupSeen.isConnected) state.popupSeen = null;
       // Perched on a pop-up card that has closed: it drops down onto a panel.
-      if (state.perch && !state.perch.isConnected && !state.inside) {
-        state.perch = null;
-        say('!');
-        const perches = visiblePerches();
-        const below = perches
-          .map((element) => ({ element, edge: page(element.getBoundingClientRect()) }))
-          .filter(({ edge }) => edge.top > state.y - 20)
-          .sort((a, b) => a.edge.top - b.edge.top)[0]?.element;
-        const to = below ?? perches[0];
-        if (to) leapTo(to, state.x, DROP_MS);
-        else state.mode = 'idle';
+      if (state.perch && !state.perch.isConnected && !state.inside && state.mode !== 'go') dropDown();
+      // Under a pop-up card (one opened over it, or one it has wandered in
+      // under): it never lets that be.
+      if (time > (state.blockCheck ?? 0)) {
+        state.blockCheck = time + 400;
+        if (POPUP_MODES.has(state.mode) && !quietRef.current && !state.inside) {
+          const over = openPopups().find(
+            (card) => coverOf(page(card.getBoundingClientRect()), state.x, state.y) >= POPUP_BLOCKS,
+          );
+          if (over) onPopup(over, time);
+        }
       }
       // Trapped in a panel: it keeps to the panel's floor, between its walls.
       if (state.inside) {
@@ -3162,13 +3642,21 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         const ox = stolen.dx * (1 - eased);
         const oy = -150 * up;
         const middle = (stolen.base.left + stolen.base.right) / 2;
+        // (A UFO holds it in its beam of light, switched off as it leaves.)
+        const ufo = stolen.craft === 'ufo';
         if (k < 1) {
           stolen.tile.style.transform = `translate(${ox}px, ${oy}px)`;
-          setHeli({ x: middle + ox, y: stolen.base.top + oy - 46 });
+          setHeli({ kind: stolen.craft, x: middle + ox, y: stolen.base.top + oy - 46, rope: ufo ? 47 : 40 });
         } else {
           stolen.tile.style.transform = '';
           const away = Math.min(1, (k - 1) / 0.3);
-          setHeli({ x: middle - stolen.dir * 260 * away, y: stolen.base.top - 46 - 300 * away, opacity: 1 - away });
+          setHeli({
+            kind: stolen.craft,
+            x: middle - stolen.dir * 260 * away,
+            y: stolen.base.top - 46 - 300 * away,
+            rope: ufo ? 47 * Math.max(0, 1 - away * 4) : 40,
+            opacity: 1 - away,
+          });
           if (away >= 1) {
             state.stolen = null;
             setHeli(null);
@@ -3380,6 +3868,35 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           }
           break;
         }
+        case 'go': {
+          // Over to a pop-up card, a phase at a time (see goWays); if the card
+          // closes before it gets there, it drops back down onto a panel.
+          const go = state.go;
+          if (!go.card.isConnected) {
+            putThing(null);
+            Object.assign(state, { go: null, spin: null, rock: null, tilt: 0, side: 'top' });
+            dropDown();
+            break;
+          }
+          let phase = go.phases[go.index];
+          if (!phase || !(time - phase.started < phase.ms)) {
+            go.index += 1;
+            phase = go.phases[go.index];
+            if (!phase) {
+              landOn(go.card, time);
+              break;
+            }
+            phase.started = time;
+            phase.from = { x: state.x, y: state.y };
+            state.rock = phase.rock ? { ...phase.rock, from: time } : null;
+            state.tilt = 0;
+            phase.start?.(phase, time);
+          }
+          const k = phase.ms ? Math.min(1, (time - phase.started) / phase.ms) : 1;
+          phase.frame?.(phase, k, time);
+          show(typeof phase.pose === 'function' ? phase.pose(time) : phase.pose, phase.mood ?? feel().face);
+          break;
+        }
         case 'enter': {
           // Coming back into view, by one of its ways in.
           const enter = state.enter;
@@ -3559,6 +4076,38 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
             if (t < 2800) show('brolly');
             else if (t < 3300) {
               state.rock = null;
+              show('sit', 'purring');
+            } else arrive(time);
+          } else if (enter.craft === 'ufo') {
+            // A UFO glides in with it floating in its beam of light, beams it
+            // down onto the edge, switches the beam off, and zips away.
+            const from = side < 0 ? window.scrollX - 80 : window.scrollX + window.innerWidth + 80;
+            const hover = to.y - 160 + Math.sin(t / 320) * 3;
+            const ux = from + (to.x - from) * ease(Math.min(1, t / 1700));
+            if (t < 1700) {
+              putThing({ kind: 'ufo', x: ux, y: hover, rope: 76 });
+              state.x = ux;
+              state.y = hover + 76 + Math.sin(t / 260) * 2;
+              state.facing = side < 0 ? 1 : -1;
+              show('float');
+            } else if (t < 2800) {
+              const feet = hover + 76 + (to.y - hover - 76) * ease((t - 1700) / 1100);
+              putThing({ kind: 'ufo', x: to.x, y: hover, rope: feet - hover });
+              state.x = to.x;
+              state.y = feet;
+              show('float');
+            } else if (t < 3200) {
+              putThing({ kind: 'ufo', x: to.x, y: hover, rope: (to.y - hover) * (1 - (t - 2800) / 400) });
+              state.y = to.y;
+              if (!enter.landed) {
+                enter.landed = true;
+                say('✦');
+              }
+              show('sit', 'purring');
+            } else if (t < 3800) {
+              const k = (t - 3200) / 600;
+              putThing({ kind: 'ufo', x: to.x - side * 420 * k * k, y: hover - 260 * k * k, rope: 0, opacity: 1 - k });
+              state.y = to.y;
               show('sit', 'purring');
             } else arrive(time);
           } else {
@@ -3937,7 +4486,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
             if (k >= 1) step.done = true;
           }
           along();
-          show(step.pose ?? 'walk', step.mood ?? feel().face);
+          show(typeof step.pose === 'function' ? step.pose(time) : (step.pose ?? 'walk'), step.mood ?? feel().face);
           break;
         }
         case 'sit':
@@ -4372,7 +4921,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         ))}
       </div>
       {/* A helicopter bringing back a GPU's tile it stole. */}
-      {heli && <CatThing kind="heli" rope={40} {...heli} />}
+      {heli && <CatThing {...heli} />}
       {/* Things in front of it: cracks and shards of the glass it is trapped behind. */}
       {things
         .filter((item) => item.front)
