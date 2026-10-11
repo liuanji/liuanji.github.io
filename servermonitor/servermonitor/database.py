@@ -1040,16 +1040,16 @@ class Database:
 
     def cat_meals(self, now: int, utc_offset: int) -> dict[str, dict[str, Any]]:
         """What each user's bakery cat has eaten: one cookie per GPU-hour their
-        jobs spent computing (GPU time weighted by load, so GPUs held idle feed
-        it nothing), today (since midnight in the servers' local time), over the
-        last three days (its mood) and the last week, by server; and their GPU
-        hours ever, which it grows with."""
+        jobs held (the GPU hours on the leaderboard, not weighted by load),
+        today (since midnight in the servers' local time), over the last three
+        days (its mood) and the last week, by server; and their GPU hours ever,
+        which it grows with."""
         midnight = now - (now + utc_offset) % 86400
         with self.connect() as connection:
             rows = connection.execute(
                 """
-                SELECT bucket, host, username, weighted_gpu_seconds AS seconds FROM user_hour
-                WHERE bucket >= ? AND username != ? AND weighted_gpu_seconds > 0
+                SELECT bucket, host, username, active_gpu_seconds AS seconds FROM user_hour
+                WHERE bucket >= ? AND username != ? AND active_gpu_seconds > 0
                 """,
                 (now - CAT_WEEK_SECONDS, UNKNOWN_USER),
             ).fetchall()

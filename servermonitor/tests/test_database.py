@@ -319,7 +319,7 @@ class DatabaseTest(unittest.TestCase):
         carol = self.database.baker_profiles(now=start + 3600, utc_offset=0)["carol"]
         self.assertEqual((carol["lifetime_gpu_hours"], carol["recent"], carol["series"]), (2.0, None, None))
 
-    def test_cat_meals_count_computing_hours_as_cookies(self) -> None:
+    def test_cat_meals_count_gpu_hours_as_cookies(self) -> None:
         # Saturday 18 November 2023, 02:00 UTC.
         start = 1_700_272_800
         for offset in range(0, 3601, 60):
@@ -327,11 +327,13 @@ class DatabaseTest(unittest.TestCase):
         meals = self.database.cat_meals(now=start + 3600, utc_offset=0)
         alice = meals["alice"]
         with self.database.connect() as connection:
-            weighted = connection.execute(
-                "SELECT SUM(weighted_gpu_seconds) FROM user_hour WHERE username = 'alice'"
-            ).fetchone()[0]
-        # One cookie per GPU-hour spent computing, all of it today and lately.
-        self.assertAlmostEqual(alice["week"], weighted / 3600, places=2)
+            held, weighted = connection.execute(
+                "SELECT SUM(active_gpu_seconds), SUM(weighted_gpu_seconds) FROM user_hour WHERE username = 'alice'"
+            ).fetchone()
+        # One cookie per GPU-hour held (not weighted by load), all of it today
+        # and lately.
+        self.assertAlmostEqual(alice["week"], held / 3600, places=2)
+        self.assertGreater(held, weighted)
         self.assertEqual((alice["today"], alice["recent"]), (alice["week"], alice["week"]))
         self.assertEqual([host["name"] for host in alice["hosts"]], ["brezel"])
         self.assertEqual(alice["lifetime_gpu_hours"], 1.0)
