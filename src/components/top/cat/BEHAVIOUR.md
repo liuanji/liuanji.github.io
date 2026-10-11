@@ -38,9 +38,9 @@ Mochi rests on a panel's edge for a while (the rest), then stirs. Each time:
 | Kind | Starving | Hungry | Content | Well fed | Full |
 |---|---|---|---|---|---|
 | (i) Move: walk, run, leap, side | 35% | 35% | 30% | 30% | 30% |
-| (ii) A GPU card visit | 15% | 20% | 25% | 28% | 30% |
+| (ii) A GPU card visit | 12% | 16% | 20% | 22% | 24% |
 | (iii) A thought bubble | 0% | 5% | 10% | 12% | 14% |
-| (iv) Another interaction | 50% | 40% | 35% | 30% | 26% |
+| (iv) Another interaction | 53% | 44% | 40% | 36% | 32% |
 
 A card visit with no running GPU card fully in view becomes (iv) instead.
 
@@ -135,8 +135,8 @@ of all stirs on a top edge is the kind's chance spread over the list.
 - **Backflip:** a crouch and a wiggle, a spring into a tucked backward
   somersault, and a landing stuck with both paws up.
 
-So in every mood a GPU card visit (15–30%) is likelier than any single other
-interaction (2–8%).
+So in every mood a GPU card visit (12–24%) is likelier than any single other
+interaction (about 2–9%).
 
 ## With the pointer
 
