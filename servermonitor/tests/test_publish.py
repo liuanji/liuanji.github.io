@@ -19,6 +19,7 @@ class PublishTest(unittest.TestCase):
             host=None,
             remote_hosts=("brezel", "toast"),
             database_path=self.directory / "monitor.sqlite3",
+            cleanup_exceptions_path=self.directory / "cleanup_exceptions",
         )
         self.database = Database(self.settings.database_path, interval_seconds=60)
         self.database.initialize()
@@ -122,8 +123,18 @@ class PublishTest(unittest.TestCase):
         scratch1, scratch2 = brezel["disks"]
         self.assertEqual(scratch1["users"], [{"user": "alice", "bytes": 700}, {"user": "bob", "bytes": 500}])
         self.assertIsNone(scratch2["users"])
-        # 65% full: nobody is asked to clean up yet.
+        # 65% full: nobody is asked to clean up yet, and nobody has an exception.
         self.assertEqual((scratch1["cleanup"], scratch2["cleanup"]), ([], []))
+        self.assertEqual(scratch1["exceptions"], [])
+
+        # Exceptions granted on the jump machine show on the disks they cover.
+        self.settings.cleanup_exceptions_path.write_text("brezel alice 2K  # her dataset\nbrezel:/scratch2 bob 1K\n")
+        brezel = public_disks(self.settings, self.database)["hosts"][0]
+        scratch1, scratch2 = brezel["disks"]
+        self.assertEqual(scratch1["exceptions"], [{"user": "alice", "quota_bytes": 2048}])
+        self.assertEqual(
+            scratch2["exceptions"], [{"user": "alice", "quota_bytes": 2048}, {"user": "bob", "quota_bytes": 1024}]
+        )
         self.assertIsNone(toast["usage_checked_at"])
 
     def test_gpu_timeline_and_week_pattern(self) -> None:

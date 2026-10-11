@@ -13,7 +13,7 @@ from servermonitor.collector import (
     ProcessStat,
     SystemStat,
 )
-from servermonitor.database import Database
+from servermonitor.database import Database, granted_quota, load_cleanup_exceptions, parse_quota
 
 
 def successful_result(timestamp: int, host: str = "brezel") -> CollectionResult:
@@ -239,6 +239,52 @@ class DatabaseTest(unittest.TestCase):
         check(1_700_014_400, 900, 400)
         self.assertEqual(asked()[0]["quota_bytes"], 167)
         self.assertEqual(asked()[0]["since"], 1_700_014_400)
+
+    def test_cleanup_exceptions_are_read_from_their_file(self) -> None:
+        self.assertEqual([parse_quota(text) for text in ("8T", "500 G", "1.5TB", "2TiB", "123", "lots")], [
+            8 * 1024**4, 500 * 1024**3, int(1.5 * 1024**4), 2 * 1024**4, 123, None,
+        ])
+        path = Path(self.temporary_directory.name) / "cleanup_exceptions"
+        self.assertEqual(load_cleanup_exceptions(path), [])
+        path.write_text(
+            "# server username quota\n"
+            "brezel zoeshao 8T   # her dataset, till the deadline\n"
+            "croissant:/scratch2 zhiyu 5 TB\n"
+            "toast\n"
+            "\n"
+        )
+        grants = load_cleanup_exceptions(path)
+        self.assertEqual(grants, [
+            {"host": "brezel", "mount": None, "user": "zoeshao", "quota_bytes": 8 * 1024**4},
+            {"host": "croissant", "mount": "/scratch2", "user": "zhiyu", "quota_bytes": 5 * 1024**4},
+        ])
+        self.assertEqual(granted_quota(grants, "brezel", "/scratch1", "zoeshao"), 8 * 1024**4)
+        self.assertIsNone(granted_quota(grants, "croissant", "/scratch1", "zhiyu"))
+        # A disk's own exception wins over its server's.
+        grants.append({"host": "brezel", "mount": "/scratch2", "user": "zoeshao", "quota_bytes": 10})
+        self.assertEqual(granted_quota(grants, "brezel", "/scratch2", "zoeshao"), 10)
+
+    def test_cleanup_exceptions_replace_the_allowance(self) -> None:
+        def check(checked_at: int, alice: int, grants: list) -> list:
+            usage = {
+                "checked_at": checked_at,
+                "mounts": {"/scratch2": [{"owner": "alice", "bytes": alice}, {"owner": "bob", "bytes": 100}]},
+            }
+            disks = (DiskStat("/scratch2", 1000, 800, 200),)
+            self.database.save_disks(
+                DiskResult("brezel", checked_at, True, disks, accounts=("alice", "bob"), usage=usage), grants
+            )
+            return self.database.cleanup_flags(("brezel",))["brezel"].get("/scratch2", [])
+
+        grant = lambda quota: [{"host": "brezel", "mount": None, "user": "alice", "quota_bytes": quota}]  # noqa: E731
+        # Over the allowance (about 233) but under her 600: not asked.
+        self.assertEqual(check(1_700_000_000, 500, grant(600)), [])
+        # Over her 600: asked to get under it.
+        self.assertEqual(check(1_700_003_600, 700, grant(600)), [{"user": "alice", "quota_bytes": 600, "since": 1_700_003_600}])
+        # Granted more, she is under it again: let off.
+        self.assertEqual(check(1_700_007_200, 700, grant(800)), [])
+        # The exception taken away: the allowance asks again.
+        self.assertEqual(check(1_700_010_800, 700, [])[0]["quota_bytes"], 233)
 
     def test_held_idle_counts_the_unbroken_run_of_idle_busy_minutes(self) -> None:
         def held(timestamp: int, utilization: float) -> CollectionResult:

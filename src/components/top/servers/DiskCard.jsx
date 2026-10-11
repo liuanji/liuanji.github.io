@@ -8,6 +8,7 @@ import { BoxFooter, DetailsPopover, GLYPH, Metric, QUIET } from '../shared/Detai
 import { pressurePhrase } from '../shared/easterEggs';
 import {
   cleanupAllowance,
+  cleanupGrant,
   cleanupQuota,
   diskLevel,
   diskShare,
@@ -300,6 +301,9 @@ function DiskOverTime({ series, range, color }) {
 // they hold, in the bar's shades, those under SMALL_USER_BYTES summed as
 // others. Once the disk is full enough for cleanup reminders, it states the
 // allowance and marks who is over it.
+// Someone without an exception still asked to clean up (with no allowance now).
+const stillAsked = (disk, user) =>
+  cleanupGrant(disk, user.user) == null && user.bytes > (cleanupQuota(disk, user.user) ?? Infinity);
 function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAgo, range }) {
   const share = diskShare(disk);
   const users = disk.users ?? [];
@@ -364,8 +368,9 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
                 // Over the allowance, or still over what they were asked to
                 // get under when they went over it.
                 const quota = cleanupQuota(disk, user.user);
+                const granted = cleanupGrant(disk, user.user) != null;
                 const over = quota != null && user.bytes > quota;
-                const kept = over && (allowance == null || user.bytes <= allowance);
+                const kept = over && !granted && (allowance == null || user.bytes <= allowance);
                 return (
                   <li
                     key={user.user}
@@ -381,11 +386,13 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
                       className={`tabular-nums ${over ? 'font-medium' : 'text-inkwell'}`}
                       style={over ? { color: READING_STYLES.warm.color } : undefined}
                       title={
-                        kept
-                          ? `Still over the ${formatBytes(quota)} they were asked to get under`
-                          : over
-                            ? `Over the ${formatBytes(quota)} allowance`
-                            : undefined
+                        granted
+                          ? `${over ? 'Over the' : 'Within the'} ${formatBytes(quota)} granted to them`
+                          : kept
+                            ? `Still over the ${formatBytes(quota)} they were asked to get under`
+                            : over
+                              ? `Over the ${formatBytes(quota)} allowance`
+                              : undefined
                       }
                     >
                       {formatBytes(user.bytes)}
@@ -419,13 +426,25 @@ function DiskDetails({ host, disk, segments, color, level, checkedAgo, countedAg
                 Allowance: <span style={{ color: READING_STYLES.warm.color }}>{formatBytes(allowance)}</span> each
               </p>
             )}
+            {/* Exceptions granted by hand: who may hold how much here. */}
+            {disk.exceptions?.length > 0 && (
+              <p className="mt-1 font-mono text-[11px] text-data-grey">
+                Granted:{' '}
+                {disk.exceptions.map((item, index) => (
+                  <span key={item.user}>
+                    {index > 0 && ', '}
+                    {item.user} {formatBytes(item.quota_bytes)}
+                  </span>
+                ))}
+              </p>
+            )}
             {/* With no allowance now, those still asked to get under the one
                 they went over earlier, and how far. */}
-            {allowance == null && listed.some((user) => user.bytes > (cleanupQuota(disk, user.user) ?? Infinity)) && (
+            {allowance == null && listed.some((user) => stillAsked(disk, user)) && (
               <p className="mt-2 font-mono text-[11px] text-data-grey">
                 Still asked to clean up:{' '}
                 {listed
-                  .filter((user) => user.bytes > (cleanupQuota(disk, user.user) ?? Infinity))
+                  .filter((user) => stillAsked(disk, user))
                   .map((user, index) => (
                     <span key={user.user}>
                       {index > 0 && ', '}
@@ -638,9 +657,11 @@ export function CleanupBanner({ reminders, onOpen }) {
   // Kept from when the disk was fuller: since when, and that it stays.
   const day = (seconds) => new Date(seconds * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   const kept =
-    single && first.kept
-      ? ` You went over the allowance here${first.since ? ` on ${day(first.since)}` : ''}; this reminder stays until you get under ${formatBytes(first.allowance)}, even with the disk emptier now.`
-      : '';
+    single && first.granted
+      ? ` You were granted ${formatBytes(first.allowance)} here; please get back under it.`
+      : single && first.kept
+        ? ` You went over the allowance here${first.since ? ` on ${day(first.since)}` : ''}; this reminder stays until you get under ${formatBytes(first.allowance)}, even with the disk emptier now.`
+        : '';
   return (
     <Banner icon={HardDrive} color={color} role={role} tinted={urgency === 'hot'}>
       <p className={`text-inkwell ${urgency === 'hot' ? 'font-medium' : ''}`}>
@@ -681,7 +702,7 @@ export function CleanupBanner({ reminders, onOpen }) {
           ? `Please clean up now: jobs writing to ${single ? 'this disk' : 'these disks'} may soon fail. Delete old checkpoints and data you no longer need${under}.`
           : urgency === 'warm'
             ? `Please clean up soon, deleting old checkpoints and data you no longer need${under}.`
-            : `Please clear out what you no longer need, such as old checkpoints${single && !first.kept ? `; at this fullness each person is asked to stay under ${formatBytes(first.allowance)}` : ''}.`}
+            : `Please clear out what you no longer need, such as old checkpoints${single && !first.kept && !first.granted ? `; at this fullness each person is asked to stay under ${formatBytes(first.allowance)}` : ''}.`}
         {kept}
       </p>
     </Banner>

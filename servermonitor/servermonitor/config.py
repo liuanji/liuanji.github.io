@@ -43,6 +43,9 @@ class Settings:
     # Base URL of the relay Worker; None disables uploading.
     upload_url: str | None = None
     upload_token_path: Path = Path("~/.config/servermonitor/upload_token").expanduser()
+    # Exceptions to the disk cleanup allowance, granted by hand (see
+    # database.load_cleanup_exceptions); a missing file grants none.
+    cleanup_exceptions_path: Path = Path("~/.config/servermonitor/cleanup_exceptions").expanduser()
 
     @property
     def stale_after_seconds(self) -> int:
@@ -102,6 +105,11 @@ class Settings:
             upload_token_path=Path(
                 os.environ.get(
                     "GPU_MONITOR_UPLOAD_TOKEN_FILE", "~/.config/servermonitor/upload_token"
+                )
+            ).expanduser(),
+            cleanup_exceptions_path=Path(
+                os.environ.get(
+                    "GPU_MONITOR_CLEANUP_EXCEPTIONS_FILE", "~/.config/servermonitor/cleanup_exceptions"
                 )
             ).expanduser(),
         )

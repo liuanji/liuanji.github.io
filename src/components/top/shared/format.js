@@ -108,8 +108,15 @@ export function cleanupAllowance(disk) {
 // was then) till they do, however the allowance changes after, the backend
 // remembering it (disk.cleanup: who, the quota, since when). Their quota is
 // that, or the allowance now if lower; anyone else's, the allowance; null
-// while they are not asked.
+// while they are not asked. An exception granted by hand (disk.exceptions:
+// who may hold how much) replaces all that.
+export function cleanupGrant(disk, user) {
+  return disk.exceptions?.find((item) => item.user === user)?.quota_bytes ?? null;
+}
+
 export function cleanupQuota(disk, user) {
+  const granted = cleanupGrant(disk, user);
+  if (granted != null) return granted;
   const allowance = cleanupAllowance(disk);
   const asked = disk.cleanup?.find((item) => item.user === user);
   if (!asked) return allowance;
@@ -127,8 +134,11 @@ export function cleanupReminders(hosts, user) {
       if (quota == null || !mine || mine.bytes <= quota) return [];
       const allowance = cleanupAllowance(disk);
       const asked = disk.cleanup?.find((item) => item.user === user);
-      const kept = Boolean(asked) && (allowance == null || mine.bytes <= allowance);
-      return [{ host: host.name, disk, bytes: mine.bytes, allowance: quota, kept, since: asked?.since ?? null }];
+      const granted = cleanupGrant(disk, user) != null;
+      const kept = !granted && Boolean(asked) && (allowance == null || mine.bytes <= allowance);
+      return [
+        { host: host.name, disk, bytes: mine.bytes, allowance: quota, kept, granted, since: asked?.since ?? null },
+      ];
     }),
   );
 }

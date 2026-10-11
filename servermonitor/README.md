@@ -64,6 +64,13 @@ ssh -N -L 8876:127.0.0.1:8765 brezel
 | `GPU_MONITOR_ROLLUP_RETENTION_DAYS` | `365` | 小时汇总保留天数 |
 | `GPU_MONITOR_UPLOAD_URL` | 空 | 中转 Worker 地址（见 `worker/README.md`）；设置后 `serve` 每分钟上传 /top 页面的数据 |
 | `GPU_MONITOR_UPLOAD_TOKEN_FILE` | `~/.config/servermonitor/upload_token` | 上传令牌文件，每次上传时重新读取，轮换令牌无需重启 |
+| `GPU_MONITOR_CLEANUP_EXCEPTIONS_FILE` | `~/.config/servermonitor/cleanup_exceptions` | 磁盘清理额度的例外名单（见下），每次磁盘检查时重新读取，修改无需重启 |
+
+### 磁盘清理额度与例外
+
+磁盘用到 70% 以后，每人在该盘上占用超过额度（70% 时为整盘的 30%，随磁盘变满逐渐降到 10%）就会在 /top 页面上被提醒清理。一旦被提醒，后台会记住当时的额度：即使之后磁盘变空、额度变大或不再有额度，提醒也会一直保留，直到此人的占用降到当时的额度以下（若之后额度更低，则以更低者为准）。
+
+例外名单是一个文本文件，每行一条：`<服务器> <用户名> <额度>`，例如 `brezel zoeshao 8T`；只针对某一块盘时写成 `croissant:/scratch2 zhiyu 5T`（比整台服务器的那一行优先）。额度可带 K、M、G、T 单位（二进制，与页面显示一致），`#` 之后为注释。名单中的人只有在超过被批准的额度时才会被提醒，与当前额度无关。页面在一分钟内显示修改，提醒在下一次磁盘检查（每 30 分钟）时更新。
 
 服务没有登录功能，不建议直接监听公网地址，因为页面会显示用户名和进程名。brezel 保持监听 `127.0.0.1:8765`，通过 SSH 本地转发访问。
 

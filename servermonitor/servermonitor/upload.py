@@ -75,7 +75,7 @@ class Uploader:
         self._thread: threading.Thread | None = None
         self._error: str | None = None
         # The newest disk check already uploaded; disks go up only after a new one.
-        self._disks_checked_at: int | None = None
+        self._disks_key: str | None = None
         # The roster last uploaded, as JSON text; it goes up again only once it changes.
         self._roster: str | None = None
 
@@ -114,7 +114,11 @@ class Uploader:
         token = self._token()
         files = build_files(self.settings, self.database, now=now, live_only=live_only)
         disks = public_disks(self.settings, self.database, now=now)
-        if disks["checked_at"] is not None and disks["checked_at"] != self._disks_checked_at:
+        # Sent again after each disk check, or when the exceptions granted change.
+        disks_key = json.dumps(
+            [disks["checked_at"], [[disk["exceptions"] for disk in host["disks"]] for host in disks["hosts"]]]
+        )
+        if disks["checked_at"] is not None and disks_key != self._disks_key:
             files["disks"] = disks
         roster = public_roster(self.settings, self.database)
         roster_text = json.dumps(roster, sort_keys=True)
@@ -122,7 +126,7 @@ class Uploader:
             files["roster"] = roster
         for body in batches(files):
             self._post(body, token)
-        self._disks_checked_at = disks["checked_at"]
+        self._disks_key = disks_key
         self._roster = roster_text
         return len(files)
 

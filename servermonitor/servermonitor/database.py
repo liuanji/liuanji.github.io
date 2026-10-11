@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
+import re
 import sqlite3
 import time
 from collections import defaultdict
@@ -355,6 +357,8 @@ def gpu_problems(gpu: dict[str, Any]) -> list[str]:
     return problems
 
 
+LOGGER = logging.getLogger(__name__)
+
 # Cleanup reminders, in step with CLEANUP in the page's config.js: below
 # CLEANUP_FROM full nobody is asked; from there anyone holding more than an
 # allowance of the disk is, the allowance shrinking steadily from
@@ -372,6 +376,65 @@ def cleanup_allowance(used_bytes: int, available_bytes: int) -> float | None:
         return None
     progress = min(1.0, (used_bytes / usable - CLEANUP_FROM) / (1 - CLEANUP_FROM))
     return (CLEANUP_SHARE - (CLEANUP_SHARE - CLEANUP_FLOOR) * progress) * usable
+
+
+# Exceptions to the cleanup allowance, granted by hand in a text file on the
+# machine running this: one a line, "<server> <username> <quota>" (say
+# "brezel zoeshao 8T"), or "<server>:<mount> <username> <quota>" for one disk
+# only, which wins over the server's; "#" starts a comment. A quota is bytes,
+# with an optional unit K, M, G or T (binary, as the page shows sizes: 8T is
+# 8 × 1024⁴ bytes; "8 TB" and "8TiB" work too). Someone with an exception is
+# asked to clean up only once over their granted quota, whatever the
+# allowance.
+_UNITS = {"": 1, "K": 1024, "M": 1024**2, "G": 1024**3, "T": 1024**4, "P": 1024**5}
+_warned: set[str] = set()
+
+
+def parse_quota(text: str) -> int | None:
+    """A size like "8T", "500 G", "1.5TB" or "2TiB" in bytes, or None."""
+    match = re.fullmatch(r"(\d+(?:\.\d+)?)\s*([KMGTP]?)(?:I?B)?", text.strip().upper())
+    return int(float(match.group(1)) * _UNITS[match.group(2)]) if match else None
+
+
+def load_cleanup_exceptions(path: Path) -> list[dict[str, Any]]:
+    """The granted exceptions in the file at path (none if it is missing), each
+    {host, mount (None for every disk on the host), user, quota_bytes}. Lines
+    it cannot read are logged, once each, and skipped."""
+    try:
+        text = path.read_text()
+    except FileNotFoundError:
+        return []
+    except OSError as exc:
+        LOGGER.warning("cannot read cleanup exceptions %s: %s", path, exc)
+        return []
+    grants = []
+    for line in text.splitlines():
+        entry = line.split("#", 1)[0].strip()
+        if not entry:
+            continue
+        parts = entry.split()
+        quota = parse_quota("".join(parts[2:])) if len(parts) >= 3 else None
+        if quota is None:
+            if entry not in _warned:
+                _warned.add(entry)
+                LOGGER.warning("skipping cleanup exception %r: expected '<server> <username> <quota>'", entry)
+            continue
+        host, _, mount = parts[0].partition(":")
+        grants.append({"host": host, "mount": mount or None, "user": parts[1], "quota_bytes": quota})
+    return grants
+
+
+def granted_quota(grants: Iterable[dict[str, Any]], host: str, mount: str, user: str) -> int | None:
+    """The quota granted to user on a host's disk, if any: the disk's own
+    exception, else the host's."""
+    found = None
+    for grant in grants:
+        if grant["host"] == host and grant["user"] == user:
+            if grant["mount"] == mount:
+                return grant["quota_bytes"]
+            if grant["mount"] is None:
+                found = grant["quota_bytes"]
+    return found
 
 
 def disk_users(folders: list[dict[str, Any]], accounts: set[str]) -> list[dict[str, Any]]:
@@ -697,7 +760,7 @@ class Database:
                 ],
             )
 
-    def save_disks(self, result: DiskResult) -> None:
+    def save_disks(self, result: DiskResult, exceptions: Iterable[dict[str, Any]] = ()) -> None:
         """A failed check keeps the host's previous numbers, and a check that
         could not list accounts keeps the previous accounts."""
         if result.accounts is not None:
@@ -751,13 +814,17 @@ class Database:
                     for disk in result.disks
                 ],
             )
-            self._update_cleanup_flags(connection, result.host, result.checked_at)
+            self._update_cleanup_flags(connection, result.host, result.checked_at, list(exceptions))
 
-    def _update_cleanup_flags(self, connection: sqlite3.Connection, host: str, now: int) -> None:
+    def _update_cleanup_flags(
+        self, connection: sqlite3.Connection, host: str, now: int, exceptions: list[dict[str, Any]]
+    ) -> None:
         """After a disk check: anyone over a disk's cleanup allowance who was
         not already asked is now, to get under that allowance; anyone asked
         who is now under what they were asked for (or the allowance, if lower
-        now) is let off. Disks without a usage summary are left as they were."""
+        now) is let off. Someone with an exception granted is asked to get
+        under their granted quota while over it, and let off once under it.
+        Disks without a usage summary are left as they were."""
         row = connection.execute("SELECT usage FROM usage_state WHERE host = ?", (host,)).fetchone()
         if row is None:
             return
@@ -782,7 +849,29 @@ class Database:
                 continue
             held = {item["user"]: item["bytes"] for item in disk_users(folders, accounts)}
             allowance = cleanup_allowance(disk["used_bytes"], disk["available_bytes"])
+            # Those with an exception: asked while over their granted quota.
+            granted = {
+                user: quota
+                for user in {*held, *(name for mount, name in flags if mount == disk["mount"])}
+                if (quota := granted_quota(exceptions, host, disk["mount"], user)) is not None
+            }
+            for user, quota in granted.items():
+                if held.get(user, 0) > quota:
+                    connection.execute(
+                        """
+                        INSERT INTO cleanup_flags (host, mount, username, quota_bytes, since) VALUES (?, ?, ?, ?, ?)
+                        ON CONFLICT (host, mount, username) DO UPDATE SET quota_bytes = excluded.quota_bytes
+                        """,
+                        (host, disk["mount"], user, quota, now),
+                    )
+                else:
+                    connection.execute(
+                        "DELETE FROM cleanup_flags WHERE host = ? AND mount = ? AND username = ?",
+                        (host, disk["mount"], user),
+                    )
             for (mount, user), quota in flags.items():
+                if user in granted:
+                    continue
                 if mount == disk["mount"] and held.get(user, 0) <= (quota if allowance is None else min(quota, allowance)):
                     connection.execute(
                         "DELETE FROM cleanup_flags WHERE host = ? AND mount = ? AND username = ?", (host, mount, user)
@@ -790,7 +879,7 @@ class Database:
             if allowance is None:
                 continue
             for user, size in held.items():
-                if size > allowance and (disk["mount"], user) not in flags:
+                if size > allowance and (disk["mount"], user) not in flags and user not in granted:
                     connection.execute(
                         "INSERT INTO cleanup_flags (host, mount, username, quota_bytes, since) VALUES (?, ?, ?, ?, ?)",
                         (host, disk["mount"], user, round(allowance), now),

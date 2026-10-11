@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .collector import CollectionResult, LocalCollector, SSHCollector
 from .config import Settings
-from .database import Database
+from .database import Database, load_cleanup_exceptions
 
 
 LOGGER = logging.getLogger(__name__)
@@ -87,11 +87,13 @@ class MonitorService:
                 executor.submit(self.ssh_collector.collect_disks, host)
                 for host in self.settings.remote_hosts
             )
+            # Read afresh each check, so a newly granted exception counts within one.
+            exceptions = load_cleanup_exceptions(self.settings.cleanup_exceptions_path)
             for future in as_completed(futures):
                 result = future.result()
                 if not result.success:
                     LOGGER.debug("disk check failed for %s: %s", result.host, result.error)
-                self.database.save_disks(result)
+                self.database.save_disks(result, exceptions)
 
     def _run(self) -> None:
         while not self._stop.is_set():

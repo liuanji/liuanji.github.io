@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import Settings
-from .database import Database, disk_users
+from .database import Database, disk_users, granted_quota, load_cleanup_exceptions
 from .web import PERIODS
 
 
@@ -147,11 +147,13 @@ def public_disks(settings: Settings, database: Database, now: int | None = None)
     it has asked to clean up (cleanup: each with the quota they were asked to
     get under and since when, till they do); with a scratch-usage summary,
     every disk also lists its users and the host says when they were measured
-    (usage_checked_at)."""
+    (usage_checked_at). Each disk also lists the exceptions granted on it
+    (exceptions: who may hold how much)."""
     hosts = database.disks(settings.hosts)
     accounts = database.accounts(settings.hosts)
     usage = database.usage(settings.hosts)
     flags = database.cleanup_flags(settings.hosts)
+    grants = load_cleanup_exceptions(settings.cleanup_exceptions_path)
     moment = int(time.time()) if now is None else now
     history = database.disk_history(moment, time.localtime(moment).tm_gmtoff)
     for host in hosts:
@@ -161,6 +163,11 @@ def public_disks(settings: Settings, database: Database, now: int | None = None)
             folders = summary["mounts"].get(disk["mount"]) if summary else None
             disk["users"] = None if folders is None else disk_users(folders, set(accounts[host["name"]]))
             disk["cleanup"] = flags[host["name"]].get(disk["mount"], [])
+            disk["exceptions"] = [
+                {"user": user, "quota_bytes": quota}
+                for user in sorted({grant["user"] for grant in grants if grant["host"] == host["name"]})
+                if (quota := granted_quota(grants, host["name"], disk["mount"], user)) is not None
+            ]
             # Its share in use over each period, for the box's over-time view.
             disk["history"] = history.get(host["name"], {}).get(disk["mount"], {})
     checked = [host["checked_at"] for host in hosts if host["checked_at"] is not None]
