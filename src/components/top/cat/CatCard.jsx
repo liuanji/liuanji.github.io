@@ -74,6 +74,7 @@ const ACTIONS = [
       ['doing:scratch', 'Scratch'],
       ['doing:dough', 'Pat some dough'],
       ['doing:backflip', 'Backflip'],
+      ['doing:notes', 'Visit your notes'],
       ['act:groom', 'Groom'],
       ['act:knead', 'Knead'],
       ['act:belly', 'Roll belly-up'],

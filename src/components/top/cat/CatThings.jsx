@@ -671,6 +671,85 @@ function Dream() {
   );
 }
 
+// For catching its owner's eye at the notes pill.
+// A little sign on a post, standing at (0, 0): a board saying text.
+function Sign({ text = 'look ↓' }) {
+  return (
+    <g>
+      <path d="M0 0V-25" stroke="#B07A3E" strokeWidth="2" strokeLinecap="round" />
+      <rect x="-18" y="-39" width="36" height="15" rx="3" fill="#FFF8EE" stroke="#C49A62" strokeWidth="1.1" />
+      <text
+        x="0"
+        y="-28.6"
+        textAnchor="middle"
+        fontFamily="JetBrains Mono, monospace"
+        fontSize="7"
+        fontWeight="600"
+        fill="#B0654F"
+      >
+        {text}
+      </text>
+    </g>
+  );
+}
+// A little hand bell, held by its handle at (0, 0), the bell hanging below.
+function Bell() {
+  return (
+    <g>
+      <path d="M0 0V7" stroke="#B07A3E" strokeWidth="2.6" strokeLinecap="round" />
+      <path
+        d="M-6.5 16c0-6 2.6-9.6 6.5-9.6S6.5 10 6.5 16l1.6 1.8H-8.1z"
+        fill="#E8C66A"
+        stroke="#C49A3D"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+      <circle cx="0" cy="19.4" r="1.7" fill="#C49A3D" />
+      <path d="M-3.4 10.6q1.4-2.2 3.2-2.4" fill="none" stroke="#FFF3C4" strokeWidth="1" strokeLinecap="round" />
+    </g>
+  );
+}
+// For cheering on the all-clear: a little burst of confetti from (0, 0), t
+// seconds after it went off (CONFETTI_S in all): bits of paper and dots in
+// soft colours flung up and out, slowed by the air, fluttering down and fading.
+export const CONFETTI_S = 1.8;
+const CONFETTI = Array.from({ length: 16 }, (_, index) => {
+  const angle = ((-165 + (150 * index) / 15 + ((index * 37) % 17) - 8) * Math.PI) / 180;
+  const speed = 60 + ((index * 53) % 95);
+  return {
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    turn: ((index * 97) % 360) - 180,
+    color: ['#E39A55', '#8EA2E8', '#D98E9C', '#5BBE98', '#E3B655', '#B07AA1'][index % 6],
+    dot: index % 3 === 0,
+  };
+});
+function Confetti({ t = 0 }) {
+  const flung = (1 - Math.exp(-2.4 * t)) / 2.4;
+  return (
+    <g opacity={Math.max(0, Math.min(1, (CONFETTI_S - t) / 0.6))}>
+      {CONFETTI.map((bit, index) => {
+        const x = bit.vx * flung + 4 * Math.sin(6 * t + index);
+        const y = bit.vy * flung + 34 * t * t;
+        return bit.dot ? (
+          <circle key={index} cx={x} cy={y} r="1.6" fill={bit.color} />
+        ) : (
+          <rect
+            key={index}
+            x={x - 2.4}
+            y={y - 1.2}
+            width="4.8"
+            height="2.4"
+            rx="0.5"
+            fill={bit.color}
+            transform={`rotate(${bit.turn + 300 * t} ${x} ${y})`}
+          />
+        );
+      })}
+    </g>
+  );
+}
+
 // Treats besides its cookies.
 // A warm taiyaki, a fish-shaped cake from the bakery, lying on the edge (its
 // bottom at y = 0) head to the left, steaming while hot (bake, 0 to 1), with
@@ -1220,6 +1299,9 @@ const THINGS = {
   ufo: Ufo,
   bed: Bed,
   dream: Dream,
+  sign: Sign,
+  bell: Bell,
+  confetti: Confetti,
   tear: Tear,
   raincloud: RainCloud,
   grumble: Grumble,
@@ -1270,6 +1352,9 @@ const REACH = {
   ufo: 30,
   bed: 46,
   dream: 36,
+  sign: 22,
+  bell: 12,
+  confetti: 90,
   tear: 6,
   raincloud: 24,
   grumble: 12,
@@ -1424,6 +1509,8 @@ export function CatThing({
   layer,
   tx,
   ty,
+  text,
+  t,
 }) {
   const Thing = THINGS[kind];
   const reach = REACH[kind];
@@ -1452,6 +1539,8 @@ export function CatThing({
           flip={flip}
           tx={tx}
           ty={ty}
+          text={text}
+          t={t}
         />
       </g>
     </svg>

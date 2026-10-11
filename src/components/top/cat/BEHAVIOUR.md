@@ -27,8 +27,9 @@ Mochi rests on a panel's edge for a while (the rest), then stirs. Each time:
    panel, shaking it.
 3. **On a panel's side:** 45% back up onto the top edge, 40% a climb along the
    side, 15% a leap to another panel.
-4. **On a panel's top edge:** one of four kinds of thing (below), then one
-   thing within that kind.
+4. **On a panel's top edge:** with notices waiting for you, first 20% she goes
+   over to the notes pill to call you to them (see Your notes); otherwise one
+   of four kinds of thing (below), then one thing within that kind.
 
 | Rest between stirs | Starving | Hungry | Content | Well fed | Full |
 |---|---|---|---|---|---|
@@ -123,10 +124,14 @@ of all stirs on a top edge is the kind's chance spread over the list.
 | Mood | The list | Each (of stirs) |
 |---|---|---|
 | Starving | yawn, sunbeam nap, crumb, sneeze, a bed nap (twice over), nodding off, flopping over, dreaming, sleep, beg | ~4.8% (a bed nap ~9.6%) |
-| Hungry | crumb, yawn, sneeze, butterfly, box, bird watching, a bed nap (twice over), nodding off, flopping over, dreaming, beg, groom | ~3.4% (a bed nap ~6.8%) |
-| Content | butterfly, box, croissant, sunbeam nap, tail chase, yawn, sneeze, crumb, dance, bird watching, scratching, dough, backflip, groom, knead | ~2.3% |
-| Well fed | butterfly, box, croissant, tail chase, dance, sneeze, crumb, sunbeam nap, bird watching, scratching, dough, backflip, knead, zoomies, groom | 2% |
-| Full | sunbeam nap, box, yawn, croissant, dance, sneeze, scratching, dough, backflip, belly-up, groom, knead | ~2.2% |
+| Hungry | crumb, yawn, sneeze, butterfly, box, bird watching, a bed nap (twice over), nodding off, flopping over, dreaming, beg, groom, cheering the all-clear | ~3.1% (a bed nap ~6.3%) |
+| Content | butterfly, box, croissant, sunbeam nap, tail chase, yawn, sneeze, crumb, dance, bird watching, scratching, dough, backflip, groom, knead, cheering the all-clear | 2.5% |
+| Well fed | butterfly, box, croissant, tail chase, dance, sneeze, crumb, sunbeam nap, bird watching, scratching, dough, backflip, knead, zoomies, groom, cheering the all-clear | 2.25% |
+| Full | sunbeam nap, box, yawn, croissant, dance, sneeze, scratching, dough, backflip, belly-up, groom, knead, cheering the all-clear | ~2.5% |
+
+Cheering the all-clear (see Your notes) is on the list only while the notes
+pill shows its all-clear croissant; otherwise the rest share its part: hungry
+~3.4% each (a bed nap ~6.8%), content ~2.7%, well fed 2.4%, full ~2.7%.
 
 Hungry or starving, she naps a lot (well over half of her other interactions
 when starving):
@@ -151,8 +156,9 @@ when starving):
 - **Yawn:** a big yawn sitting up, or (an even chance) in a long stretch, front
   paws out.
 
-Full, she hardly ever sleeps: her only nap is the sunbeam (~2.7% of her stirs),
-and she dozes off with the pointer still for 3 minutes only 3% of the time.
+Full, she hardly ever sleeps: her only nap is the sunbeam (under 3% of her
+stirs), and she dozes off with the pointer still for 3 minutes only 3% of the
+time.
 
 - **Bird watching:** a bird flutters in and lands nearby; she chatters at it
   ("ek ek"), wiggles, pounces, and it flies off ("?").
@@ -199,7 +205,9 @@ Then she ignores the pointer for 3 s. Other reactions:
   pendulum, trailing behind and swinging back when it stops; shaken hard (over
   22° or swinging fast) she flails. Carried more than 140 px above what is
   below her, she takes fright. Let go high, she drops and steadies herself. Let
-  go beside a card's side, she clings on.
+  go beside a card's side, she clings on. Let go on (or just above) the notes
+  pill in the corner, she stays on it and does there what fits (see Your
+  notes).
 
 | Menu item | What happens |
 |---|---|
@@ -253,6 +261,7 @@ It is kept in this browser only and starts afresh at 55 each day.
 | Answering a thought bubble | +12 | Left alone while out (no play for a minute) | −0.5 a minute |
 | Catching her at keep-away | +6 | | |
 | A dance | +5 | | |
+| Opening your notes while she calls you to them | +5 | | |
 | Anything else asked of her from her card | +3 | | |
 
 | Spirits | What changes |
@@ -348,6 +357,48 @@ the nearest panel in view that is clear of the card and further from it. Then
 she spends a while cowering, or hiding with just her eyes over her edge (an
 even chance), and peeks out before settling.
 
+## Your notes
+
+The notes pill in the bottom-right corner says "N notes for you" while notices
+wait for you, and shows a croissant when all is clear.
+
+**Notices waiting.** Each time she stirs on a panel's top edge, 20% she goes
+over to the pill instead, to catch your eye: not again for 2 minutes, nor for
+10 minutes once you have opened your notes (with her there or not), nor while
+they are hidden for an hour. She leaps onto the pill, turns to face into the
+page, and tries one of five ways, an equal pick (never the same twice running):
+
+| Way | What she does |
+|---|---|
+| Wave | Up on her haunches waving a paw, bobbing ("mew!"), and again ("hi!") |
+| Knock knock | Three taps on the pill with her paws ("tap"; it jumps a little at each), "knock knock!", and two more taps. Left out in quiet mode. |
+| A sign | Plants a little sign on the pill ("look ↓", "psst ↓" or "news ↓"), taps it so it wobbles ("look!"), and pulls it up again |
+| A bell | Rings a little hand bell held high, swinging ("ding!"), rings it again, and sets it down beside her |
+| Peekaboo | Ducks down behind the pill, comes up with just her eyes over it ("psst!"), ducks again, and pops up with a hop ("boo!") |
+
+Then she sits looking out at you for about 2 s, gives a last "?", and leaps
+back to a panel (6–9 s on the pill in all).
+
+- **Opened while she is there** (clicked, or hovered over): she cheers as it
+  opens ("yay!", hearts), her spirits rise (+5), and she hops back to a panel
+  clear of it.
+- **Cleared while she is there:** she cheers the all-clear instead (below).
+- **Hidden for an hour, or gone:** she just goes.
+
+**All clear.** One of her other interactions (iv), in every mood but starving,
+and only while the croissant shows: she hops onto it and, an even chance,
+
+- **applauds:** claps ("all clear!", "bravo!" or "yay!") as a little burst of
+  confetti goes up and flutters down, then another round; or
+- **gives it a thumbs up** with a wink ("nice!", "all good!" or "good job!").
+
+Then a heart, and back to a panel.
+
+**Put there.** Dropped on (or just above) the pill, she stays on it and does
+what fits: calls you over while notices wait, cheers the all-clear, or (hidden
+for now, or open) sniffs at it. "Visit your notes" in her card's list (by
+itself) sends her over the same way.
+
 ## Trapped in a card
 
 Held still (moving no more than 6 px) for at least 2 s over a card, well
@@ -377,7 +428,8 @@ A switch on her card (remembered in this browser). While it is on she moves
 and shakes nothing of the page's: no wobbling, stealing or kicking a GPU card,
 no spinning, running on or swinging from its ring (a visit that would do one of
 these becomes one of the calm ones: the warm nap, peekaboo or adding oil), no
-reacting to pop-up cards, no shaking her panel when she knocks, no jiggling
+reacting to pop-up cards, no shaking her panel when she knocks, no knocking
+on the notes pill (one of the other ways to call you instead), no jiggling
 things while trapped, no humming shake when an idle card runs. Everything else is as usual, and the card-moving visits are
 greyed out in her card's list.
 
@@ -388,7 +440,7 @@ spirits (Mood), and the switch letting her roam. While she roams, a barely-there
 everything she can be asked to do, in two levels: first its kinds (moves, by
 itself, naps, with you, GPU cards, treats, toys, each with how many it holds),
 and a click on one shows what is in it, with a way back up. In all: the moves (walk, run, sniff, spook,
-pounce), her other interactions, her naps (each of the six beds, the sunbeam,
+pounce), her other interactions (with a visit to your notes), her naps (each of the six beds, the sunbeam,
 nodding off, flopping over, dreaming, curling up, a yawn), the GPU card visits
 (greyed out unless a running GPU's card, or for "add oil" an idle one, is fully
 in view when the list opens), the things to do with you (belly rub, brushing,

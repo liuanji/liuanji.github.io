@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MORPH_MS, ROAM_POSES, SETTLES, moodOf } from './BakeryCat';
 import { JOY_EVENT, JOY_FADE, changeJoy, joyLevel, readJoy } from './joy';
-import { BAG_HEIGHT, BED_LIFT, CatThing, LOSS, WISHES, ToyIcon } from './CatThings';
+import { BAG_HEIGHT, BED_LIFT, CONFETTI_S, CatThing, LOSS, WISHES, ToyIcon } from './CatThings';
 import { RING_SERIES } from '../shared/DetailBoxes';
 
 // The bakery cat let out to roam the page. It lives on the edges of the panels
@@ -227,6 +227,8 @@ const SWIPE = new Set(['sit', 'reach']);
 const DANCE = new Set(['cheer', 'wave', 'walk', 'sit']);
 // And the strides of a gallop, a flight or a creep.
 const GALLOP = new Set(['run', 'run2', 'skid', 'flee', 'flee2', 'creep', 'creep2']);
+// And the claps of applause.
+const CLAPS = new Set(['clap', 'clap2']);
 
 const random = (from, to) => from + Math.random() * (to - from);
 const page = (rect) => ({
@@ -264,8 +266,11 @@ function spotOn(perch, along = null, side = 'top') {
     return { x: (holder.left + holder.right) / 2, y: holder.top + 2 };
   }
   if (side === 'top') {
-    const x = along ?? random(edge.left + MARGIN, edge.right - MARGIN);
-    return { x: Math.min(edge.right - MARGIN, Math.max(edge.left + MARGIN, x)), y: edge.top + 1 };
+    // (Kept clear of its ends; on one too narrow for that, the notes' little
+    // all-clear croissant, at its middle.)
+    const inset = Math.min(MARGIN, (edge.right - edge.left) / 2);
+    const x = along ?? random(edge.left + inset, edge.right - inset);
+    return { x: Math.min(edge.right - inset, Math.max(edge.left + inset, x)), y: edge.top + 1 };
   }
   const y = along ?? random(edge.top + 40, edge.bottom - 30);
   return {
@@ -322,12 +327,14 @@ function shake(element) {
 // (with the things some of them bring: a butterfly, a box, a croissant, a
 // sunbeam, a crumb), and which of them it is up to in each mood. And two more
 // with the pointer: rubbing against it when it rests near, and pouncing on it
-// when it whips past.
+// when it whips past. (Notes: cheering the notes pill's all-clear, only while
+// it shows.)
 const IDLE = {
   // (A bed twice: twice as likely as the others.)
   napping: ['yawn', 'sunbeam', 'crumb', 'sneeze', 'bed', 'bed', 'doze', 'flop', 'dream'],
-  hungry: ['crumb', 'yawn', 'sneeze', 'butterfly', 'box', 'birdwatch', 'bed', 'bed', 'doze', 'flop', 'dream'],
+  hungry: ['crumb', 'yawn', 'sneeze', 'butterfly', 'box', 'birdwatch', 'bed', 'bed', 'doze', 'flop', 'dream', 'notes'],
   content: [
+    'notes',
     'butterfly',
     'box',
     'croissant',
@@ -343,6 +350,7 @@ const IDLE = {
     'backflip',
   ],
   purring: [
+    'notes',
     'butterfly',
     'box',
     'croissant',
@@ -356,7 +364,7 @@ const IDLE = {
     'dough',
     'backflip',
   ],
-  loaf: ['sunbeam', 'box', 'yawn', 'croissant', 'dance', 'sneeze', 'scratch', 'dough', 'backflip'],
+  loaf: ['sunbeam', 'box', 'yawn', 'croissant', 'dance', 'sneeze', 'scratch', 'dough', 'backflip', 'notes'],
 };
 const BUNT_EVERY = 15 * 1000;
 
@@ -417,6 +425,27 @@ function coverOf(edge, x, y) {
 function gapTo(edge, x, y) {
   return Math.hypot(Math.max(edge.left - x, 0, x - edge.right), Math.max(edge.top - y, 0, y - edge.bottom));
 }
+
+// The notes pill (bottom right), while notices wait for her viewer: of the
+// times she would do something, now and then (NOTES_CHANCE, and not again for
+// NOTES_REST_MS) she goes and sits on it to catch their eye instead (see
+// BEHAVIOUR.md). Once the notes have been opened she leaves them be for
+// NOTES_SEEN_MS.
+const NOTES_CHANCE = 0.2;
+const NOTES_REST_MS = 2 * 60 * 1000;
+const NOTES_SEEN_MS = 10 * 60 * 1000;
+// The pill while it shows one of these (data-cat-notes: "pill" with notices
+// waiting, "clear" as its all-clear croissant, "quiet" hidden for now; "open"
+// and "clear-open" opened), in view.
+function notesIn(...shown) {
+  const notes = document.querySelector('[data-cat-notes]');
+  if (!notes || !shown.includes(notes.getAttribute('data-cat-notes'))) return null;
+  const rect = notes.getBoundingClientRect();
+  return rect.width > 30 && rect.top > topClear() && rect.bottom <= window.innerHeight ? notes : null;
+}
+// Where a spot along a panel's top is measured from: its left end; but the
+// notes pill's right end, since it grows leftwards as it opens.
+const fromEnd = (perch, edge) => (perch.hasAttribute('data-cat-notes') ? edge.right : edge.left);
 const easeInOut = (k) => (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
 // Two poses taken in turn, every so many milliseconds: the strides of a run.
 const strides = (one, two, every) => (time) => (Math.floor(time / every) % 2 ? one : two);
@@ -476,6 +505,7 @@ const JOY = {
   caught: 6,
   dance: 5,
   asked: 3,
+  noticed: 5,
   fright: -2,
   drop: -4,
   trapped: -3,
@@ -616,6 +646,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         state.spin != null ||
         (SWIPE.has(next) && SWIPE.has(shown.pose)) ||
         (GALLOP.has(next) && GALLOP.has(shown.pose)) ||
+        (CLAPS.has(next) && CLAPS.has(shown.pose)) ||
         (DANCE.has(next) &&
           DANCE.has(shown.pose) &&
           (next === 'cheer' || next === 'wave' || shown.pose === 'cheer' || shown.pose === 'wave'));
@@ -914,6 +945,8 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     // What it does when it stirs on a panel's top edge: one of four kinds of
     // thing (its mood's plan), and within that one thing (see FEELS).
     const decide = (time) => {
+      // Notices waiting for her viewer: now and then she goes to call them over.
+      if (time > (state.notesRest ?? 0) && Math.random() < NOTES_CHANCE && visitNotes(notesIn('pill'), time)) return;
       // Low in spirits, she often does something sad instead; high, now and
       // then she dances or gets the zoomies.
       if (Math.random() < (feel().sadness ?? 0)) {
@@ -939,10 +972,16 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         play(doings.wish(), time);
       } else if (kind === 'other') {
         const others = [...(IDLE[moodRef.current] ?? IDLE.content), ...feel().acts];
-        const choices = others.filter((name) => name !== state.lastIdle && !(feel().low && LIVELY.has(name)));
+        // (Off to her notes only to cheer the all-clear: notices waiting have
+        // their own chance, above.)
+        const clear = notesIn('clear');
+        const choices = others.filter(
+          (name) => name !== state.lastIdle && !(feel().low && LIVELY.has(name)) && (name !== 'notes' || clear),
+        );
         const name = choices[Math.floor(Math.random() * choices.length)];
         state.lastIdle = name;
-        if (doings[name]) play(doings[name](), time);
+        if (name === 'notes') visitNotes(clear, time);
+        else if (doings[name]) play(doings[name](), time);
         else act(name, time);
       } else {
         const move = pick(feel().moves);
@@ -2581,6 +2620,245 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       }
     });
     popupWatch.observe(document.body, { childList: true });
+
+    // The notes pill. While notices wait (see NOTES_CHANCE), over she goes and
+    // sits on it to catch her viewer's eye, in one of her ways: waving hello;
+    // knocking on it (it jumps a little at each tap; not in quiet mode);
+    // planting a little sign on it; ringing a hand bell; or peekaboo from
+    // behind it. Then one more hopeful look, and back to a panel. Opened while
+    // she is there, she cheers first; cleared, she cheers the all-clear;
+    // hidden, she just goes. With nothing waiting (one of her other
+    // interactions), she hops onto its all-clear croissant to applaud it or
+    // give it a thumbs up. Put down on it, she does whichever fits.
+    const bump = (pill) => {
+      if (quietRef.current) return;
+      pill.parentElement?.animate([{ transform: 'none' }, { transform: 'translateY(2px)' }, { transform: 'none' }], {
+        duration: 200,
+        easing: 'ease-out',
+      });
+    };
+    // Popping up out of nothing, k from 0 to 1 (a little past, and back).
+    const popIn = (k) => 1 + 2.7 * (k - 1) ** 3 + 1.7 * (k - 1) ** 2;
+    // Sat looking out at her viewer, waiting to be noticed.
+    const hopeful = (frame) => ({ pose: 'sit', mood: 'content', ms: random(1800, 2400), frame });
+    const noteBids = {
+      // Up on her haunches waving a paw, bobbing as she waves; twice.
+      wave: () => {
+        const waving = (call, ms) => ({
+          pose: 'hello',
+          mood: 'purring',
+          ms,
+          start: () => say(call),
+          frame: (step, time) => (state.lift = 2.5 * Math.abs(Math.sin(((time - step.started) / 500) * Math.PI))),
+        });
+        return [waving('mew!', 1600), { pose: 'sit', mood: 'purring', ms: 500 }, waving('hi!', 1400), hopeful()];
+      },
+      // Knock knock: three taps on it with her paws, a call, and two more.
+      knock: (pill) => {
+        const tap = (pause) => [
+          { pose: 'pat', ms: 220, start: () => (say('tap'), bump(pill)) },
+          { pose: 'sit', ms: pause },
+        ];
+        return [
+          ...tap(240),
+          ...tap(240),
+          ...tap(400),
+          { pose: 'sit', mood: 'purring', ms: 1300, start: () => say('knock knock!') },
+          ...tap(240),
+          ...tap(500),
+          hopeful(),
+        ];
+      },
+      // A little sign planted on it in front of her, pointing down at it,
+      // tapped so it wobbles, and pulled up again.
+      sign: () => {
+        const text = ['look ↓', 'psst ↓', 'news ↓'][Math.floor(Math.random() * 3)];
+        const sign = (extra) => putThing({ kind: 'sign', x: state.x + state.facing * 34, y: state.y, text, ...extra });
+        return [
+          { pose: 'reach', ms: 420, frame: (step, time, k) => sign({ scale: popIn(k) }) },
+          { pose: 'sit', mood: 'purring', ms: 700, start: () => say('!'), frame: () => sign() },
+          {
+            pose: 'reach',
+            mood: 'purring',
+            ms: 1400,
+            start: () => say('look!'),
+            frame: (step, time, k) => sign({ rotate: 7 * Math.sin((time - step.started) / 65) * (1 - k) }),
+          },
+          hopeful(() => sign()),
+          { pose: 'reach', ms: 320, frame: (step, time, k) => sign({ scale: 1 - k }) },
+          { pose: 'sit', ms: 200, start: () => putThing(null) },
+        ];
+      },
+      // A hand bell, rung high in a paw so it swings; rung again, and set
+      // down beside her, standing on its mouth.
+      bell: () => {
+        const held = (extra) => putThing({ kind: 'bell', x: state.x + state.facing * 20.6, y: state.y - 28, ...extra });
+        const ring = (ms) => ({
+          pose: 'reach',
+          mood: 'purring',
+          ms,
+          start: () => say('ding!'),
+          frame: (step, time) => {
+            const t = (time - step.started) / 1000;
+            held({ rotate: 26 * Math.sin(2 * Math.PI * 2.6 * t) * Math.min(1, t * 6) });
+            if (t * 1000 > ms / 2 && !step.again) {
+              step.again = true;
+              say('♪');
+            }
+          },
+        });
+        const down = () => putThing({ kind: 'bell', x: state.x + state.facing * 30, y: state.y - 17.8 });
+        return [
+          { pose: 'reach', ms: 280, frame: (step, time, k) => held({ scale: popIn(k) }) },
+          ring(1500),
+          { pose: 'reach', mood: 'purring', ms: 500, frame: () => held() },
+          ring(1100),
+          { pose: 'sit', mood: 'purring', ms: 400, frame: down },
+          hopeful(down),
+        ];
+      },
+      // Peekaboo: ducked down behind it, up with just her eyes over its top
+      // ("psst!"), down again, and up with a hop and a "boo!".
+      peekaboo: () => [
+        { pose: 'lurk', ms: 1300 },
+        { pose: 'emerge', ms: 1000, start: () => say('psst!') },
+        { pose: 'lurk', ms: 900 },
+        {
+          pose: 'cheer',
+          mood: 'purring',
+          ms: 600,
+          start: () => say('boo!'),
+          frame: (step, time, k) => (state.lift = 16 * Math.sin(Math.PI * k)),
+        },
+        { pose: 'sit', mood: 'purring', ms: 500, start: () => say('heart') },
+        hopeful(),
+      ],
+    };
+    // Back from the notes to a panel in view, and (the notes opened) not
+    // under them.
+    const offNotes = (notes) => {
+      state.bidding = null;
+      const card = page(notes.getBoundingClientRect());
+      const spots = visiblePerches().flatMap((element) => {
+        const edge = page(element.getBoundingClientRect());
+        const right =
+          edge.top < card.top - 10 ? edge.right - MARGIN : Math.min(edge.right - MARGIN, card.left - WIDTH / 2 - 10);
+        return right >= edge.left + MARGIN ? [{ element, x: random(edge.left + MARGIN, right) }] : [];
+      });
+      const to = spots[Math.floor(Math.random() * spots.length)];
+      if (!to) return false;
+      leapTo(to.element, to.x);
+      return true;
+    };
+    // What she brought fades as she goes.
+    const fadeThing = () => {
+      if (things.current && !Array.isArray(things.current)) putThing({ ...things.current, opacity: 0 });
+    };
+    // Cheering the all-clear: applause (a little burst of confetti going up
+    // as she starts), or a thumbs up with a wink.
+    const pickOf = (list) => list[Math.floor(Math.random() * list.length)];
+    const cheers = {
+      applause: () => {
+        const clapping = (ms, extra) => ({ pose: strides('clap2', 'clap', 170), mood: 'purring', ms, ...extra });
+        return [
+          clapping(1900, {
+            start: (step) => {
+              say(pickOf(['all clear!', 'bravo!', 'yay!']));
+              step.burst = { x: state.x, y: state.y - 50 };
+            },
+            frame: (step, time) =>
+              putThing({ kind: 'confetti', ...step.burst, t: Math.min(CONFETTI_S, (time - step.started) / 1000) }),
+          }),
+          { pose: 'sit', mood: 'purring', ms: 600, start: () => (putThing(null), say('✦')) },
+          clapping(1100),
+          { pose: 'sit', mood: 'purring', ms: 900 },
+        ];
+      },
+      thumbs: () => [
+        {
+          pose: 'thumbs',
+          mood: 'wink',
+          ms: 1900,
+          start: () => (say(pickOf(['nice!', 'all good!', 'good job!'])), say('✦')),
+          frame: (step, time, k) => (state.lift = k < 0.2 ? 10 * Math.sin((Math.PI * k) / 0.2) : 0),
+        },
+        { pose: 'sit', mood: 'purring', ms: 900 },
+      ],
+    };
+    // What she does there, by what it shows as she lands: notices waiting,
+    // one of her ways of calling her viewer over (way, or any but the last);
+    // all clear, a cheer (way, or either); otherwise (hidden for now, or open)
+    // a sniff at it. Each turned to face into the page first, and ending with
+    // a last look ("?", or a heart for a cheer) and a leap back to a panel.
+    const atNotes = (notes, way = null) => {
+      const shown = notes.getAttribute('data-cat-notes');
+      const steps = [
+        {
+          pose: 'sit',
+          mood: 'purring',
+          ms: 300,
+          start: () => (state.facing = state.x > window.scrollX + window.innerWidth / 2 ? -1 : 1),
+        },
+      ];
+      state.bidding = null;
+      let last = '?';
+      if (shown === 'pill') {
+        const ways = Object.keys(noteBids).filter(
+          (name) => name !== state.lastBid && !(quietRef.current && name === 'knock'),
+        );
+        const bid = noteBids[way] ? way : pickOf(ways);
+        state.lastBid = bid;
+        state.bidding = notes;
+        state.notesRest = Math.max(state.notesRest ?? 0, performance.now() + NOTES_REST_MS);
+        steps.push(...noteBids[bid](notes));
+      } else if (shown === 'clear' || shown === 'clear-open') {
+        steps.push(...cheers[cheers[way] ? way : pickOf(Object.keys(cheers))]());
+        last = 'heart';
+      } else steps.push({ pose: 'sniff', ms: 1300, start: () => say('sniff') });
+      return [
+        ...steps,
+        { pose: 'sit', ms: 700, start: () => (say(last), fadeThing()) },
+        { pose: 'crouch', ms: 1, start: () => offNotes(notes) },
+      ];
+    };
+    // Off to the notes (from a panel), to do there what fits when she lands.
+    const visitNotes = (notes, time, way = null) => {
+      if (!notes || !state.perch || state.inside) return false;
+      if (notes.getAttribute('data-cat-notes') === 'pill') state.notesRest = time + NOTES_REST_MS;
+      closeMenu();
+      if (state.wish) wishFor(null);
+      if (things.current) putThing(null);
+      state.resume = { steps: () => atNotes(notes, way) };
+      say('!');
+      const rect = notes.getBoundingClientRect();
+      const x = window.scrollX + rect.left + rect.width / 2 + random(-10, 10);
+      const far = Math.hypot(x - state.x, window.scrollY + rect.top - state.y);
+      leapTo(notes, x, Math.min(1150, Math.max(LEAP_MS, far * 1.1)));
+      return true;
+    };
+    // Her notes opened while she was calling: a cheer, and back to a panel.
+    const noticed = (time) => {
+      const pill = state.bidding;
+      state.bidding = null;
+      state.resume = null;
+      state.notesRest = time + NOTES_SEEN_MS;
+      cheerUp(JOY.noticed);
+      fadeThing();
+      play(
+        [
+          {
+            pose: 'cheer',
+            mood: 'purring',
+            ms: 650,
+            start: () => (say('heart'), say('yay!')),
+            frame: (step, now, k) => (state.lift = 14 * Math.sin(Math.PI * k)),
+          },
+          { pose: 'sit', mood: 'purring', ms: 800, start: () => say('heart') },
+          { pose: 'crouch', ms: 1, start: () => offNotes(pill) },
+        ],
+        time,
+      );
+    };
     // Mishaps along a walk (each carries on to where it was going).
     const mishaps = {
       sniff: (goal) => [{ pose: 'sniff', ms: 1400, start: () => say('sniff') }, { to: goal }],
@@ -3998,7 +4276,9 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       if (state.wish) wishFor(null);
       if (things.current) putThing(null);
       state.lastPlay = time;
-      if (group === 'move') stroll(name === 'run');
+      if (group === 'doing' && name === 'notes') {
+        if (!visitNotes(notesIn('pill', 'clear', 'quiet'), time)) say('?');
+      } else if (group === 'move') stroll(name === 'run');
       else if (group === 'mishap' && mishaps[name]) play(mishaps[name](state.x), time);
       else if (group === 'doing' && doings[name]) play(doings[name](), time);
       else if (group === 'act') act(name, time);
@@ -4055,6 +4335,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           Object.assign(state, { spin: null, rock: null, tilt: 0 });
         }
         state.resume = null;
+        state.bidding = null;
         releaseTile();
         state.side = 'top';
         state.perch = null;
@@ -4100,6 +4381,22 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         ) {
           Object.assign(state, { mode: 'emerge', perch: null, side: 'top', peeked: false, inside: null });
           say('heart');
+          return;
+        }
+        // Dropped on (or just above) the notes pill: she stays on it, and
+        // does there what fits.
+        const notes = document.querySelector('[data-cat-notes]');
+        const pill = notes?.getBoundingClientRect();
+        if (
+          pill &&
+          event.clientX > pill.left - 24 &&
+          event.clientX < pill.right + 24 &&
+          event.clientY > pill.top - 90 &&
+          event.clientY < pill.bottom
+        ) {
+          state.resume = { steps: () => atNotes(notes) };
+          leapTo(notes, event.pageX, DROP_MS);
+          state.scared = false;
           return;
         }
         // Held still over well inside a panel a while, then let go: trapped in
@@ -4298,7 +4595,11 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         else if (name.startsWith('toss:')) play(tossed[name.slice(5)](), performance.now());
         else if (name.startsWith('bed:')) play(doings.bed(name.slice(4)), performance.now());
         else if (name.startsWith('gpu:')) return visitGpu(name.slice(4));
-        else if (name === 'run') stroll(true);
+        // notes:<way> (or notes: for any) sends her to the notes pill, there to
+        // call (a way of calling) or cheer (applause, thumbs), as fits.
+        else if (name.startsWith('notes:')) {
+          return visitNotes(notesIn('pill', 'clear', 'quiet'), performance.now(), name.slice(6));
+        } else if (name === 'run') stroll(true);
         else if (name.startsWith('popup:')) {
           // popup:<outcome>[:<way>[:<reaction>]], or popup:<reaction> (over, by a leap).
           const card = openPopups()[0];
@@ -4409,10 +4710,30 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       }
       // Perched on a pop-up card that has closed: it drops down onto a panel.
       if (state.perch && !state.perch.isConnected && !state.inside && state.mode !== 'go') dropDown();
+      // Calling at the notes pill: opened, she is delighted; cleared, she
+      // cheers the all-clear; hidden, she just goes.
+      const calling = state.bidding;
+      if (calling && state.perch === calling && ['land', 'script', 'sit', 'rest'].includes(state.mode)) {
+        const notes = calling.getAttribute('data-cat-notes');
+        if (notes === 'open') noticed(time);
+        else if (notes !== 'pill') {
+          state.resume = null;
+          if (things.current) putThing(null);
+          if (notes === 'clear' || notes === 'clear-open') play(atNotes(calling), time);
+          else {
+            say('?');
+            offNotes(calling);
+          }
+        }
+      }
       // Under a pop-up card (one opened over it, or one it has wandered in
       // under): it never lets that be.
       if (time > (state.blockCheck ?? 0)) {
         state.blockCheck = time + 400;
+        // The notes opened (with her there or not): she leaves them be a while.
+        if (document.querySelector('[data-cat-notes="open"]')) {
+          state.notesRest = Math.max(state.notesRest ?? 0, time + NOTES_SEEN_MS);
+        }
         if (POPUP_MODES.has(state.mode) && !quietRef.current && !state.inside) {
           const over = openPopups().find(
             (card) => coverOf(page(card.getBoundingClientRect()), state.x, state.y) >= POPUP_BLOCKS,
@@ -4459,13 +4780,18 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         const edge = page(rect);
         const spot = onSide()
           ? spotOn(state.perch, edge.top + state.along, state.side)
-          : spotOn(state.perch, edge.left + state.along);
+          : spotOn(state.perch, fromEnd(state.perch, edge) + state.along);
         state.x = spot.x;
         state.y = spot.y;
         const onScreen = spot.y - window.scrollY;
-        // Gone when its head would be under the navigation bar.
+        // Gone when its head would be under the navigation bar. (Not the notes
+        // pill, fixed in view: opened tall, she is only there a moment more.)
         const above = onScreen < topClear() - 12;
-        if ((above || onScreen > window.innerHeight - 10 || !rect.width) && time - state.scrolledAt > SETTLE_MS) {
+        if (
+          (above || onScreen > window.innerHeight - 10 || !rect.width) &&
+          time - state.scrolledAt > SETTLE_MS &&
+          !state.perch.hasAttribute('data-cat-notes')
+        ) {
           const perches = visiblePerches();
           const perch = above ? perches[0] : perches[perches.length - 1];
           if (perch) {
@@ -4479,7 +4805,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       const along = () => {
         if (!state.perch) return;
         const edge = page(state.perch.getBoundingClientRect());
-        state.along = onSide() ? state.y - edge.top : state.x - edge.left;
+        state.along = onSide() ? state.y - edge.top : state.x - fromEnd(state.perch, edge);
       };
       // Near enough to play with, unless its menu is open and the pointer is on its way there.
       const pointerNear =
@@ -5127,6 +5453,8 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           break;
         case 'rest': {
           show(state.restPose, state.restPose === 'rest' ? feel().restFace : feel().face);
+          // On the notes pill with nothing more to do there: back to a panel.
+          if (state.perch?.hasAttribute('data-cat-notes') && !state.menu && offNotes(state.perch)) break;
           // The pointer still a long while: it dozes off (one roll for each
           // still spell; full, it hardly ever does).
           if (time - state.pointer.at > feel().doze && !onSide()) {
@@ -5794,7 +6122,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           <span
             aria-hidden="true"
             key={id}
-            className="absolute -top-3 left-1/2 -translate-x-1/2 font-mono text-[11px] text-[#C98A50] motion-safe:animate-cat-float"
+            className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap font-mono text-[11px] text-[#C98A50] motion-safe:animate-cat-float"
             style={NOTE_COLORS[kind] ? { color: NOTE_COLORS[kind][id.length % NOTE_COLORS[kind].length] } : undefined}
           >
             {kind === 'heart' ? (

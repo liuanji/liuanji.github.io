@@ -210,6 +210,9 @@ export default function NotesPill({ notes, me = null, children }) {
         ref={card}
         onPointerEnter={hoverIn}
         onPointerLeave={hoverOut}
+        // For the roaming cat, which now and then comes to it to catch the
+        // viewer's eye while notices wait ("pill"), or to cheer the all-clear.
+        data-cat-notes={open ? (any ? 'open' : 'clear-open') : quiet ? 'quiet' : any ? 'pill' : 'clear'}
         layout
         transition={SPRING}
         style={{

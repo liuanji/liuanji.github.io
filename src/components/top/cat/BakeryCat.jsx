@@ -553,6 +553,14 @@ export const ROAM_POSES = {
   chatter: () => <Chattering />,
   // Reading something below it through little round glasses, head bent.
   read: () => <Reading />,
+  // Waving hello: sat up, one paw raised high and waving from side to side.
+  hello: ({ mood = 'purring' }) => <Hello mood={mood} />,
+  // Applauding: sat up, front paws up in front of its chest, apart and then
+  // clapped together (taken crisply in turn); and a thumbs up held high
+  // beside its head, with a wink.
+  clap: ({ mood = 'purring' }) => <Clapping mood={mood} />,
+  clap2: ({ mood = 'purring' }) => <Clapping mood={mood} together />,
+  thumbs: ({ mood = 'wink' }) => <ThumbsUp mood={mood} />,
   // Pushing something along (to its left): leaning in, front paws braced flat
   // against it, hind legs digging in, straining.
   push: () => <Pushing />,
@@ -2112,6 +2120,93 @@ function Pouring() {
           style={{ animationDelay: `${-delay}s` }}
         />
       ))}
+    </g>
+  );
+}
+
+// Waving hello: sat up, one paw raised high beside its head (clear of its
+// face), waving from the shoulder; toe beans showing.
+function Hello({ mood }) {
+  return (
+    <g>
+      <Sitting mood={mood} stage={STAGES[2]} raised />
+      <g
+        className="motion-safe:animate-cat-wave"
+        style={{ transformBox: 'view-box', transformOrigin: '46px 72px', animationDuration: '0.5s' }}
+      >
+        <path d="M46 72Q34 64 31.5 48" fill="none" stroke={EDGE} strokeWidth="7" strokeLinecap="round" />
+        <path d="M46 72Q34 64 31.5 48" fill="none" stroke={FUR} strokeWidth="4.6" strokeLinecap="round" />
+        <ellipse cx="31" cy="44.6" rx="4.8" ry="5.4" fill={BELLY} stroke={EDGE} strokeWidth="1.4" />
+        <path d="M28.8 42.4h.1M31 41.4h.1M33.2 42.4h.1" stroke={PINK} strokeWidth="1.6" strokeLinecap="round" />
+        <ellipse cx="31" cy="46" rx="1.8" ry="1.4" fill={PINK} opacity="0.85" />
+      </g>
+    </g>
+  );
+}
+
+// Applauding: sat up, both front paws raised in front of its chest, held
+// apart, or clapped together with a little burst either side.
+function Clapping({ mood, together = false }) {
+  const arm = (d) => (
+    <>
+      <path d={d} fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
+      <path d={d} fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+    </>
+  );
+  const paw = (cx, cy, turn) => (
+    <ellipse
+      cx={cx}
+      cy={cy}
+      rx="3.2"
+      ry="4.3"
+      fill={BELLY}
+      stroke={EDGE}
+      strokeWidth="1.3"
+      transform={`rotate(${turn} ${cx} ${cy})`}
+    />
+  );
+  return (
+    <g>
+      <Sitting mood={mood} stage={STAGES[2]} holding />
+      {/* Forearms up from its elbows, out at its sides, to its paws. */}
+      {together ? (
+        <>
+          {arm('M44.8 80Q47 73.4 54.6 72')}
+          {arm('M75.2 80Q73 73.4 65.4 72')}
+          {paw(57.3, 70.8, 9)}
+          {paw(62.7, 70.8, -9)}
+          <path
+            d="M53.2 66.2l-2.6-2.2M52 69.8h-3.2M66.8 66.2l2.6-2.2M68 69.8h3.2"
+            stroke="#E3B655"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          />
+        </>
+      ) : (
+        <>
+          {arm('M44.8 80Q43.6 75 46.6 71.6')}
+          {arm('M75.2 80Q76.4 75 73.4 71.6')}
+          {paw(47.6, 69, -16)}
+          {paw(72.4, 69, 16)}
+        </>
+      )}
+    </g>
+  );
+}
+
+// A thumbs up: sat up, one front paw raised high beside its head, curled into
+// a fist with its thumb up.
+function ThumbsUp({ mood }) {
+  return (
+    <g>
+      <Sitting mood={mood} stage={STAGES[2]} raised />
+      <path d="M46 72Q35 66 33 55" fill="none" stroke={EDGE} strokeWidth="7" strokeLinecap="round" />
+      <path d="M46 72Q35 66 33 55" fill="none" stroke={FUR} strokeWidth="4.6" strokeLinecap="round" />
+      {/* The thumb, then the fist over its root, its curled toes to the front. */}
+      <path d="M35 49.6Q35.8 45.4 34.4 42.6" fill="none" stroke={EDGE} strokeWidth="5.6" strokeLinecap="round" />
+      <path d="M35 49.6Q35.8 45.4 34.4 42.6" fill="none" stroke={BELLY} strokeWidth="3.4" strokeLinecap="round" />
+      <rect x="27.6" y="47.2" width="10.4" height="9.4" rx="4.4" fill={BELLY} stroke={EDGE} strokeWidth="1.4" />
+      <path d="M28.4 50.4h4.4M28.4 53.4h4.4" stroke={EDGE} strokeWidth="1" strokeLinecap="round" opacity="0.8" />
     </g>
   );
 }
