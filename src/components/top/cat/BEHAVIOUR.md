@@ -86,7 +86,7 @@ back to a panel.
 | Add oil (on an idle card: pours from a little oil can, cheers two or three of "加油!" (Chinese), "頑張れ!" (Japanese), "Semangat!" (Malay), "화이팅!" (Korean) and "Cố lên!" (Vietnamese), and the card runs a while (its rings showing a pretend reading), bright, humming and glowing, then sputters out) | – | 15% | 8% | 8% | 8% |
 | Wobble (hops on it till it tips, reserve button and all; arches in fright; leaps off) | – | – | 15% | 19% | 19% |
 | Hamster wheel (runs on the ring for about 4 s, unhurried, the ring up to about two-thirds of a turn a second; flung off, lands dizzy) | – | – | 15% | 19% | 19% |
-| Ring swing (hangs from the top of the ring by her front paws and swings; lets go) | – | – | 10% | 15% | 15% |
+| Ring swing (hangs from the top of the ring by her front paws, held together round it, and swings; lets go) | – | – | 10% | 15% | 15% |
 | Steal (pushes the card off the nearer edge of the screen and comes back pleased; 6–9 s later a helicopter or a UFO brings it back) | – | – | 8% | 9% | 9% |
 | Kick (three mule kicks, the card leaning further each time, till it topples off the bottom of the screen; a helicopter or a UFO brings it back) | – | – | 8% | 8% | 8% |
 

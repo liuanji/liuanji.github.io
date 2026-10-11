@@ -545,6 +545,7 @@ export const ROAM_POSES = {
   // after slipping off a panel's end or swinging from a GPU's ring; pulling
   // itself back up; and stopping to sniff along its way.
   hang: ({ mood = 'hungry' }) => <Hanging mood={mood} />,
+  ringhang: ({ mood = 'purring' }) => <Hanging mood={mood} ring />,
   scramble: () => <Scrambling />,
   sniff: () => <Sniffing />,
   // Bird watching (chattering at it), scratching the edge, patting dough;
@@ -1627,8 +1628,73 @@ function Skidding() {
 }
 
 // Hanging by its front paws from an edge, its paws hooked over it, its head
-// just below, body dangling, hind legs kicking, tail hanging.
-function Hanging({ mood = 'hungry' }) {
+// just below, body dangling, hind legs kicking, tail hanging. From a GPU's
+// ring (ring), both paws together round the top of it (the stroke's middle a
+// little below the line y = 88, which it swings about), arms up over its
+// head, and the rest of it a little lower.
+function Hanging({ mood = 'hungry', ring = false }) {
+  if (ring) {
+    return (
+      <g>
+        <path d="M51 105 56.6 92.6" fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
+        <path d="M51 105 56.6 92.6" fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+        <path d="M69 105 63.4 92.6" fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
+        <path d="M69 105 63.4 92.6" fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+        <g transform="translate(0 5)">
+          <HangingBody mood={mood} />
+        </g>
+        <ellipse
+          cx="56.8"
+          cy="90.2"
+          rx="3.6"
+          ry="2.9"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(-8 56.8 90.2)"
+        />
+        <ellipse
+          cx="63.2"
+          cy="90.2"
+          rx="3.6"
+          ry="2.9"
+          fill={BELLY}
+          stroke={EDGE}
+          strokeWidth="1.2"
+          transform="rotate(8 63.2 90.2)"
+        />
+      </g>
+    );
+  }
+  return (
+    <g>
+      <HangingBody mood={mood} arms />
+      <ellipse
+        cx="45.5"
+        cy="87.4"
+        rx="4"
+        ry="3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 45.5 87.4)"
+      />
+      <ellipse
+        cx="74.5"
+        cy="87.4"
+        rx="4"
+        ry="3"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.2"
+        transform="rotate(0 74.5 87.4)"
+      />
+    </g>
+  );
+}
+// All of a hanging cat but its paws (and, unless arms, its arms): tail, kicking
+// hind legs, body and head.
+function HangingBody({ mood, arms = false }) {
   return (
     <g>
       <path d="M64 128c3 6 2 11-2 14" fill="none" stroke={EDGE} strokeWidth="5.4" strokeLinecap="round" />
@@ -1663,33 +1729,17 @@ function Hanging({ mood = 'hungry' }) {
       </g>
       <ellipse cx="60" cy="120" rx="10.5" ry="13" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
       <ellipse cx="60" cy="122" rx="5.6" ry="8" fill={BELLY} />
-      <path d="M50 101 46 90" fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
-      <path d="M50 101 46 90" fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
-      <path d="M70 101 74 90" fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
-      <path d="M70 101 74 90" fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+      {arms && (
+        <>
+          <path d="M50 101 46 90" fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
+          <path d="M50 101 46 90" fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+          <path d="M70 101 74 90" fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
+          <path d="M70 101 74 90" fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+        </>
+      )}
       <g transform="translate(60 104) scale(0.72) translate(-60 -46)">
         <Head mood={mood} />
       </g>
-      <ellipse
-        cx="45.5"
-        cy="87.4"
-        rx="4"
-        ry="3"
-        fill={BELLY}
-        stroke={EDGE}
-        strokeWidth="1.2"
-        transform="rotate(0 45.5 87.4)"
-      />
-      <ellipse
-        cx="74.5"
-        cy="87.4"
-        rx="4"
-        ry="3"
-        fill={BELLY}
-        stroke={EDGE}
-        strokeWidth="1.2"
-        transform="rotate(0 74.5 87.4)"
-      />
     </g>
   );
 }

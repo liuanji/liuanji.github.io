@@ -1487,7 +1487,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     // then it lets go and drops to a panel.
     const ringSwing = (ring) => [
       {
-        pose: 'hang',
+        pose: 'ringhang',
         mood: 'purring',
         ms: 5200,
         rock: { amp: 26, freq: 0.7, decay: 0, origin: 'paws' },
