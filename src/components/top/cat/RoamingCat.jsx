@@ -991,26 +991,31 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     // wherever it is, while she plays or leaps after it.
     const aimLaser = (time) => {
       const game = state.game;
+      const { x, y, at } = state.pointer;
+      const live = time - at < 5000;
+      // Which card (a heavier look round the page, so every 90 ms)...
       if (time > (game.aimAt ?? 0)) {
         game.aimAt = time + 90;
-        const { x, y, at } = state.pointer;
         let best = null;
-        if (time - at < 5000) {
+        if (live) {
           for (const element of visiblePerches()) {
             const edge = page(element.getBoundingClientRect());
             if (x < edge.left + 12 || x > edge.right - 12) continue;
             const gap = y >= edge.top - 30 && y <= edge.bottom ? 0 : Math.abs(y - edge.top);
             if (gap > 140) continue;
             const score = gap * 10000 + (edge.bottom - edge.top);
-            if (!best || score < best.score) {
-              best = { perch: element, x: Math.min(edge.right - 14, Math.max(edge.left + 14, x)), score };
-            }
+            if (!best || score < best.score) best = { perch: element, score };
           }
         }
-        if (best) game.dot = { perch: best.perch, x: best.x };
+        game.aimed = best?.perch ?? null;
       }
-      const { perch, x } = game.dot;
-      if (perch.isConnected) putThing({ kind: 'laser', x, y: page(perch.getBoundingClientRect()).top });
+      // ...and where along it, every frame, so the dot keeps up with the pointer.
+      if (live && game.aimed?.isConnected) {
+        const edge = page(game.aimed.getBoundingClientRect());
+        game.dot = { perch: game.aimed, x: Math.min(edge.right - 14, Math.max(edge.left + 14, x)) };
+      }
+      const { perch, x: dotX } = game.dot;
+      if (perch.isConnected) putThing({ kind: 'laser', x: dotX, y: page(perch.getBoundingClientRect()).top });
     };
     const endGame = (time) => {
       cheerUp(JOY.played);
