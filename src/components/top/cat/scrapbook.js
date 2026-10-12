@@ -67,6 +67,14 @@ export const SCRAPBOOK = [
       { id: 'act:beg', label: 'Begging', pose: 'beg', mood: 'hungry' },
       { id: 'act:zoom', label: 'The zoomies', pose: 'run' },
       {
+        id: 'doing:fling',
+        label: 'Off the screen it goes',
+        pose: 'reach',
+        mood: 'hungry',
+        things: [{ kind: 'ball', dx: -40, dy: -46 }],
+        say: '!',
+      },
+      {
         id: 'doing:emptybowl',
         label: 'An empty bowl',
         pose: 'sit',
@@ -182,6 +190,27 @@ export const SCRAPBOOK = [
           { kind: 'bubble', dx: -24, dy: -52 },
           { kind: 'bubble', dx: 10, dy: -76 },
         ],
+      },
+      { id: 'follow:glide', label: 'Gliding after you', pose: 'glide', stage: 'none' },
+      { id: 'follow:jet', label: 'On a toaster jetpack', pose: 'jet', stage: 'none' },
+      { id: 'follow:broom', label: 'On a broomstick', pose: 'broom', stage: 'none' },
+      { id: 'follow:paddle', label: 'Paddling after you', pose: 'paddle', stage: 'none' },
+      {
+        id: 'follow:croissant',
+        label: 'On a flying croissant',
+        pose: 'rest',
+        mood: 'purring',
+        stage: 'none',
+        things: [{ kind: 'flycroissant', dx: 0, dy: 0 }],
+      },
+      {
+        id: 'follow:balloon',
+        label: 'Floating after you',
+        pose: 'hang',
+        mood: 'purring',
+        stage: 'none',
+        at: 66,
+        things: [{ kind: 'balloon', dx: 0, dy: 0 }],
       },
     ],
   },
@@ -564,6 +593,19 @@ export function keepMoment(id) {
   }
   window.dispatchEvent(new CustomEvent(EVENT, { detail: next }));
   return true;
+}
+
+// What to ask her for (as her card's list asks, RoamingCat's onDo) to have
+// her do a moment again; null for those that only come about of themselves
+// (ways back into view, pop-up cards, trips, escapes and the like).
+const AGAIN = new Set(['doing', 'act', 'bed', 'dance', 'wish', 'game', 'treat', 'toss', 'gpu', 'follow', 'notes']);
+export function replayOf(id) {
+  const [group, name] = id.split(':');
+  if (id === 'notes:noticed') return null;
+  if (AGAIN.has(group)) return id;
+  if (group === 'cheer') return `notes:${name}`;
+  if (group === 'mishap' && ['sniff', 'spook', 'pounce'].includes(name)) return id;
+  return null;
 }
 
 // When the scrapbook was last looked through: anything kept since is new.

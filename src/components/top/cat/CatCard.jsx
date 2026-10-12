@@ -82,6 +82,7 @@ const ACTIONS = [
       ['doing:foodcoma', 'Food coma'],
       ['doing:pronk', 'Pronk for joy'],
       ['doing:pebble', 'Kick a pebble'],
+      ['doing:fling', 'Bat something off the screen'],
       ['act:groom', 'Groom'],
       ['act:knead', 'Knead'],
       ['act:belly', 'Roll belly-up'],
@@ -117,6 +118,12 @@ const ACTIONS = [
       ['game:laser', 'Laser pointer'],
       ['game:mouse', 'Wind-up mouse'],
       ['game:bubbles', 'Bubbles'],
+      ['follow:glide', 'Follow me, gliding'],
+      ['follow:jet', 'Follow me on a toaster jetpack'],
+      ['follow:broom', 'Follow me on a broomstick'],
+      ['follow:paddle', 'Follow me, paddling'],
+      ['follow:croissant', 'Follow me on a flying croissant'],
+      ['follow:balloon', 'Follow me with a balloon'],
     ],
   ],
   [
@@ -381,7 +388,7 @@ export function CatButton({ user, meal, roaming, onRoam, quiet, onQuiet }) {
           {user}
         </button>
       </DetailsPopover>
-      <ScrapbookDialog open={scrapbook} onOpenChange={setScrapbook} name={NAME} />
+      <ScrapbookDialog open={scrapbook} onOpenChange={setScrapbook} name={NAME} roaming={roaming} />
     </>
   );
 }

@@ -482,6 +482,13 @@ export const ROAM_POSES = {
   stuffed: ({ mood = 'purring' }) => <Stuffed mood={mood} />,
   stuffed2: ({ mood = 'purring' }) => <Stuffed mood={mood} pat />,
   pronk: () => <Pronking />,
+  // Following its owner's pointer through the air (riding a flying croissant
+  // is its loaf, and a balloon its hang, with the thing about it).
+  glide: () => <AirGlide />,
+  paddle: () => <Paddling />,
+  paddle2: () => <Paddling stroke />,
+  jet: () => <Jetpack />,
+  broom: () => <Broomstick />,
   // The newer dances' moves, each in two, taken in turn on the beat.
   disco: () => <Disco />,
   disco2: () => <Disco down />,
@@ -2959,6 +2966,146 @@ function Flying() {
       <g transform="translate(43 63) scale(0.72) translate(-60 -46)">
         <Head mood="content" />
       </g>
+    </g>
+  );
+}
+
+// Ways of following its owner's pointer through the air (Follow me).
+// A paw at the end of a leg, for the side-on flying cats.
+const toe = (cx, cy, turn = 0) => pad(cx, cy, turn, 3.4, 2.3);
+const leg = (d) => (
+  <>
+    <path d={d} fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+    <path d={d} fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+  </>
+);
+// Gliding like a flying squirrel: stretched out flat, legs spread wide with
+// the fur between them pulled out like a kite, tail streaming, a little
+// scarf fluttering behind.
+function AirGlide() {
+  return (
+    <g>
+      <path d="M82 70c8-1 14-3 19-8" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M82 70c8-1 14-3 19-8" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      <path
+        d="M30 60Q46 55 62 58.6Q78 55 94 60Q86 72 93 85Q77 80 62 84.6Q46 80 30 86Q38 72 30 60z"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      {leg('M50 70 31 60.6')}
+      {leg('M52 74 31 85.4')}
+      {leg('M74 70 93 60.6')}
+      {leg('M72 74 92 84.6')}
+      {toe(29.6, 60.2, -15)}
+      {toe(29.8, 86, 15)}
+      {toe(94.4, 60.2, 15)}
+      {toe(93.4, 85.2, -15)}
+      <ellipse cx="62" cy="72" rx="21" ry="8" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <path d="M61 64.6l.8 3M67.6 65l.4 3M74 66.4l-.4 3" stroke={STRIPE} strokeWidth="1.7" strokeLinecap="round" />
+      <path
+        d="M49 66c6-3 12-1.6 18-4.6 4-2 8-1.4 11 .8-4 1-7 3.2-11 3.4-6 .6-11 3.6-17 3.4z"
+        fill="#D98E9C"
+        stroke="#B8707E"
+        strokeWidth="0.8"
+        strokeLinejoin="round"
+        className="motion-safe:animate-cat-wave"
+        style={{ transformBox: 'fill-box', transformOrigin: 'left center', animationDuration: '0.6s' }}
+      />
+      <g transform="translate(43 63) scale(0.72) translate(-60 -46)">
+        <Head mood="purring" />
+      </g>
+    </g>
+  );
+}
+// Doggy-paddling through the air: side on, head up, legs churning, the
+// front and hind pairs taken in turn (stroke).
+function Paddling({ stroke = false }) {
+  const [front, back] = stroke
+    ? [
+        ['M48 73 37 84', 'M51 74 35 70'],
+        ['M73 74 85 70', 'M71 75 79 87'],
+      ]
+    : [
+        ['M48 73 35 70', 'M51 74 39 86'],
+        ['M73 74 87 81', 'M71 75 82 71'],
+      ];
+  const end = (d) => {
+    const [, x, y] = d.match(/ ([\d.]+) ([\d.]+)$/).map(Number);
+    return toe(x - 0.6, y + 0.4);
+  };
+  return (
+    <g>
+      <path d="M83 70c6-2 10-7 9-13" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M83 70c6-2 10-7 9-13" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      {[...front, ...back].map((d) => (
+        <g key={d}>
+          {leg(d)}
+          {end(d)}
+        </g>
+      ))}
+      <ellipse cx="62" cy="73" rx="21" ry="8.4" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <ellipse cx="61" cy="78" rx="12" ry="2.8" fill={BELLY} />
+      <path d="M61 65.4l.8 3M67.6 65.8l.4 3M74 67.2l-.4 3" stroke={STRIPE} strokeWidth="1.7" strokeLinecap="round" />
+      <g transform="translate(42 60) rotate(-8) scale(0.72) translate(-60 -46)">
+        <Head mood="content" />
+      </g>
+    </g>
+  );
+}
+// On a toaster jetpack: up on its hind legs, arms out, a toaster on its back
+// with two slices of toast up, flames flickering from under it.
+function Jetpack() {
+  const flame = (x) => (
+    <g className="motion-safe:animate-cat-tremble" style={{ transformBox: 'fill-box', transformOrigin: 'center top' }}>
+      <path d={`M${x - 3.6} 80q3.6 11 3.6 14q0-3 3.6-14z`} fill="#F2B880" />
+      <path d={`M${x - 1.8} 80q1.8 6.4 1.8 8.4q0-2 1.8-8.4z`} fill="#F7DD8E" />
+    </g>
+  );
+  const behind = (
+    <>
+      <rect x="37.6" y="50" width="9" height="10" rx="2.4" fill="#E8B96A" stroke="#C99A4E" strokeWidth="1" />
+      <rect x="73.4" y="50" width="9" height="10" rx="2.4" fill="#E8B96A" stroke="#C99A4E" strokeWidth="1" />
+      <rect x="28" y="55" width="64" height="25" rx="6" fill="#D7DCE3" stroke="#9AA6B4" strokeWidth="1.2" />
+      <path d="M32 76h4M84 76h4" stroke="#9AA6B4" strokeWidth="1.6" strokeLinecap="round" />
+      {flame(33.6)}
+      {flame(86.4)}
+      {limb('M47 68 36.6 74.6')}
+      {limb('M73 68 83.4 74.6')}
+      {pad(35.4, 75.4, -20, 4.2, 3.8)}
+      {pad(84.6, 75.4, 20, 4.2, 3.8)}
+    </>
+  );
+  return <Dancer behind={behind} />;
+}
+// On a broomstick: sat up with the broom across its lap, both paws on the
+// handle, bristles out to one side, a little witch's hat on.
+function Broomstick() {
+  return (
+    <g>
+      <Sitting mood="purring" stage={STAGES[2]} holding />
+      <path d="M44 31h32" stroke="#7C6FA8" strokeWidth="3.6" strokeLinecap="round" />
+      <path
+        d="M51 31Q55 19 67 9.6Q63 21 69 31z"
+        fill="#9B8EC4"
+        stroke="#7C6FA8"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+      <path d="M52.4 27.4h14.6" stroke="#E3B655" strokeWidth="2.2" />
+      <path d="M20 85.4 92 81" stroke="#A0703C" strokeWidth="3.4" strokeLinecap="round" />
+      <path
+        d="M90 80.6c6-4 13-6 19-5.6-2 3-2 9 0 12-6 .6-13-1.4-19-5.4z"
+        fill="#E3C27A"
+        stroke="#B89650"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+      <path d="M95 79.6l12-2.6M96 82.6h12M95 85l12 2.2" stroke="#C9A65E" strokeWidth="0.8" strokeLinecap="round" />
+      <path d="M90.4 78v6.2" stroke="#9B8EC4" strokeWidth="2.4" strokeLinecap="round" />
+      {pad(50, 83.2, 0, 4.2, 3.6)}
+      {pad(70, 82, 0, 4.2, 3.6)}
     </g>
   );
 }

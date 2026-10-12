@@ -125,13 +125,20 @@ of all stirs on a top edge is the kind's chance spread over the list.
 |---|---|---|
 | Starving | yawn, sunbeam nap, crumb, sneeze, a bed nap (twice over), nodding off, flopping over, dreaming, sleep, beg | ~4.8% (a bed nap ~9.6%) |
 | Hungry | crumb, yawn, sneeze, butterfly, box, bird watching, a bed nap (twice over), nodding off, flopping over, dreaming, beg, groom, curling up, cheering the all-clear | ~3.3% (a bed nap ~6.5%) |
-| Content | butterfly, box, croissant, sunbeam nap, tail chase, yawn, sneeze, crumb, dance, bird watching, scratching, dough, backflip, groom, knead, cheering the all-clear | 2.5% |
-| Well fed | butterfly, box, croissant, tail chase, dance, sneeze, crumb, sunbeam nap, bird watching, scratching, dough, backflip, knead, zoomies, groom, cheering the all-clear | 2.25% |
-| Full | sunbeam nap, box, yawn, croissant, dance, sneeze, scratching, dough, backflip, belly-up, groom, knead, cheering the all-clear | ~2.5% |
+| Content | butterfly, box, croissant, sunbeam nap, tail chase, yawn, sneeze, crumb, dance, bird watching, scratching, dough, backflip, groom, knead, batting something off the screen, cheering the all-clear | ~2.4% |
+| Well fed | butterfly, box, croissant, tail chase, dance, sneeze, crumb, sunbeam nap, bird watching, scratching, dough, backflip, knead, zoomies, groom, batting something off the screen, cheering the all-clear | ~2.1% |
+| Full | sunbeam nap, box, yawn, croissant, dance, sneeze, scratching, dough, backflip, belly-up, groom, knead, batting something off the screen, cheering the all-clear | ~2.3% |
 
 Cheering the all-clear (see Your notes) is on the list only while the notes
 pill shows its all-clear croissant; otherwise the rest share its part: hungry
-3.5% each (a bed nap 7%), content ~2.7%, well fed 2.4%, full ~2.7%.
+3.5% each (a bed nap 7%), content 2.5%, well fed 2.25%, full ~2.5%.
+
+**Batting something off the screen:** something turns up within reach (a
+bouncy ball, a ball of yarn, a cookie, a croissant, a paper ball or her toy
+mouse). She eyes it ("?"), looks at you, taps it once, and then swats it
+("!") clean off the screen, spinning in an arc past the nearer side of the
+window. She watches it go ("…"), there is a faint "…bonk" from out of sight,
+and she sits there looking innocent, with a wink.
 
 Five more join her list only at certain levels (one more equal pick each,
 so the others' shares shrink a little):
@@ -231,7 +238,22 @@ Then she ignores the pointer for 3 s. Other reactions:
 | Give a treat | Equal pick (never the same twice running): toss and catch, hand-feed, treat hunt, little bowl, a warm taiyaki, a birthday cupcake, sushi on a conveyor belt, gradient descent, fishing |
 | Toss a toy | Equal pick (never the same twice running): yarn, bouncy ball, drifting feather, toy mouse, a robot vacuum ride, a paper aeroplane, a paper bag, bubble wrap, a kite |
 | Dance | Equal pick (never the same twice running): happy paws, shuffle, twirl, moonwalk, disco, the robot, the hula |
+| Follow me | She leaves her panel and follows your pointer through the air for 10–15 s, to a spot just behind and below it, kept on screen, bobbing; one way, never the same twice running (below); then she leaps down onto the panel below her, or the nearest in view |
 | Send home | She leaps back into your name and roaming turns off |
+
+### Following you
+
+| Way | How | Top speed |
+|---|---|---|
+| Gliding | Like a flying squirrel: stretched out flat, legs spread with the fur between them pulled out like a kite, tail streaming, a little scarf fluttering; nose up as she climbs, down as she dives | 360 px/s |
+| A toaster jetpack | Up on her hind legs, arms out, a toaster on her back with two slices up, flames flickering under it | 440 px/s |
+| A broomstick | Sat up with the broom across her lap and a little witch's hat on | 380 px/s |
+| Doggy-paddling | Side on, head up, legs churning in turn ("~") | 220 px/s |
+| A flying croissant | Loafing on top of a big croissant, speed lines behind | 300 px/s |
+| A balloon | Hanging from a balloon, swaying | 190 px/s |
+
+Each is also in her card's list (with you). Clicked mid-flight she just purrs;
+picked up, she stops following.
 
 ### The newer dances
 
@@ -489,7 +511,7 @@ are new since you last looked; a click opens it.
 
 ## Her scrapbook
 
-The first time she does each of 131 things, she keeps a page for it, and a
+The first time she does each of 138 things, she keeps a page for it, and a
 little open book rises off her. It is kept in this browser (`scrapbook.js`),
 and opens over the page from her card: each kind with how many of it she has
 done, then a card for each, drawn in her pose there (with what she had with
@@ -503,12 +525,19 @@ and dances from her menu, an answered wish, a game, petting, catching her,
 putting her down on your notes). What you ask for from the list on her card
 does not count: it only makes her do it, till she next settles.
 
+Clicked while she roams, a page she has had closes the scrapbook and asks her
+to do it again, where it can be asked for (her doings, naps, dances, treats,
+toys, games, wishes, GPU card visits, calls at your notes and cheers, a few
+mishaps, the ways of following you). The rest, which only come about of
+themselves (ways back into view, pop-up cards, trips, escapes and the like),
+are not buttons.
+
 | Kind | Pages |
 |---|---|
-| By herself | 20: butterfly, box, croissant, tail chase, sneeze, crumb, bird watching, scratching, dough, backflip, grooming, kneading, belly-up, begging, zoomies, and the five at certain levels |
+| By herself | 21: butterfly, box, croissant, tail chase, sneeze, crumb, bird watching, scratching, dough, backflip, grooming, kneading, belly-up, begging, zoomies, batting something off the screen, and the five at certain levels |
 | Naps | 12: the six beds, sunbeam, nodding off, flopping over, dreaming, curling up, a yawn |
 | Dances | 7: happy paws, shuffle, twirl, moonwalk, disco, the robot, the hula |
-| With you | 14: batting at the pointer, keep-away, caught, petting, a rub against your hand, a pounce on the pointer, belly rub, brushing, photo shoot, and the five games |
+| With you | 20: batting at the pointer, keep-away, caught, petting, a rub against your hand, a pounce on the pointer, belly rub, brushing, photo shoot, the five games, and the six ways of following you |
 | Treats | 9: each treat moment |
 | Toys | 8: each tossed toy |
 | GPU cards | 9: each visit |
@@ -548,5 +577,6 @@ These are not in the list on her card.
 
 - **Already roaming when the page loads** (and your name is in view): she
   peeks over your name and waits. When the pointer comes near she looks up
-  higher. A click sends her out.
+  higher. A click and she pops up, then leaps out to a spot picked at random on
+  any panel in view.
 - **Let out from her card:** she leaps straight out.

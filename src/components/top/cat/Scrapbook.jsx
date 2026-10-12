@@ -2,7 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { ROAM_POSES } from './BakeryCat';
 import { CatThing } from './CatThings';
-import { SCRAPBOOK, SCRAPBOOK_SIZE, markViewed, useScrapbook } from './scrapbook';
+import { SCRAPBOOK, SCRAPBOOK_SIZE, markViewed, replayOf, useScrapbook } from './scrapbook';
 
 // A moment's little scene, drawn at the page's own size (as she roams) and
 // shrunk to fit its card: her feet at (x, y), on her stage. Her drawing's box
@@ -185,23 +185,38 @@ export function Vignette({ moment, ghost = false }) {
 
 const dateOf = (at) => new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
-function Moment({ moment, at, fresh }) {
+// A moment's card; one she has had, and can be asked to do again while she
+// roams (onAgain), is a button that asks her.
+function Moment({ moment, at, fresh, onAgain }) {
+  const Card = onAgain ? 'button' : 'div';
   return (
-    <li
-      className={`relative flex flex-col items-center rounded-xl px-1 pb-2 pt-1 ${
-        at ? 'border border-[#EADFCF] bg-white' : 'border border-dashed border-[#E3DCD1]'
-      }`}
-    >
-      <div className="overflow-hidden" style={{ width: SCENE.width * SHRINK, height: SCENE.height * SHRINK }}>
-        {/* Still (her animations paused). */}
-        <div className="[&_*]:!animate-none" style={{ transform: `scale(${SHRINK})`, transformOrigin: 'top left' }}>
-          <Vignette moment={moment} ghost={!at} />
+    <li className="relative flex">
+      <Card
+        {...(onAgain && {
+          type: 'button',
+          onClick: onAgain,
+          title: 'Again!',
+          'aria-label': `${moment.label}. Do it again.`,
+        })}
+        className={`flex w-full flex-col items-center rounded-xl px-1 pb-2 pt-1 ${
+          at ? 'border border-[#EADFCF] bg-white' : 'border border-dashed border-[#E3DCD1]'
+        } ${
+          onAgain
+            ? 'transition-[box-shadow,border-color] hover:border-[#E3C9A8] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20'
+            : ''
+        }`}
+      >
+        <div className="overflow-hidden" style={{ width: SCENE.width * SHRINK, height: SCENE.height * SHRINK }}>
+          {/* Still (her animations paused). */}
+          <div className="[&_*]:!animate-none" style={{ transform: `scale(${SHRINK})`, transformOrigin: 'top left' }}>
+            <Vignette moment={moment} ghost={!at} />
+          </div>
         </div>
-      </div>
-      <p className={`mt-1 text-center text-[11px] leading-snug ${at ? 'text-inkwell' : 'text-data-grey/70'}`}>
-        {moment.label}
-      </p>
-      <p className="font-mono text-[10px] text-data-grey/80">{at ? dateOf(at) : '·'}</p>
+        <p className={`mt-1 text-center text-[11px] leading-snug ${at ? 'text-inkwell' : 'text-data-grey/70'}`}>
+          {moment.label}
+        </p>
+        <p className="font-mono text-[10px] text-data-grey/80">{at ? dateOf(at) : '·'}</p>
+      </Card>
       {fresh && (
         <span className="absolute right-1.5 top-1.5 rounded-full bg-[#F7E4CF] px-1.5 font-mono text-[9px] uppercase tracking-wide text-[#B0654F]">
           new
@@ -213,13 +228,19 @@ function Moment({ moment, at, fresh }) {
 
 // The scrapbook itself, over the page: each kind of moment with how many of
 // it she has done, then a card for each.
-export function ScrapbookDialog({ open, onOpenChange, name }) {
+// A page she has had, clicked while she roams, closes the book and asks her
+// to do it again (where it can be asked for: see replayOf).
+export function ScrapbookDialog({ open, onOpenChange, name, roaming = false }) {
   const { kept, viewed } = useScrapbook();
   const count = Object.keys(kept).length;
   const close = (next) => {
     // Looked through: what is new now is no longer new next time.
     if (!next) markViewed();
     onOpenChange(next);
+  };
+  const again = (code) => () => {
+    close(false);
+    setTimeout(() => window.dispatchEvent(new CustomEvent('bakery-cat-do', { detail: code })), 250);
   };
   return (
     <Dialog.Root open={open} onOpenChange={close}>
@@ -273,6 +294,7 @@ export function ScrapbookDialog({ open, onOpenChange, name }) {
                         moment={moment}
                         at={kept[moment.id]}
                         fresh={Boolean(kept[moment.id] && kept[moment.id] > viewed)}
+                        onAgain={roaming && kept[moment.id] && replayOf(moment.id) ? again(replayOf(moment.id)) : null}
                       />
                     ))}
                   </ul>

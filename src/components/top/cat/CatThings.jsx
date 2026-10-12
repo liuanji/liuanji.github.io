@@ -67,6 +67,21 @@ function Croissant() {
   );
 }
 
+// A big croissant flying along with her riding on it (her feet at (0, 0), on
+// its top), speed lines trailing behind (it faces left; flip for right).
+function FlyingCroissant() {
+  return (
+    <g>
+      <path d="M30 6h14M33 12h10M30 18h12" stroke="#E3C27A" strokeWidth="1.6" strokeLinecap="round" opacity="0.7" />
+      <g transform="translate(0 14) scale(1.9) translate(-80 -83)">
+        {CROISSANT.shapes.map(({ tag: Shape, topping: _topping, ...shape }, index) => (
+          <Shape key={index} {...shape} />
+        ))}
+      </g>
+    </g>
+  );
+}
+
 // A crumb of one of its fish-shaped cookies.
 function Crumb() {
   return (
@@ -1381,6 +1396,7 @@ const THINGS = {
   bell: Bell,
   confetti: Confetti,
   disco: DiscoBall,
+  flycroissant: FlyingCroissant,
   rumble: Rumble,
   pebble: Pebble,
   tear: Tear,
@@ -1437,6 +1453,7 @@ const REACH = {
   bell: 12,
   confetti: 90,
   disco: 170,
+  flycroissant: 60,
   rumble: 40,
   pebble: 6,
   tear: 6,
