@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { Cake, Croissant, Crown, Orbit, Wheat } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { BAKERY_SGD, CLOUD_SGD_PER_GPU_HOUR, ELECTRICITY_SGD_PER_KWH, MILESTONES, PASTRIES } from '../shared/config';
-import { milestoneLine, pastryPilePhrase } from '../shared/easterEggs';
+import { BAKERY_SGD, CLOUD_SGD_PER_GPU_HOUR, MILESTONES, PASTRIES } from '../shared/config';
+import { ENERGY_MEASURE_COUNT, energyMeasure, milestoneLine, pastryPilePhrase } from '../shared/easterEggs';
 import { formatDate, formatSgd } from '../shared/format';
 
 // Warm bakery tones for the badge and its box.
@@ -156,6 +157,22 @@ function PastryMountain({ reached }) {
 // the pastry pile, one croissant per rank reached.
 // pace is the lab's { gpuHoursPerDay, title } over the range being viewed;
 // without it the forecast keeps to the last month's pace.
+// How much electricity the ovens have drawn, and one everyday measure of it,
+// dealt afresh each time the box opens.
+function EnergyLine({ kwh, since }) {
+  const [turn] = useState(() => Math.floor(Math.random() * ENERGY_MEASURE_COUNT));
+  const [before, figure, after] = energyMeasure(kwh, turn);
+  return (
+    <p className="mt-2 text-xs leading-relaxed text-data-grey">
+      The ovens have drawn{' '}
+      <span className="font-medium text-inkwell">{Math.round(kwh).toLocaleString('en-US')} kWh</span> of electricity
+      {since ? ` since ${formatDate(since)}` : ''}: {before}
+      <span className="font-medium text-inkwell">{figure}</span>
+      {after}.
+    </p>
+  );
+}
+
 export default function MilestoneBadge({ lifetime, pace = null }) {
   if (!lifetime?.gpu_hours) return null;
   const hours = lifetime.gpu_hours;
@@ -236,23 +253,12 @@ export default function MilestoneBadge({ lifetime, pace = null }) {
               </span>
             ))}
           </p>
-          {/* The electricity the GPUs have drawn (counted since energy_since), and its cost. */}
+          {/* The electricity the GPUs have drawn (counted since energy_since), put in everyday terms. */}
           {lifetime.energy_kwh > 0 && (
-            <p className="mt-2 text-xs leading-relaxed text-data-grey">
-              The ovens have drawn{' '}
-              <span className="font-medium text-inkwell">
-                {Math.round(lifetime.energy_kwh).toLocaleString('en-US')} kWh
-              </span>{' '}
-              of electricity
-              {lifetime.energy_since && lifetime.energy_since !== lifetime.since
-                ? ` since ${formatDate(lifetime.energy_since)}`
-                : ''}
-              , about{' '}
-              <span className="font-medium text-inkwell">
-                {formatSgd(lifetime.energy_kwh * ELECTRICITY_SGD_PER_KWH)}
-              </span>{' '}
-              at {formatSgd(ELECTRICITY_SGD_PER_KWH)} a kWh.
-            </p>
+            <EnergyLine
+              kwh={lifetime.energy_kwh}
+              since={lifetime.energy_since !== lifetime.since && lifetime.energy_since}
+            />
           )}
 
           {next && (
@@ -265,7 +271,8 @@ export default function MilestoneBadge({ lifetime, pace = null }) {
                     style={{ width: `max(${progress * 100}%, 0.5rem)`, backgroundColor: CRUST }}
                   />
                 </div>
-                <span>{short(next.hours)}</span>
+                {/* In the same ink as the payback share below. */}
+                <span className="text-[11px] text-inkwell">{short(next.hours)}</span>
               </div>
               <p className="mt-1.5 font-mono text-[11px] text-data-grey">
                 {Math.ceil(next.hours - hours).toLocaleString('en-US')} h to{' '}

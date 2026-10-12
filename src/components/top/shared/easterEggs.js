@@ -1086,6 +1086,38 @@ export function allClearPhrase(turn = 0) {
   return ALL_CLEAR[(hash('clear') + turn) % ALL_CLEAR.length];
 }
 
+// Everyday measures of the electricity the GPUs have drawn (kWh), for the
+// milestone box: each gives [before, figure, after], the figure in bold. Rough
+// figures: a 4-room HDB flat uses about 360 kWh a month, a home oven about
+// 2 kW flat out, a full kettle about 0.15 kWh, a phone charge about 0.02 kWh,
+// an electric car about 0.16 kWh a km (Kuala Lumpur about 350 km away by
+// road), a ceiling fan about 50 W.
+function about(value) {
+  if (value < 10) return String(Math.round(value * 10) / 10);
+  return Number(value.toPrecision(value < 1000 ? 2 : 3)).toLocaleString('en-US');
+}
+const ENERGY_MEASURES = [
+  (kwh) => {
+    const months = kwh / 360;
+    return months >= 24
+      ? ['enough to run a 4-room HDB flat for about ', `${about(months / 12)} years`, '']
+      : ['enough to run a 4-room HDB flat for about ', `${about(months)} months`, ''];
+  },
+  (kwh) => ['as much as a real oven baking flat out for ', `${about(kwh / 2)} hours`, ''],
+  (kwh) => ['enough to boil ', `${about(kwh / 0.15)} full kettles`, ''],
+  (kwh) => ['enough to charge a phone ', `${about(kwh / 0.02)} times`, ''],
+  (kwh) => [
+    'enough to drive an electric car ',
+    `${about(kwh / 0.16)} km`,
+    `, to Kuala Lumpur and back about ${about(kwh / 0.16 / 700)} times`,
+  ],
+  (kwh) => ['enough to keep a ceiling fan turning nonstop for ', `${about(kwh / 0.05 / 8766)} years`, ''],
+];
+export const ENERGY_MEASURE_COUNT = ENERGY_MEASURES.length;
+export function energyMeasure(kwh, index) {
+  return ENERGY_MEASURES[index % ENERGY_MEASURES.length](kwh);
+}
+
 // One of a milestone's lines, the same all visit long.
 export function milestoneLine(milestone) {
   return milestone.lines[hash(`milestone|${milestone.rank}`) % milestone.lines.length];
