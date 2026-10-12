@@ -40,9 +40,9 @@ Mochi rests on a panel's edge for a while (the rest), then stirs. Each time:
 | Kind | Starving | Hungry | Content | Well fed | Full |
 |---|---|---|---|---|---|
 | (i) Move: walk, run, leap, side | 35% | 30% | 30% | 30% | 30% |
-| (ii) A GPU card visit | 12% | 16% | 20% | 22% | 24% |
-| (iii) A thought bubble | 0% | 5% | 10% | 12% | 14% |
-| (iv) Another interaction | 53% | 49% | 40% | 36% | 32% |
+| (ii) A GPU card visit | 8% | 10% | 12% | 13% | 14% |
+| (iii) A thought bubble | 0% | 5% | 10% | 12% | 18% |
+| (iv) Another interaction | 57% | 55% | 48% | 45% | 38% |
 
 A card visit with no running GPU card fully in view becomes (iv) instead.
 
@@ -123,15 +123,15 @@ of all stirs on a top edge is the kind's chance spread over the list.
 
 | Mood | The list | Each (of stirs) |
 |---|---|---|
-| Starving | yawn, sunbeam nap, crumb, sneeze, a bed nap (twice over), nodding off, flopping over, dreaming, sleep, beg | ~4.8% (a bed nap ~9.6%) |
-| Hungry | crumb, yawn, sneeze, butterfly, box, bird watching, a bed nap (twice over), nodding off, flopping over, dreaming, beg, groom, curling up, cheering the all-clear | ~3.3% (a bed nap ~6.5%) |
-| Content | butterfly, box, croissant, sunbeam nap, tail chase, yawn, sneeze, crumb, dance, bird watching, scratching, dough, backflip, groom, knead, batting something off the screen, cheering the all-clear | ~2.4% |
-| Well fed | butterfly, box, croissant, tail chase, dance, sneeze, crumb, sunbeam nap, bird watching, scratching, dough, backflip, knead, zoomies, groom, batting something off the screen, cheering the all-clear | ~2.1% |
-| Full | sunbeam nap, box, yawn, croissant, dance, sneeze, scratching, dough, backflip, belly-up, groom, knead, batting something off the screen, cheering the all-clear | ~2.3% |
+| Starving | yawn, sunbeam nap, crumb, sneeze, a bed nap (twice over), nodding off, flopping over, dreaming, sleep, beg | ~5.2% (a bed nap ~10.4%) |
+| Hungry | crumb, yawn, sneeze, butterfly, box, bird watching, a bed nap (twice over), nodding off, flopping over, dreaming, beg, groom, curling up, cheering the all-clear | ~3.7% (a bed nap ~7.3%) |
+| Content | butterfly, box, croissant, sunbeam nap, a bed nap, nodding off, curling up, tail chase, yawn, sneeze, crumb, dance, bird watching, scratching, dough, backflip, groom, knead, batting something off the screen, cheering the all-clear | 2.4% (naps ~9.6% in all) |
+| Well fed | butterfly, box, croissant, tail chase, dance, sneeze, crumb, sunbeam nap, a bed nap, curling up, bird watching, scratching, dough, backflip, knead, zoomies, groom, batting something off the screen, cheering the all-clear | ~2.4% (naps ~7.1% in all) |
+| Full | sunbeam nap, box, yawn, croissant, dance, sneeze, scratching, dough, backflip, belly-up, groom, knead, batting something off the screen, cheering the all-clear | ~2.7% |
 
 Cheering the all-clear (see Your notes) is on the list only while the notes
 pill shows its all-clear croissant; otherwise the rest share its part: hungry
-3.5% each (a bed nap 7%), content 2.5%, well fed 2.25%, full ~2.5%.
+~3.9% each (a bed nap ~7.9%), content ~2.5%, well fed ~2.5%, full ~2.9%.
 
 **Batting something off the screen:** something turns up within reach (a
 bouncy ball, a ball of yarn, a cookie, a croissant, a paper ball or her toy
@@ -188,8 +188,8 @@ time.
 - **Backflip:** a crouch and a wiggle, a spring into a tucked backward
   somersault, and a landing stuck with both paws up.
 
-So in every mood a GPU card visit (12–24%) is likelier than any single other
-interaction (about 2–9%).
+A GPU card visit comes 8–14% of the time, any single other interaction about
+2–5% (a bed nap up to ~10% when starving).
 
 ## With the pointer
 

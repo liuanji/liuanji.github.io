@@ -104,7 +104,7 @@ const FEELS = {
     rest: [14, 26],
     notice: 150,
     tease: 0,
-    plan: { move: 0.35, card: 0.12, bubble: 0, other: 0.53 },
+    plan: { move: 0.35, card: 0.08, bubble: 0, other: 0.57 },
     moves: { walk: 0.85, leap: 0.15 },
     gpus: { warm: 1 },
     begs: true,
@@ -121,7 +121,7 @@ const FEELS = {
     rest: [9, 18],
     notice: 170,
     tease: 0.08,
-    plan: { move: 0.3, card: 0.16, bubble: 0.05, other: 0.49 },
+    plan: { move: 0.3, card: 0.1, bubble: 0.05, other: 0.55 },
     moves: { walk: 0.6, run: 0.1, leap: 0.2, side: 0.1 },
     gpus: { warm: 0.55, spin: 0.15, peekaboo: 0.15, oil: 0.15 },
     begs: true,
@@ -137,7 +137,7 @@ const FEELS = {
     rest: [6, 13],
     notice: 170,
     tease: 0.2,
-    plan: { move: 0.3, card: 0.2, bubble: 0.1, other: 0.4 },
+    plan: { move: 0.3, card: 0.12, bubble: 0.1, other: 0.48 },
     moves: { walk: 0.45, run: 0.2, leap: 0.2, side: 0.15 },
     gpus: {
       warm: 0.16,
@@ -150,7 +150,7 @@ const FEELS = {
       kick: 0.08,
       oil: 0.08,
     },
-    acts: ['groom', 'knead'],
+    acts: ['groom', 'knead', 'sleep'],
   },
   purring: {
     energy: 0.85,
@@ -162,7 +162,7 @@ const FEELS = {
     rest: [4, 9],
     notice: 210,
     tease: 0.4,
-    plan: { move: 0.3, card: 0.22, bubble: 0.12, other: 0.36 },
+    plan: { move: 0.3, card: 0.13, bubble: 0.12, other: 0.45 },
     moves: { walk: 0.35, run: 0.3, leap: 0.2, side: 0.15 },
     gpus: {
       wobble: 0.19,
@@ -175,7 +175,7 @@ const FEELS = {
       kick: 0.08,
       oil: 0.08,
     },
-    acts: ['knead', 'zoom', 'groom'],
+    acts: ['knead', 'zoom', 'groom', 'sleep'],
   },
   loaf: {
     energy: 1,
@@ -188,7 +188,7 @@ const FEELS = {
     rest: [3, 8],
     notice: 170,
     tease: 0.15,
-    plan: { move: 0.3, card: 0.24, bubble: 0.14, other: 0.32 },
+    plan: { move: 0.3, card: 0.14, bubble: 0.18, other: 0.38 },
     moves: { walk: 0.3, run: 0.35, leap: 0.2, side: 0.15 },
     gpus: {
       wobble: 0.19,
@@ -344,6 +344,8 @@ const IDLE = {
   content: [
     'notes',
     'fling',
+    'bed',
+    'doze',
     'butterfly',
     'box',
     'croissant',
@@ -361,6 +363,7 @@ const IDLE = {
   purring: [
     'notes',
     'fling',
+    'bed',
     'butterfly',
     'box',
     'croissant',
