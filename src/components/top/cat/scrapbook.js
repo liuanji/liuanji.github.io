@@ -104,6 +104,14 @@ export const SCRAPBOOK = [
       { id: 'dance:shuffle', label: 'The shuffle', pose: 'walk', mood: 'purring', lift: 4, say: '♫' },
       { id: 'dance:twirl', label: 'A twirl', pose: 'cheer', mood: 'purring', lift: 10, say: '✦' },
       { id: 'dance:moonwalk', label: 'The moonwalk', pose: 'walk', mood: 'purring', facing: 1, say: '♪' },
+      {
+        id: 'dance:disco',
+        label: 'Disco',
+        pose: 'disco',
+        things: [{ kind: 'disco', dx: 0, dy: 0, count: 1200, ty: 46 }],
+      },
+      { id: 'dance:robot', label: 'The robot', pose: 'robot', say: 'beep' },
+      { id: 'dance:hula', label: 'The hula', pose: 'hula', say: '♪' },
     ],
   },
   {

@@ -709,6 +709,59 @@ function Bell() {
     </g>
   );
 }
+// For the disco: a glitter ball let down on a cord over her (her feet at
+// (0, 0)), turning (count, ms) so its facets glint, with soft beams of
+// coloured light sweeping to spots on the edge about her; ty lowers it (or,
+// less than 0, raises it out of the way).
+const DISCO_LIGHTS = ['#E39A55', '#8EA2E8', '#D98E9C', '#5BBE98'];
+const FACETS = ['#F4F6F9', '#C3CBD6', '#E4E8EE', '#AEB8C6'];
+function DiscoBall({ count = 0, ty = 0 }) {
+  const cy = -104 + ty;
+  const turn = Math.floor(count / 170);
+  const facets = [];
+  for (let row = -2; row <= 2; row += 1) {
+    const y = row * 3.6;
+    const half = Math.sqrt(Math.max(0, 81 - y * y)) - 1.6;
+    for (let x = -half, col = 0; x <= half - 2.6; x += 3.6, col += 1) {
+      facets.push(
+        <rect
+          key={`${row}-${col}`}
+          x={x}
+          y={cy + y - 1.6}
+          width="3"
+          height="3"
+          rx="0.4"
+          fill={FACETS[(col + row + 8 + turn) % FACETS.length]}
+        />,
+      );
+    }
+  }
+  return (
+    <g>
+      {DISCO_LIGHTS.map((color, index) => {
+        const to = Math.sin(count / 900 + index * 1.7) * 48;
+        return (
+          <g key={color}>
+            <path d={`M-1.4 ${cy}H1.4L${to + 8} 0H${to - 8}z`} fill={color} opacity="0.13" />
+            <ellipse cx={to} cy="-0.6" rx="9" ry="2.4" fill={color} opacity="0.35" />
+          </g>
+        );
+      })}
+      <path d={`M0 ${cy - 60}V${cy - 11}`} stroke="#9AA6B4" strokeWidth="1" />
+      <rect x="-2.4" y={cy - 12} width="4.8" height="3" rx="0.8" fill="#9AA6B4" />
+      <circle cx="0" cy={cy} r="9.6" fill="#D9DEE6" stroke="#9AA6B4" strokeWidth="1" />
+      {facets}
+      {[-1, 1].map((side) => (
+        <path
+          key={side}
+          d={`M${side * 14} ${cy - 9}l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z`}
+          fill="#F2C94C"
+          opacity={0.35 + 0.65 * Math.abs(Math.sin(count / 260 + side))}
+        />
+      ))}
+    </g>
+  );
+}
 // For cheering on the all-clear: a little burst of confetti from (0, 0), t
 // seconds after it went off (CONFETTI_S in all): bits of paper and dots in
 // soft colours flung up and out, slowed by the air, fluttering down and fading.
@@ -1302,6 +1355,7 @@ const THINGS = {
   sign: Sign,
   bell: Bell,
   confetti: Confetti,
+  disco: DiscoBall,
   tear: Tear,
   raincloud: RainCloud,
   grumble: Grumble,
@@ -1355,6 +1409,7 @@ const REACH = {
   sign: 22,
   bell: 12,
   confetti: 90,
+  disco: 170,
   tear: 6,
   raincloud: 24,
   grumble: 12,

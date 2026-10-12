@@ -61,6 +61,8 @@ const TRAPPED_PACE = 160;
 const SCARED_AT = 140;
 const SETTLE_MS = 1200;
 const DOZE_AFTER = 3 * 60 * 1000;
+// How long a nap lasts, in seconds, unless her mood says (FEELS, napFor).
+const NAP_FOR = [8, 11];
 // What may happen on a walk or a run along a panel's top edge, and how likely:
 // a trip partway along, tumbling down onto a panel below (if one is in view);
 // stopping to sniff; a fright at nothing, a jump and a look round; a pounce on
@@ -96,8 +98,9 @@ const FEELS = {
     pace: 0.55,
     face: 'hungry',
     restFace: 'hungry',
-    doze: 40 * 1000,
+    doze: 25 * 1000,
     dozes: 1,
+    napFor: [24, 40],
     rest: [14, 26],
     notice: 150,
     tease: 0,
@@ -112,16 +115,17 @@ const FEELS = {
     pace: 0.8,
     face: 'hungry',
     restFace: 'content',
-    doze: DOZE_AFTER,
+    doze: 60 * 1000,
     dozes: 1,
+    napFor: [16, 28],
     rest: [9, 18],
     notice: 170,
     tease: 0.08,
-    plan: { move: 0.35, card: 0.16, bubble: 0.05, other: 0.44 },
+    plan: { move: 0.3, card: 0.16, bubble: 0.05, other: 0.49 },
     moves: { walk: 0.6, run: 0.1, leap: 0.2, side: 0.1 },
     gpus: { warm: 0.55, spin: 0.15, peekaboo: 0.15, oil: 0.15 },
     begs: true,
-    acts: ['beg', 'groom'],
+    acts: ['beg', 'groom', 'sleep'],
   },
   content: {
     energy: 0.65,
@@ -230,6 +234,8 @@ const DANCE = new Set(['cheer', 'wave', 'walk', 'sit']);
 const GALLOP = new Set(['run', 'run2', 'skid', 'flee', 'flee2', 'creep', 'creep2']);
 // And the claps of applause.
 const CLAPS = new Set(['clap', 'clap2']);
+// And the moves of the newer dances (disco, robot, hula), on the beat.
+const MOVES = new Set(['disco', 'disco2', 'robot', 'robot2', 'hula', 'hula2', 'cheer']);
 
 const random = (from, to) => from + Math.random() * (to - from);
 const page = (rect) => ({
@@ -648,6 +654,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         (SWIPE.has(next) && SWIPE.has(shown.pose)) ||
         (GALLOP.has(next) && GALLOP.has(shown.pose)) ||
         (CLAPS.has(next) && CLAPS.has(shown.pose)) ||
+        (MOVES.has(next) && MOVES.has(shown.pose)) ||
         (DANCE.has(next) &&
           DANCE.has(shown.pose) &&
           (next === 'cheer' || next === 'wave' || shown.pose === 'cheer' || shown.pose === 'wave'));
@@ -816,10 +823,16 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         Object.entries(table).map(([name, make]) => [name, (...args) => (saw(`${group}:${name}`), make(...args))]),
       );
     // One of its mood's own doings, or a nap, or a dash along its panel.
+    // Curled up asleep, for a nap's length (longer, hungrier), unless the
+    // pointer comes near her first.
+    const fallAsleep = (time) => {
+      state.mode = 'sleep';
+      state.until = time + random(...(feel().napFor ?? NAP_FOR)) * 1000;
+    };
     const act = (name, time) => {
       saw(`act:${name}`);
       if (name === 'sleep') {
-        state.mode = 'sleep';
+        fallAsleep(time);
         return;
       }
       if (name === 'zoom') {
@@ -1190,6 +1203,91 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           glide(-dir),
           spin('walk', 2, { hop: 8 }),
           beat('wave', { hop: 12, face: dir, note: true, ms: BEAT * 1.6 }),
+        ];
+      },
+      // Disco: a glitter ball comes down over her and, in shades under its
+      // turning lights, she points up at it and down at the floor in turn,
+      // hips bouncing; a spin, the point held; and up the ball goes.
+      disco: () => {
+        const at = { x: state.x, from: performance.now() };
+        const ball = (time, extra = {}) =>
+          putThing({ kind: 'disco', x: at.x, y: state.y, count: time - at.from, ...extra });
+        const lit = (step) => ({
+          ...step,
+          frame: (s, time, k) => {
+            step.frame?.(s, time, k);
+            ball(time);
+          },
+        });
+        const points = (note) =>
+          [1, 2, 3, 4].map((n) => lit(beat(n % 2 ? 'disco' : 'disco2', { hop: 3, note: note && n === 1 })));
+        const hold = beat('disco', { hop: 0, ms: BEAT * 2.4 });
+        return [
+          {
+            pose: 'sit',
+            mood: 'purring',
+            ms: 800,
+            start: () => say('!'),
+            frame: (step, time, k) => ball(time, { ty: -70 * (1 - easeInOut(k)) }),
+          },
+          ...points(true),
+          ...points(false),
+          lit(spin('cheer', 2, { hop: 12 })),
+          lit({ ...hold, start: (step, time) => (hold.start(step, time), say('✦')) }),
+          {
+            pose: 'disco',
+            mood: 'purring',
+            ms: 700,
+            frame: (step, time, k) => ball(time, { ty: -70 * easeInOut(k), opacity: 1 - k }),
+          },
+        ];
+      },
+      // The robot: arms stiff and square, one forearm up and one down,
+      // switched with a jolt on the beat ("beep", "boop"); a sharp about-turn;
+      // a glitch, very fast ("01"); a slump as she powers down; and a hop as
+      // she boots up again.
+      robot: () => {
+        const tick = (pose, word, extra = {}) => ({
+          pose,
+          mood: 'content',
+          ms: BEAT,
+          ...extra,
+          start: (step) => {
+            if (word) say(word);
+            extra.start?.(step);
+          },
+        });
+        const up = beat('cheer', { hop: 16, ms: BEAT * 1.4 });
+        return [
+          tick('robot', 'beep'),
+          tick('robot2'),
+          tick('robot', 'boop'),
+          tick('robot2'),
+          tick('robot', null, { start: () => (state.facing = -state.facing) }),
+          tick('robot2', 'beep'),
+          tick('robot'),
+          tick('robot2', 'boop'),
+          ...[0, 1, 2, 3, 4, 5].map((n) => tick(n % 2 ? 'robot2' : 'robot', n ? null : '01', { ms: 110 })),
+          { pose: 'sit', mood: 'drowsy', ms: 900, start: () => say('…') },
+          { ...up, start: (step, time) => (up.start(step, time), say('beep boop!')) },
+        ];
+      },
+      // The hula: in a grass skirt and a flower garland, swaying her hips from
+      // side to side, arms flowing out the way she sways; a slow turn; and a
+      // hop with "aloha!".
+      hula: () => {
+        const sway = (pose, way, note) =>
+          beat(pose, { hop: 1.5, move: way * 10, note, ms: BEAT * 1.6, rock: { amp: 4, freq: 1.5, decay: 0 } });
+        const bye = beat('cheer', { hop: 14, ms: BEAT * 1.4 });
+        return [
+          sway('hula', -1, true),
+          sway('hula2', 1),
+          sway('hula', -1),
+          sway('hula2', 1, true),
+          sway('hula', -1),
+          sway('hula2', 1),
+          spin('hula', 2, { hop: 6, ms: BEAT * 2 }),
+          { ...bye, start: (step, time) => (bye.start(step, time), say('aloha!')) },
         ];
       },
     });
@@ -3668,7 +3766,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     // about it to show, given the dream's own.
     const nap = (scene = (dream) => dream, lift = 0, dreams = 0.4) => ({
       pose: 'sleep',
-      ms: random(8000, 11000),
+      ms: random(...(feel().napFor ?? NAP_FOR)) * 1000,
       start: (step) => {
         step.dreams = Math.random() < dreams;
         const about = scene([]);
@@ -4359,7 +4457,8 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         state.pointerSpeed = 0.6 * (state.pointerSpeed ?? 0) + 0.4 * speed;
       } else state.pointerSpeed = 0;
       state.pointer = { x: event.pageX, y: event.pageY, at: time };
-      if (state.mode === 'sleep') {
+      // Asleep, only the pointer coming near wakes her.
+      if (state.mode === 'sleep' && Math.hypot(event.pageX - state.x, event.pageY - (state.y - 18)) < feel().notice) {
         sit(time, 'content', 1500);
       }
       const press = state.press;
@@ -5536,7 +5635,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
               state.dozesOff = Math.random() < (feel().dozes ?? 1);
             }
             if (state.dozesOff) {
-              state.mode = 'sleep';
+              fallAsleep(time);
               break;
             }
           }
@@ -5816,6 +5915,8 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         case 'sleep':
           show('sleep');
           if (Math.random() < 0.004) say('z');
+          // Slept her fill: up, still drowsy (with a stretch).
+          if (time > state.until) sit(time, 'drowsy', 1200);
           break;
         case 'held': {
           // Carried by the scruff: it swings like a pendulum with the

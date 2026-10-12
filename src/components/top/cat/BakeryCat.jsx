@@ -477,6 +477,13 @@ export const ROAM_POSES = {
   beg: ({ mood = 'hungry' }) => <Begging mood={mood} />,
   // Dancing: up on its hind legs with both paws thrown up, or one waving.
   cheer: () => <Dancing />,
+  // The newer dances' moves, each in two, taken in turn on the beat.
+  disco: () => <Disco />,
+  disco2: () => <Disco down />,
+  robot: () => <Robot />,
+  robot2: () => <Robot flip />,
+  hula: () => <Hula />,
+  hula2: () => <Hula back />,
   wave: () => <Dancing waving />,
   // Washing its face with a licked paw.
   groom: () => <Grooming />,
@@ -1261,6 +1268,197 @@ function Dancing({ waving = false }) {
       )}
     </g>
   );
+}
+
+// The newer dances, up on its hind legs as for Dancing: its arms behind it
+// (their shoulders under its body) and in front, as each move has them; in
+// shades for the disco; in a grass skirt and a flower garland for the hula,
+// the skirt's strands swinging the way it sways (hula, -1 or 1).
+const limb = (d, key) => (
+  <g key={key}>
+    <path d={d} fill="none" stroke={EDGE} strokeWidth="8.2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d={d} fill="none" stroke={FUR} strokeWidth="5.6" strokeLinecap="round" strokeLinejoin="round" />
+  </g>
+);
+const pad = (cx, cy, turn = 0, rx = 4.6, ry = 4.1) => (
+  <ellipse
+    cx={cx}
+    cy={cy}
+    rx={rx}
+    ry={ry}
+    fill={BELLY}
+    stroke={EDGE}
+    strokeWidth="1.3"
+    transform={`rotate(${turn} ${cx} ${cy})`}
+  />
+);
+// A paw pointing, its toe out along (dx, dy).
+const pointing = (cx, cy, dx, dy, turn) => (
+  <g>
+    <path d={`M${cx} ${cy}l${dx} ${dy}`} stroke={EDGE} strokeWidth="4.4" strokeLinecap="round" />
+    <path d={`M${cx} ${cy}l${dx} ${dy}`} stroke={BELLY} strokeWidth="2.4" strokeLinecap="round" />
+    {pad(cx, cy, turn)}
+  </g>
+);
+function Shades() {
+  return (
+    <g>
+      <path d="M41.5 43.2 47.6 43M72.4 43l6.1.2" stroke="#3B3346" strokeWidth="1.1" strokeLinecap="round" />
+      <path d="M47.4 42h11l-.9 4.8c-.4 2-2 3.2-4 3.2h-1.2c-2 0-3.6-1.2-4-3.2z" fill="#3B3346" />
+      <path d="M61.6 42h11l-.9 4.8c-.4 2-2 3.2-4 3.2h-1.2c-2 0-3.6-1.2-4-3.2z" fill="#3B3346" />
+      <path d="M58.4 43.2q1.6-1.2 3.2 0" fill="none" stroke="#3B3346" strokeWidth="1.2" />
+      <path
+        d="M49.6 43.4l2.4 2.8M63.8 43.4l2.4 2.8"
+        stroke="white"
+        strokeOpacity="0.55"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+    </g>
+  );
+}
+const STRAW = ['#D9C27A', '#C4A95E', '#A9C48A'];
+function GrassSkirt({ lean }) {
+  const strands = Array.from({ length: 13 }, (_, index) => {
+    const x = 43.6 + index * 2.73;
+    const y = 75.6 + 2.6 * Math.sin((Math.PI * index) / 12);
+    const end = x + lean * 2.4;
+    return (
+      <path
+        key={index}
+        d={`M${x.toFixed(1)} ${y.toFixed(1)}Q${(x + lean * 0.6).toFixed(1)} 82 ${end.toFixed(1)} 87.2`}
+        fill="none"
+        stroke={STRAW[index % 3]}
+        strokeWidth="1.9"
+        strokeLinecap="round"
+      />
+    );
+  });
+  return (
+    <g>
+      <path
+        d={`M43 76Q60 80 77 76L${77.6 + lean * 2.4} 87Q60 89 ${42.4 + lean * 2.4} 87z`}
+        fill="#EBDDA4"
+        opacity="0.6"
+      />
+      {strands}
+      <path d="M42.6 75Q60 80 77.4 75" fill="none" stroke="#9DBF7E" strokeWidth="2.8" strokeLinecap="round" />
+    </g>
+  );
+}
+function Garland() {
+  return (
+    <g>
+      {Array.from({ length: 9 }, (_, index) => {
+        const t = index / 8;
+        return (
+          <circle
+            key={index}
+            cx={45 + 30 * t}
+            cy={60 + 22 * t * (1 - t)}
+            r="2.2"
+            fill={index % 2 ? '#F7D58C' : '#F2B8C2'}
+            stroke="#D98E9C"
+            strokeWidth="0.5"
+          />
+        );
+      })}
+    </g>
+  );
+}
+function Dancer({ mood = 'purring', behind, front, shades = false, hula = 0 }) {
+  return (
+    <g>
+      <path d="M74 86c12 0 16-7 13-15 3-1 5 1 5 3" fill="none" stroke={EDGE} strokeWidth="6" strokeLinecap="round" />
+      <path d="M74 86c12 0 16-7 13-15 3-1 5 1 5 3" fill="none" stroke={FUR} strokeWidth="3.8" strokeLinecap="round" />
+      {behind}
+      <path
+        d="M47 89c-5 0-7-5-6-12 1.5-12 7-21 19-21s17.5 9 19 21c1 7-1 12-6 12z"
+        fill={FUR}
+        stroke={EDGE}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M53 88c-3-5-3-17 7-21 10 4 10 16 7 21z" fill={BELLY} />
+      <ellipse cx="52" cy="88.5" rx="5.2" ry="3" fill={BELLY} stroke={EDGE} strokeWidth="1.4" />
+      <ellipse cx="68" cy="88.5" rx="5.2" ry="3" fill={BELLY} stroke={EDGE} strokeWidth="1.4" />
+      {hula !== 0 && <GrassSkirt lean={hula} />}
+      <g transform="translate(60 44) scale(0.92) translate(-60 -46)">
+        <Head mood={mood} />
+        {shades && <Shades />}
+      </g>
+      {hula !== 0 && <Garland />}
+      {front}
+    </g>
+  );
+}
+// Disco: in shades, one paw on its hip, the other pointing up high, or (down)
+// down low across to the floor.
+function Disco({ down = false }) {
+  const hip = (
+    <>
+      {limb('M73 67 82.6 73.6 76 79.6')}
+      {pad(74.8, 80, 20, 4, 3.6)}
+    </>
+  );
+  const arm = down ? (
+    <>
+      {limb('M47 69 34.6 82.4')}
+      {pointing(33.4, 83.6, -2.4, 2.8, 40)}
+    </>
+  ) : (
+    <>
+      {limb('M47 66 32 42')}
+      {pointing(30.8, 40.2, -2.6, -3.8, -40)}
+    </>
+  );
+  return <Dancer shades behind={arm} front={hip} />;
+}
+// The robot: arms stiff and square, one forearm up and the other down
+// (switched, flip).
+function Robot({ flip = false }) {
+  const left = flip ? 'M47 66H35.4V79' : 'M47 66H35.4V53';
+  const right = flip ? 'M73 66H84.6V53' : 'M73 66H84.6V79';
+  return (
+    <Dancer
+      mood="content"
+      behind={
+        <>
+          {limb(left, 'l')}
+          {limb(right, 'r')}
+          {pad(35.4, flip ? 81 : 51, 0, 4.2, 3.8)}
+          {pad(84.6, flip ? 51 : 81, 0, 4.2, 3.8)}
+        </>
+      }
+    />
+  );
+}
+// The hula: both arms flowing out to one side (towards its nose, or the
+// other way, back), one out long, one across its chest.
+function Hula({ back = false }) {
+  const behind = back ? (
+    <>
+      {limb('M73 66Q82 60 90 61.4')}
+      {pad(91.6, 61.8, 10)}
+    </>
+  ) : (
+    <>
+      {limb('M47 66Q38 60 30 61.4')}
+      {pad(28.4, 61.8, -10)}
+    </>
+  );
+  const front = back ? (
+    <>
+      {limb('M47 69Q57 73.6 66.4 68')}
+      {pad(68.4, 67, 0, 4.2, 3.6)}
+    </>
+  ) : (
+    <>
+      {limb('M73 69Q63 73.6 53.6 68')}
+      {pad(51.6, 67, 0, 4.2, 3.6)}
+    </>
+  );
+  return <Dancer behind={behind} front={front} hula={back ? 1 : -1} />;
 }
 
 // A hop, all four paws tucked under, tail up: bouncing on a GPU's tile.

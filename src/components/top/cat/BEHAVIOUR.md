@@ -39,10 +39,10 @@ Mochi rests on a panel's edge for a while (the rest), then stirs. Each time:
 
 | Kind | Starving | Hungry | Content | Well fed | Full |
 |---|---|---|---|---|---|
-| (i) Move: walk, run, leap, side | 35% | 35% | 30% | 30% | 30% |
+| (i) Move: walk, run, leap, side | 35% | 30% | 30% | 30% | 30% |
 | (ii) A GPU card visit | 12% | 16% | 20% | 22% | 24% |
 | (iii) A thought bubble | 0% | 5% | 10% | 12% | 14% |
-| (iv) Another interaction | 53% | 44% | 40% | 36% | 32% |
+| (iv) Another interaction | 53% | 49% | 40% | 36% | 32% |
 
 A card visit with no running GPU card fully in view becomes (iv) instead.
 
@@ -124,14 +124,14 @@ of all stirs on a top edge is the kind's chance spread over the list.
 | Mood | The list | Each (of stirs) |
 |---|---|---|
 | Starving | yawn, sunbeam nap, crumb, sneeze, a bed nap (twice over), nodding off, flopping over, dreaming, sleep, beg | ~4.8% (a bed nap ~9.6%) |
-| Hungry | crumb, yawn, sneeze, butterfly, box, bird watching, a bed nap (twice over), nodding off, flopping over, dreaming, beg, groom, cheering the all-clear | ~3.1% (a bed nap ~6.3%) |
+| Hungry | crumb, yawn, sneeze, butterfly, box, bird watching, a bed nap (twice over), nodding off, flopping over, dreaming, beg, groom, curling up, cheering the all-clear | ~3.3% (a bed nap ~6.5%) |
 | Content | butterfly, box, croissant, sunbeam nap, tail chase, yawn, sneeze, crumb, dance, bird watching, scratching, dough, backflip, groom, knead, cheering the all-clear | 2.5% |
 | Well fed | butterfly, box, croissant, tail chase, dance, sneeze, crumb, sunbeam nap, bird watching, scratching, dough, backflip, knead, zoomies, groom, cheering the all-clear | 2.25% |
 | Full | sunbeam nap, box, yawn, croissant, dance, sneeze, scratching, dough, backflip, belly-up, groom, knead, cheering the all-clear | ~2.5% |
 
 Cheering the all-clear (see Your notes) is on the list only while the notes
 pill shows its all-clear croissant; otherwise the rest share its part: hungry
-~3.4% each (a bed nap ~6.8%), content ~2.7%, well fed 2.4%, full ~2.7%.
+3.5% each (a bed nap 7%), content ~2.7%, well fed 2.4%, full ~2.7%.
 
 Hungry or starving, she naps a lot (well over half of her other interactions
 when starving):
@@ -141,7 +141,7 @@ when starving):
   round proofing basket (banneton), a plush doughnut bed (iced and sprinkled),
   a flour sack, or a croissant cushion. She goes over, sniffs it, hops in (or
   up), turns round twice, lies down, kneads it a little, and curls up asleep
-  for 8–11 s, dreaming of a fish-shaped cookie 40% of the time ("mm…"); then a
+  for 8–11 s (16–28 s hungry, 24–40 s starving), dreaming of a fish-shaped cookie 40% of the time ("mm…"); then a
   stretch with a big yawn, out she hops, and the bed goes. Or, sleepy where
   she is, she lies down and curls up, and a gingham tea towel drifts down over
   her; when she wakes it slips off.
@@ -190,9 +190,13 @@ Then she ignores the pointer for 3 s. Other reactions:
 
 - **Rubbing:** the pointer resting still just above her for 1.2–8 s: she
   comes to rub against it (at most every 15 s).
-- **Dozing:** no pointer movement for 3 minutes (40 s when starving): she
-  falls asleep (full, only 3% of the time, once each still spell); any
-  movement wakes her.
+- **Dozing:** no pointer movement for 3 minutes (a minute when hungry, 25 s
+  when starving): she curls up asleep (full, only 3% of the time, once each
+  still spell).
+- **Asleep** (dozing, or curled up of her own accord): she sleeps a nap's
+  length (8–11 s; 16–28 s hungry, 24–40 s starving) and wakes with a
+  stretch, unless the pointer comes near her first; the pointer moving
+  elsewhere on the page leaves her be.
 
 ## Clicks and drags
 
@@ -213,8 +217,21 @@ Then she ignores the pointer for 3 s. Other reactions:
 |---|---|
 | Give a treat | Equal pick (never the same twice running): toss and catch, hand-feed, treat hunt, little bowl, a warm taiyaki, a birthday cupcake, sushi on a conveyor belt, gradient descent, fishing |
 | Toss a toy | Equal pick (never the same twice running): yarn, bouncy ball, drifting feather, toy mouse, a robot vacuum ride, a paper aeroplane, a paper bag, bubble wrap, a kite |
-| Dance | Equal pick (never the same twice running): happy paws, shuffle, twirl, moonwalk |
+| Dance | Equal pick (never the same twice running): happy paws, shuffle, twirl, moonwalk, disco, the robot, the hula |
 | Send home | She leaps back into your name and roaming turns off |
+
+### The newer dances
+
+- **Disco:** a glitter ball comes down over her and, in shades under its
+  turning coloured lights, she points up at it and down at the floor in
+  turn, hips bouncing; a spin, the point held ("✦"), and up the ball goes.
+- **The robot:** stiff square arms, one forearm up and one down, switched
+  with a jolt on the beat ("beep", "boop"); a sharp about-turn; a very fast
+  glitch ("01"); a slump as she powers down ("…"); and a hop as she boots up
+  again ("beep boop!").
+- **The hula:** in a grass skirt and a flower garland, she sways her hips
+  from side to side, arms flowing out the way she sways; a slow turn; and a
+  hop with "aloha!".
 
 ### The newer treats and toys
 
@@ -459,7 +476,7 @@ are new since you last looked; a click opens it.
 
 ## Her scrapbook
 
-The first time she does each of 123 things, she keeps a page for it, and a
+The first time she does each of 126 things, she keeps a page for it, and a
 little open book rises off her. It is kept in this browser (`scrapbook.js`),
 and opens over the page from her card: each kind with how many of it she has
 done, then a card for each, drawn in her pose there (with what she had with
@@ -477,7 +494,7 @@ does not count: it only makes her do it, till she next settles.
 |---|---|
 | By herself | 15: butterfly, box, croissant, tail chase, sneeze, crumb, bird watching, scratching, dough, backflip, grooming, kneading, belly-up, begging, zoomies |
 | Naps | 12: the six beds, sunbeam, nodding off, flopping over, dreaming, curling up, a yawn |
-| Dances | 4: happy paws, shuffle, twirl, moonwalk |
+| Dances | 7: happy paws, shuffle, twirl, moonwalk, disco, the robot, the hula |
 | With you | 14: batting at the pointer, keep-away, caught, petting, a rub against your hand, a pounce on the pointer, belly rub, brushing, photo shoot, and the five games |
 | Treats | 9: each treat moment |
 | Toys | 8: each tossed toy |
