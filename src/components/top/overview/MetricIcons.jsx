@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import { useGrowingShare } from '../hooks/useGrowingShare';
 import { POWER_ICON_FULL_SHARE } from '../shared/config';
+import { heatColor } from '../shared/DetailBoxes';
 import { BOLT_WITH_SPARKLES, KEY_SPARKLES, Sparkle } from '../shared/Sparkles';
 
 // Small icons that show their tile's reading, drawn like stroke icons on a 24
@@ -105,11 +106,14 @@ const BOLT =
 
 // A lightning bolt that fills from the bottom up, full at
 // POWER_ICON_FULL_SHARE of the power limit; from there on it is a GPU tile's
-// bolt, solid, with its sparkles twinkling round it.
+// bolt, solid, with its sparkles twinkling round it, its fill warming through
+// the tiles' heat colours (amber to the hot red) as the draw climbs on to the
+// whole limit.
 function BoltIcon({ share, color }) {
   const id = useId();
   const value = clamp(share / POWER_ICON_FULL_SHARE);
   if (value >= 1) {
+    const warmth = clamp((share - POWER_ICON_FULL_SHARE) / (1 - POWER_ICON_FULL_SHARE));
     return (
       <g style={{ color }}>
         {KEY_SPARKLES.map((sparkle, index) => (
@@ -117,10 +121,11 @@ function BoltIcon({ share, color }) {
         ))}
         <path
           d={BOLT_WITH_SPARKLES}
-          fill="currentColor"
+          fill={heatColor(warmth)}
           stroke="currentColor"
           strokeWidth="1.6"
           strokeLinejoin="round"
+          style={{ transition: 'fill 900ms ease-in-out' }}
         />
       </g>
     );
