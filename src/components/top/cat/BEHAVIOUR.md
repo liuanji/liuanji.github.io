@@ -107,7 +107,7 @@ for a click; left alone, she looks let down ("…").
 |---|---|
 | Yarn | Rolls along the edge; she runs after it and pounces |
 | Feather wand | Dangles from the cursor; she follows, bats it, leaps for it |
-| Laser pointer | A red dot follows the cursor along her edge; she chases and pounces |
+| Laser pointer | A red dot sits on the top edge of whichever card the cursor is over (or just above); she chases and pounces, and when it moves onto another card she leaps over there and carries on (each leap adds 1.5 s to the game) |
 | Wind-up mouse | Zips to and fro; she stalks and pounces; three catches and she is done |
 | Bubbles | Eight drift up; she leaps to pop them |
 | A treat | One of the treat moments (below) |

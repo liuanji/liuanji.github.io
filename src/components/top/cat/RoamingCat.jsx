@@ -956,7 +956,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         until: time + (kind === 'bubbles' ? 16000 : 13000),
         nextPounce: time + 500,
         hop: null,
-        dot: onEdge(state.x + dir * 90),
+        dot: { perch: state.perch, x: onEdge(state.x + dir * 90) },
         mouse: { x: onEdge(state.x + dir * 130), dir, speed: 120, pauseUntil: time + 700 },
         catches: 0,
         bubbles: [],
@@ -965,6 +965,33 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       };
       state.lastPlay = time;
       say('♪');
+    };
+    // The laser dot, from the pointer: on the top edge of the card it is
+    // over or just above (the smallest, where cards sit in cards); it stays
+    // put while the pointer is away from every card or still a while. Drawn
+    // wherever it is, while she plays or leaps after it.
+    const aimLaser = (time) => {
+      const game = state.game;
+      if (time > (game.aimAt ?? 0)) {
+        game.aimAt = time + 90;
+        const { x, y, at } = state.pointer;
+        let best = null;
+        if (time - at < 5000) {
+          for (const element of visiblePerches()) {
+            const edge = page(element.getBoundingClientRect());
+            if (x < edge.left + 12 || x > edge.right - 12) continue;
+            const gap = y >= edge.top - 30 && y <= edge.bottom ? 0 : Math.abs(y - edge.top);
+            if (gap > 140) continue;
+            const score = gap * 10000 + (edge.bottom - edge.top);
+            if (!best || score < best.score) {
+              best = { perch: element, x: Math.min(edge.right - 14, Math.max(edge.left + 14, x)), score };
+            }
+          }
+        }
+        if (best) game.dot = { perch: best.perch, x: best.x };
+      }
+      const { perch, x } = game.dot;
+      if (perch.isConnected) putThing({ kind: 'laser', x, y: page(perch.getBoundingClientRect()).top });
     };
     const endGame = (time) => {
       cheerUp(JOY.played);
@@ -5226,6 +5253,8 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         }
       }
 
+      // Leaping after the laser dot to another card: it keeps moving.
+      if (state.game?.kind === 'laser' && ['spring', 'leap', 'land'].includes(state.mode)) aimLaser(time);
       switch (state.mode) {
         case 'leap': {
           // Nearly a steady pace across, an arc up and down, and the cat tilted
@@ -5776,6 +5805,10 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
               const onCard = Boolean(tile) && tileInView(tile);
               if (state.resume.onCard ? onCard : true) play(state.resume.steps(), time);
               else rest(time);
+            } else if (state.resume === 'laser' && state.game && !onSide()) {
+              // Over after the laser dot: the game goes on here.
+              state.mode = 'game';
+              state.game.hop = null;
             } else if (state.resume === 'tease' && !onSide()) {
               const { teasePace: pace, teaseFrom: from } = state;
               startTease(time);
@@ -6132,11 +6165,20 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           }
           const busy = !!game.hop || time < (game.holdUntil ?? 0);
           if (game.kind === 'laser') {
-            // The dot follows the pointer along the edge; it runs after it and pounces.
-            if (Math.abs(state.pointer.y - state.y) < 260 && time - state.pointer.at < 5000)
-              game.dot = onEdge(state.pointer.x);
-            putThing({ kind: 'laser', x: game.dot, y: state.y - 1 });
-            const dx = game.dot - state.x;
+            // The dot follows the pointer onto the top edge of whichever card
+            // it is over; she runs after it and pounces, and when it is on
+            // another card's edge, she leaps over there and carries on.
+            aimLaser(time);
+            const dot = game.dot;
+            if (dot.perch !== state.perch && dot.perch.isConnected && !busy && time > (game.leaptAt ?? 0)) {
+              game.leaptAt = time + 900;
+              game.until += 1500;
+              state.resume = 'laser';
+              state.lift = 0;
+              leapTo(dot.perch, dot.x - Math.sign(dot.x - state.x || 1) * 36);
+              break;
+            }
+            const dx = dot.x - state.x;
             if (busy) {
               // in the air
             } else if (Math.abs(dx) > 70) {
@@ -6144,7 +6186,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
               state.facing = dx < 0 ? -1 : 1;
               show('walk', 'hungry');
             } else if (Math.abs(dx) > 10 && time > game.nextPounce) {
-              gameHop(game.dot, 22, 380, 'reach');
+              gameHop(onEdge(dot.x), 22, 380, 'reach');
               game.nextPounce = time + 650;
             } else show('crouch');
           } else if (game.kind === 'feather') {
