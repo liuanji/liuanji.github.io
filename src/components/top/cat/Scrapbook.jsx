@@ -236,7 +236,8 @@ export function ScrapbookDialog({ open, onOpenChange, name, roaming = false }) {
   const count = Object.keys(kept).length;
   const close = (next) => {
     // Looked through: what is new now is no longer new next time.
-    if (!next) markViewed();
+    // (Once it has closed, so its new marks do not vanish as it fades.)
+    if (!next) setTimeout(markViewed, 260);
     onOpenChange(next);
   };
   const again = (code) => () => {
@@ -247,7 +248,9 @@ export function ScrapbookDialog({ open, onOpenChange, name, roaming = false }) {
     <Dialog.Root open={open} onOpenChange={close}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[#2B2A33]/20 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[min(86vh,820px)] w-[min(760px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-[#EADFCF] bg-[#FBF8F3] shadow-xl focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
+        {/* Centred by its margins, not a transform, so its animation (a fade, a slight
+            shrink and a little drop on closing) keeps it in place. */}
+        <Dialog.Content className="fixed inset-0 z-50 m-auto flex h-fit max-h-[min(86vh,820px)] w-[min(760px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-[#EADFCF] bg-[#FBF8F3] shadow-xl duration-200 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-bottom-2 data-[state=open]:slide-in-from-bottom-2">
           <header className="border-b border-[#EFE6D9] px-5 pb-4 pt-5 sm:px-6">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
