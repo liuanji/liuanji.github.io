@@ -23,20 +23,51 @@ export const SERIES = {
   disk: { label: 'Disk', color: '#5B6CC9', track: '#5B6CC924' },
 };
 
-// Soft, distinct hues that tell users apart in the compact view; a name always
-// maps to the same one. They sit beside the name, never alone, and avoid the
-// compute blue and memory green.
-export const USER_COLORS = [
-  '#E07A5F',
-  '#3D9A8B',
-  '#8E7CC3',
-  '#D9A23B',
-  '#5E8FD0',
-  '#C9668F',
-  '#7BA05B',
-  '#A47551',
-  '#4FA3B8',
-  '#B07AA1',
+// Users' colours, which tell them apart beside their names (never alone): hue
+// steps of 20 degrees round the wheel (starting at 25), each in a deeper and a
+// lighter tone, all at the same soft lightness and strength (OKLCH, so every
+// hue looks as bright as the next; [lightness, chroma] for each tone). The
+// steps used are the twelve at least 30 degrees from the rings' own memory
+// green (166) and compute blue (267).
+export const USER_COLOR_HUES = 18;
+export const USER_COLOR_TONES = [
+  [0.62, 0.12],
+  [0.75, 0.095],
+];
+// The lab's people when this was set up, one hue each, the busiest spread
+// apart, neighbouring hues in different tones, so no two look alike. [hue
+// step, tone]
+export const USER_COLOR_PINS = {
+  zoeshao: [0, 0],
+  zhiyu: [5, 1],
+  vitchun: [16, 0],
+  ianli18: [3, 1],
+  chenoy: [14, 0],
+  khangvo: [1, 1],
+  liankewei: [9, 0],
+  anji: [17, 1],
+  zhaijiayi: [4, 0],
+  nahyeonkaty: [15, 1],
+  zak: [2, 0],
+  xh: [10, 1],
+};
+// Anyone else: one of these, by a hash of their name (the other tone of each
+// pinned hue, so never a pinned person's colour). Never change this list, so
+// nobody's colour moves when someone new turns up; to give a newcomer a
+// colour of their own, pin them above instead.
+export const USER_COLOR_FREE = [
+  [0, 1],
+  [1, 0],
+  [2, 1],
+  [3, 0],
+  [4, 1],
+  [5, 0],
+  [9, 1],
+  [10, 0],
+  [14, 1],
+  [15, 0],
+  [16, 1],
+  [17, 0],
 ];
 
 // Status colours always appear next to their label, never alone.
@@ -101,9 +132,6 @@ export const LEVEL_SERIES = {
 // citynomads.com).
 export const CLOUD_SGD_PER_GPU_HOUR = 2.3;
 export const CROISSANT_SGD = 3;
-// What a kWh of electricity costs, for the GPUs' electricity on the milestone
-// box: roughly Singapore's regulated tariff (with GST); adjust as it changes.
-export const ELECTRICITY_SGD_PER_KWH = 0.3;
 
 // The milestone box's bakery basket, one treat per server: rough Singapore
 // prices in 2026 for a butter croissant, a German-style brezel (S$3-5 at

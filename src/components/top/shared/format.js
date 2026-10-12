@@ -6,7 +6,10 @@ import {
   RAM_LEVELS,
   TEMPERATURE_LEVELS_C,
   UPTIME_PARTIAL_AT,
-  USER_COLORS,
+  USER_COLOR_HUES,
+  USER_COLOR_PINS,
+  USER_COLOR_FREE,
+  USER_COLOR_TONES,
 } from './config';
 
 const decimal = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
@@ -22,13 +25,48 @@ const dayAndClock = new Intl.DateTimeFormat('en-GB', {
   hourCycle: 'h23',
 });
 
-// The same colour for a username on every page load (a 32-bit FNV-1a hash).
+// A colour from its hue step and tone (see USER_COLOR_HUES), as #rrggbb:
+// OKLCH to sRGB.
+function userTone(step, tone) {
+  const [lightness, chroma] = USER_COLOR_TONES[tone];
+  const hue = (((step * 360) / USER_COLOR_HUES + 25) * Math.PI) / 180;
+  const a = chroma * Math.cos(hue);
+  const b = chroma * Math.sin(hue);
+  const l = (lightness + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m = (lightness - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s = (lightness - 0.0894841775 * a - 1.291485548 * b) ** 3;
+  const linear = [
+    4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+    -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+  ];
+  return `#${linear
+    .map((value) => {
+      const x = Math.min(1, Math.max(0, value));
+      const encoded = x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055;
+      return Math.round(encoded * 255)
+        .toString(16)
+        .padStart(2, '0');
+    })
+    .join('')}`;
+}
+const toneCache = new Map();
+
+// The same colour for a username on every page load, whoever else turns up:
+// pinned for the lab's people (USER_COLOR_PINS), else one of the free colours
+// (USER_COLOR_FREE) by a 32-bit FNV-1a hash of the name.
 export function userColor(username) {
-  let hash = 0x811c9dc5;
-  for (const character of username) {
-    hash = Math.imul(hash ^ character.codePointAt(0), 0x01000193);
+  let pin = USER_COLOR_PINS[username];
+  if (!pin) {
+    let hash = 0x811c9dc5;
+    for (const character of username) {
+      hash = Math.imul(hash ^ character.codePointAt(0), 0x01000193);
+    }
+    pin = USER_COLOR_FREE[(hash >>> 0) % USER_COLOR_FREE.length];
   }
-  return USER_COLORS[(hash >>> 0) % USER_COLORS.length];
+  const key = pin.join('/');
+  if (!toneCache.has(key)) toneCache.set(key, userTone(...pin));
+  return toneCache.get(key);
 }
 
 // "128 cores · 256 threads", or "128 cores" without hyper-threading. Older data
