@@ -232,8 +232,9 @@ const SWIPE = new Set(['sit', 'reach']);
 const DANCE = new Set(['cheer', 'wave', 'walk', 'sit']);
 // And the strides of a gallop, a flight or a creep.
 const GALLOP = new Set(['run', 'run2', 'skid', 'flee', 'flee2', 'creep', 'creep2']);
-// And the claps of applause.
+// And the claps of applause, and the bounds of a pronk.
 const CLAPS = new Set(['clap', 'clap2']);
+const PRONKS = new Set(['pronk', 'crouch']);
 // And the moves of the newer dances (disco, robot, hula), on the beat.
 const MOVES = new Set(['disco', 'disco2', 'robot', 'robot2', 'hula', 'hula2', 'cheer']);
 
@@ -374,6 +375,18 @@ const IDLE = {
   loaf: ['sunbeam', 'box', 'yawn', 'croissant', 'dance', 'sneeze', 'scratch', 'dough', 'backflip', 'notes'],
 };
 const BUNT_EVERY = 15 * 1000;
+// And some only at certain levels (her mood from her tummy, napping to loaf;
+// her spirits, joy.js), added to the list when they apply: starving, an
+// empty bowl; hungry or starving, a rumbling tummy; full, a food coma; in
+// high spirits (and not hungry), pronking for joy; in low spirits, kicking a
+// pebble.
+const GATED = {
+  emptybowl: (mood) => mood === 'napping',
+  rumble: (mood) => mood === 'napping' || mood === 'hungry',
+  foodcoma: (mood) => mood === 'loaf',
+  pronk: (mood, spirits) => spirits === 'happy' && mood !== 'napping' && mood !== 'hungry',
+  pebble: (mood, spirits) => spirits === 'sad' || spirits === 'glum',
+};
 
 // Soft colours for the notes and sparkles of a dance.
 const NOTE_COLORS = {
@@ -654,6 +667,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         (SWIPE.has(next) && SWIPE.has(shown.pose)) ||
         (GALLOP.has(next) && GALLOP.has(shown.pose)) ||
         (CLAPS.has(next) && CLAPS.has(shown.pose)) ||
+        (PRONKS.has(next) && PRONKS.has(shown.pose)) ||
         (MOVES.has(next) && MOVES.has(shown.pose)) ||
         (DANCE.has(next) &&
           DANCE.has(shown.pose) &&
@@ -1003,7 +1017,11 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       } else if (kind === 'bubble') {
         play(doings.wish(), time);
       } else if (kind === 'other') {
-        const others = [...(IDLE[moodRef.current] ?? IDLE.content), ...feel().acts];
+        const others = [
+          ...(IDLE[moodRef.current] ?? IDLE.content),
+          ...feel().acts,
+          ...Object.keys(GATED).filter((name) => GATED[name](moodRef.current, joyLevel(joy))),
+        ];
         // (Off to her notes only to cheer the all-clear: notices waiting have
         // their own chance, above.)
         const clear = notesIn('clear');
@@ -4315,6 +4333,150 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         const name = names[Math.floor(Math.random() * names.length)];
         state.lastDance = name;
         return [{ pose: 'sit', mood: 'purring', ms: 350, start: () => say('♪') }, ...dances[name](), ...bow()];
+      },
+      // Starving: her bowl, and it is empty. She noses it along her edge,
+      // looks up ("…"), and paws it over, upside down ("mew?").
+      emptybowl: () => {
+        const dir = roomy();
+        let at = onEdge(state.x + dir * 30);
+        const bowl = (extra = {}) => putThing({ kind: 'bowl', x: at, y: state.y, count: 0, ...extra });
+        const over = { rotate: dir * 180, y: state.y - 8 };
+        return [
+          { pose: 'sit', mood: 'hungry', ms: 800, start: () => ((state.facing = dir), bowl(), say('?')) },
+          { pose: 'sniff', ms: 1000, start: () => say('sniff') },
+          {
+            pose: 'sniff',
+            ms: 1500,
+            start: (step) => ((step.from = state.x), (step.at = at)),
+            frame: (step, time, k) => {
+              state.x = onEdge(step.from + dir * 30 * k);
+              at = step.at + (state.x - step.from);
+              bowl();
+            },
+          },
+          { pose: 'sit', mood: 'sad', ms: 1500, start: () => say('…') },
+          {
+            pose: 'reach',
+            mood: 'hungry',
+            ms: 520,
+            frame: (step, time, k) =>
+              bowl({ rotate: dir * 180 * easeInOut(k), y: state.y - 8 * easeInOut(k) - 10 * Math.sin(Math.PI * k) }),
+          },
+          { pose: 'sit', mood: 'hungry', ms: 1600, start: () => say('mew?'), frame: () => bowl(over) },
+          { pose: 'sit', mood: 'sad', ms: 700, start: () => bowl({ ...over, opacity: 0 }) },
+        ];
+      },
+      // Hungry: her tummy rumbles ("grrr…", wobbly lines at her middle); she
+      // jumps, looks down at it ("?"), and licks her lips.
+      rumble: () => {
+        const lines = (time, opacity = 1) =>
+          putThing({ kind: 'rumble', front: true, x: state.x + Math.sin(time / 35) * 1.2, y: state.y - 14, opacity });
+        return [
+          { pose: 'sit', ms: 700 },
+          { pose: 'sit', mood: 'hungry', ms: 1400, start: () => say('grrr…'), frame: (step, time) => lines(time) },
+          {
+            pose: 'startle',
+            ms: 520,
+            start: () => say('!'),
+            frame: (step, time, k) => ((state.lift = 14 * Math.sin(Math.PI * k)), lines(time, 1 - k)),
+          },
+          { pose: 'sit', mood: 'hungry', ms: 1000, start: () => (putThing(null), say('?')) },
+          { pose: 'groom', ms: 1300, start: () => say('~') },
+        ];
+      },
+      // Full: a food coma. She slumps back, round tummy up, pats it in turn
+      // ("prr"), lets out a little burp (a bubble), and nods off sitting there.
+      foodcoma: () => [
+        { pose: 'stuffed', ms: 1300, start: () => say('prr') },
+        ...[0, 1, 2].flatMap(() => [
+          { pose: 'stuffed2', ms: 360 },
+          { pose: 'stuffed', ms: 440 },
+        ]),
+        {
+          pose: 'stuffed',
+          ms: 1300,
+          start: () => say('burp'),
+          frame: (step, time, k) =>
+            putThing({
+              kind: 'bubble',
+              x: state.x - state.facing * 4,
+              y: state.y - 40 - 24 * k,
+              scale: 0.6,
+              opacity: 1 - k,
+            }),
+        },
+        { pose: 'stuffed', mood: 'drowsy', ms: 2600, start: () => putThing(null) },
+        { pose: 'stuffed', mood: 'asleep', ms: 1800, start: () => say('z') },
+        { pose: 'sit', mood: 'purring', ms: 800 },
+      ],
+      // High spirits: pronking, springing straight up on stiff legs, again and
+      // again along her edge.
+      pronk: () => {
+        const dir = roomy();
+        const bound = (n) => ({
+          pose: 'pronk',
+          ms: 520,
+          start: (step) => {
+            step.from = state.x;
+            state.facing = dir;
+            if (n % 2 === 0) cheer();
+          },
+          frame: (step, time, k) => {
+            state.x = onEdge(step.from + dir * 22 * k);
+            state.lift = 26 * Math.sin(Math.PI * k);
+          },
+        });
+        return [
+          { pose: 'sit', mood: 'purring', ms: 400, start: () => say('!') },
+          ...[0, 1, 2, 3, 4].flatMap((n) => [bound(n), { pose: 'crouch', ms: 140 }]),
+          { pose: 'sit', mood: 'purring', ms: 1000, start: () => say('heart') },
+        ];
+      },
+      // Low spirits: kicking a pebble slowly along her edge, head down,
+      // trailing after it; the last kick sends it rolling away ("sigh…").
+      pebble: () => {
+        const dir = roomy();
+        let at = onEdge(state.x + dir * 20);
+        const stone = (extra = {}) => putThing({ kind: 'pebble', x: at, y: state.y, ...extra });
+        const kick = (far) => ({
+          pose: 'reach',
+          mood: 'sad',
+          ms: 420,
+          start: (step) => ((state.facing = dir), (step.at = at)),
+          frame: (step, time, k) => {
+            const eased = 1 - (1 - k) ** 2;
+            at = onEdge(step.at + dir * far * eased);
+            stone({ rotate: dir * far * 6 * eased });
+          },
+        });
+        const trail = () => ({
+          pose: 'walk',
+          mood: 'sad',
+          start: (step) => {
+            step.from = state.x;
+            step.to = onEdge(at - dir * 20);
+            step.ms = Math.max(200, (Math.abs(step.to - step.from) / (STROLL * 0.55)) * 1000);
+          },
+          frame: (step, time, k) => {
+            state.x = step.from + (step.to - step.from) * k;
+            stone();
+          },
+        });
+        return [
+          { pose: 'sit', mood: 'sad', ms: 800, start: () => ((state.facing = dir), stone()) },
+          kick(34),
+          trail(),
+          kick(40),
+          trail(),
+          kick(70),
+          {
+            pose: 'sit',
+            mood: 'sad',
+            ms: 1600,
+            start: () => say('sigh…'),
+            frame: (step, time, k) => stone({ opacity: 1 - k }),
+          },
+        ];
       },
       // The pointer resting near: it comes over and rubs against it, back and
       // forth, purring.

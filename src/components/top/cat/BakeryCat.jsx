@@ -477,6 +477,11 @@ export const ROAM_POSES = {
   beg: ({ mood = 'hungry' }) => <Begging mood={mood} />,
   // Dancing: up on its hind legs with both paws thrown up, or one waving.
   cheer: () => <Dancing />,
+  // Full to bursting (a food coma), now and then patting its tummy; and
+  // pronking for joy.
+  stuffed: ({ mood = 'purring' }) => <Stuffed mood={mood} />,
+  stuffed2: ({ mood = 'purring' }) => <Stuffed mood={mood} pat />,
+  pronk: () => <Pronking />,
   // The newer dances' moves, each in two, taken in turn on the beat.
   disco: () => <Disco />,
   disco2: () => <Disco down />,
@@ -1459,6 +1464,67 @@ function Hula({ back = false }) {
     </>
   );
   return <Dancer behind={behind} front={front} hula={back ? 1 : -1} />;
+}
+
+// Full to bursting (a food coma): slumped back sitting, its tummy round and
+// up, hind feet stuck out in front, front paws resting on its tummy, or one
+// patting it (pat).
+function Stuffed({ mood = 'purring', pat = false }) {
+  return (
+    <g>
+      <Sitting mood={mood} stage={STAGES[2]} holding />
+      {pad(48.6, 87.4, -24, 5, 2.9)}
+      {pad(71.4, 87.4, 24, 5, 2.9)}
+      <ellipse cx="60" cy="78.6" rx="15.4" ry="11.4" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <ellipse cx="60" cy="80" rx="11.4" ry="8.4" fill={BELLY} />
+      <path d="M58.6 80.2q1.4 1.4 2.8 0" fill="none" stroke={EDGE} strokeWidth="0.9" strokeLinecap="round" />
+      {pad(46.6, 75.6, 20, 4, 3.4)}
+      {pat ? pad(72.6, 69.4, -20, 4, 3.4) : pad(73.4, 75.6, -20, 4, 3.4)}
+    </g>
+  );
+}
+
+// Pronking for joy: sprung straight up on stiff legs, all four straight down,
+// back level, tail straight up with its tip curled, eyes shut happy.
+function Pronking() {
+  const leg = (d) => (
+    <>
+      <path d={d} fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+      <path d={d} fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+    </>
+  );
+  return (
+    <g>
+      <path
+        d="M80 64c3-7 3.4-15 1-22-1-3 2-5.4 4.4-3.4"
+        fill="none"
+        stroke={EDGE}
+        strokeWidth="6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M80 64c3-7 3.4-15 1-22-1-3 2-5.4 4.4-3.4"
+        fill="none"
+        stroke={FUR}
+        strokeWidth="3.8"
+        strokeLinecap="round"
+      />
+      {leg('M48 72v13')}
+      {leg('M54 74v13')}
+      {leg('M68 74v13')}
+      {leg('M74 72v13')}
+      {pad(48, 85.6, 0, 3.4, 2.2)}
+      {pad(54, 87.6, 0, 3.4, 2.2)}
+      {pad(68, 87.6, 0, 3.4, 2.2)}
+      {pad(74, 85.6, 0, 3.4, 2.2)}
+      <ellipse cx="62" cy="69" rx="20" ry="11.6" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <ellipse cx="61" cy="75" rx="11" ry="4" fill={BELLY} />
+      <path d="M63 58.6l1 4M70 59l.5 4M77 61l-1 3.5" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
+      <g transform="translate(45 55) scale(0.74) translate(-60 -46)">
+        <Head mood="purring" />
+      </g>
+    </g>
+  );
 }
 
 // A hop, all four paws tucked under, tail up: bouncing on a GPU's tile.

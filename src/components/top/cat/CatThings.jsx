@@ -709,6 +709,31 @@ function Bell() {
     </g>
   );
 }
+// A hungry tummy's rumble: two wobbly lines either side of (0, 0).
+function Rumble() {
+  return (
+    <g fill="none" stroke="#C98A50" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M-36-2q1.4-2 2.8 0t2.8 0 2.8 0M-34 3q1.4-2 2.8 0t2.8 0" />
+      <path d="M27.6-2q1.4-2 2.8 0t2.8 0 2.8 0M28.6 3q1.4-2 2.8 0t2.8 0" />
+    </g>
+  );
+}
+// A small grey pebble on the edge, its bottom at (0, 0).
+function Pebble() {
+  return (
+    <g>
+      <path d="M-3.6 0c-.8-2.6.6-4.6 3.2-4.8 2.6-.2 4.4 1.6 4 4.8z" fill="#B9BEC6" stroke="#959DA8" strokeWidth="0.8" />
+      <path
+        d="M-1.6-3.2q1-.8 2.2-.6"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.7"
+        strokeWidth="0.8"
+        strokeLinecap="round"
+      />
+    </g>
+  );
+}
 // For the disco: a glitter ball let down on a cord over her (her feet at
 // (0, 0)), turning (count, ms) so its facets glint, with soft beams of
 // coloured light sweeping to spots on the edge about her; ty lowers it (or,
@@ -1356,6 +1381,8 @@ const THINGS = {
   bell: Bell,
   confetti: Confetti,
   disco: DiscoBall,
+  rumble: Rumble,
+  pebble: Pebble,
   tear: Tear,
   raincloud: RainCloud,
   grumble: Grumble,
@@ -1410,6 +1437,8 @@ const REACH = {
   bell: 12,
   confetti: 90,
   disco: 170,
+  rumble: 40,
+  pebble: 6,
   tear: 6,
   raincloud: 24,
   grumble: 12,

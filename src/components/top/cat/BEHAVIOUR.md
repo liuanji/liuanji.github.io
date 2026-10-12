@@ -133,6 +133,19 @@ Cheering the all-clear (see Your notes) is on the list only while the notes
 pill shows its all-clear croissant; otherwise the rest share its part: hungry
 3.5% each (a bed nap 7%), content ~2.7%, well fed 2.4%, full ~2.7%.
 
+Five more join her list only at certain levels (one more equal pick each,
+so the others' shares shrink a little):
+
+| Doing | When | What she does |
+|---|---|---|
+| An empty bowl | Starving | Her bowl turns up, empty. She noses it along her edge ("sniff"), looks up sadly ("…"), and paws it over upside down ("mew?"). |
+| A rumbling tummy | Hungry or starving | Her tummy rumbles ("grrr…", wobbly lines either side of her); she jumps ("!"), looks down at it ("?"), and licks her lips. |
+| A food coma | Full | She slumps back, tummy round and up, hind feet out; pats it in turn ("prr"), burps a little bubble ("burp"), and nods off sitting there. |
+| Pronking | High spirits (75 or more), and not hungry or starving | Five springs straight up on stiff legs along her edge, tail high ("♪"), then a heart. |
+| Kicking a pebble | Low spirits (under 40) | She kicks a pebble slowly along her edge, head down, trailing after it; the third kick sends it rolling away ("sigh…"). |
+
+They are in her card's list too (by itself), where asking ignores the level.
+
 Hungry or starving, she naps a lot (well over half of her other interactions
 when starving):
 
@@ -476,7 +489,7 @@ are new since you last looked; a click opens it.
 
 ## Her scrapbook
 
-The first time she does each of 126 things, she keeps a page for it, and a
+The first time she does each of 131 things, she keeps a page for it, and a
 little open book rises off her. It is kept in this browser (`scrapbook.js`),
 and opens over the page from her card: each kind with how many of it she has
 done, then a card for each, drawn in her pose there (with what she had with
@@ -492,7 +505,7 @@ does not count: it only makes her do it, till she next settles.
 
 | Kind | Pages |
 |---|---|
-| By herself | 15: butterfly, box, croissant, tail chase, sneeze, crumb, bird watching, scratching, dough, backflip, grooming, kneading, belly-up, begging, zoomies |
+| By herself | 20: butterfly, box, croissant, tail chase, sneeze, crumb, bird watching, scratching, dough, backflip, grooming, kneading, belly-up, begging, zoomies, and the five at certain levels |
 | Naps | 12: the six beds, sunbeam, nodding off, flopping over, dreaming, curling up, a yawn |
 | Dances | 7: happy paws, shuffle, twirl, moonwalk, disco, the robot, the hula |
 | With you | 14: batting at the pointer, keep-away, caught, petting, a rub against your hand, a pounce on the pointer, belly rub, brushing, photo shoot, and the five games |
