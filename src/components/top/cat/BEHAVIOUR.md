@@ -85,7 +85,7 @@ back to a panel.
 | Peekaboo (peeks over the card, ducks, pops up) | – | 15% | 8% | 6% | 6% |
 | Add oil (on an idle card: pours from a little oil can, cheers two or three of "加油!" (Chinese), "頑張れ!" (Japanese), "Semangat!" (Malay), "화이팅!" (Korean) and "Cố lên!" (Vietnamese), and the card runs a while (its rings showing a pretend reading), bright, humming and glowing, then sputters out) | – | 15% | 8% | 8% | 8% |
 | Wobble (hops on it till it tips, reserve button and all; arches in fright; leaps off) | – | – | 15% | 19% | 19% |
-| Hamster wheel (runs on the ring for about 4 s, unhurried, the ring up to about two-thirds of a turn a second; flung off, lands dizzy) | – | – | 15% | 19% | 19% |
+| Hamster wheel (runs on the ring for about 4 s, the ring speeding up to nearly a turn a second, her strides keeping pace with its rim; flung off, lands dizzy) | – | – | 15% | 19% | 19% |
 | Ring swing (hangs from the top of the ring by her front paws, held together round it, and swings; lets go) | – | – | 10% | 15% | 15% |
 | Steal (pushes the card off the nearer edge of the screen and comes back pleased; 6–9 s later a helicopter or a UFO brings it back) | – | – | 8% | 9% | 9% |
 | Kick (three mule kicks, the card leaning further each time, till it topples off the bottom of the screen; a helicopter or a UFO brings it back) | – | – | 8% | 8% | 8% |
@@ -516,7 +516,8 @@ little open book rises off her. It is kept in this browser (`scrapbook.js`),
 and opens over the page from her card: each kind with how many of it she has
 done, then a card for each, drawn in her pose there (with what she had with
 her, and where she was), with the date. Pages kept since you last looked are
-marked new; the ones still to come show only her outline, faintly.
+marked new; the ones still to come show only her outline, faintly, and "???"
+for a name.
 
 What counts is what she does by herself (her doings, naps, dances, GPU card
 visits, calls at your notes, pop-up reactions, ways back into view, mishaps

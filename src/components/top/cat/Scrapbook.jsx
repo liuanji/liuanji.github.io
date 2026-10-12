@@ -213,7 +213,8 @@ function Moment({ moment, at, fresh, onAgain }) {
           </div>
         </div>
         <p className={`mt-1 text-center text-[11px] leading-snug ${at ? 'text-inkwell' : 'text-data-grey/70'}`}>
-          {moment.label}
+          {/* Not yet seen: no name either, only her outline. */}
+          {at ? moment.label : '???'}
         </p>
         <p className="font-mono text-[10px] text-data-grey/80">{at ? dateOf(at) : '·'}</p>
       </Card>

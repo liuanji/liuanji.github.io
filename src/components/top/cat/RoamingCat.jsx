@@ -1720,11 +1720,18 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           frame: (step, time, k) => {
             const dt = last == null ? 0 : (time - last) / 1000;
             last = time;
-            // Up to about two-thirds of a turn a second, an unhurried run.
-            angle -= state.facing * (40 + 200 * k) * dt;
+            // Speeding up to nearly a turn a second.
+            const turning = 90 + 240 * k;
+            angle -= state.facing * turning * dt;
             ring.style.transform = `rotate(${angle}deg)`;
-            step.pose = Math.floor(time / (260 - 90 * k)) % 2 ? 'run' : 'run2';
-            state.lift = Math.abs(Math.sin(time / (150 - 40 * k))) * 3;
+            // Her strides keep pace with the rim under her feet (the ring is
+            // about 188 px round; a half stride covers 12 px of it), one bob
+            // each.
+            const rim = (turning / 360) * 188;
+            const half = Math.min(340, Math.max(140, (12 / rim) * 1000));
+            step.stride = (step.stride ?? 0) + (dt * 1000) / half;
+            step.pose = Math.floor(step.stride) % 2 ? 'run' : 'run2';
+            state.lift = Math.abs(Math.sin(Math.PI * step.stride)) * 2.5;
           },
         },
         {
