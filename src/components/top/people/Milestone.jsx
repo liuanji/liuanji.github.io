@@ -1,6 +1,6 @@
 import { Cake, Croissant, Crown, Orbit, Wheat } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { BAKERY_SGD, CLOUD_SGD_PER_GPU_HOUR, MILESTONES, PASTRIES } from '../shared/config';
+import { BAKERY_SGD, CLOUD_SGD_PER_GPU_HOUR, ELECTRICITY_SGD_PER_KWH, MILESTONES, PASTRIES } from '../shared/config';
 import { milestoneLine, pastryPilePhrase } from '../shared/easterEggs';
 import { formatDate, formatSgd } from '../shared/format';
 
@@ -236,6 +236,24 @@ export default function MilestoneBadge({ lifetime, pace = null }) {
               </span>
             ))}
           </p>
+          {/* The electricity the GPUs have drawn (counted since energy_since), and its cost. */}
+          {lifetime.energy_kwh > 0 && (
+            <p className="mt-2 text-xs leading-relaxed text-data-grey">
+              The ovens have drawn{' '}
+              <span className="font-medium text-inkwell">
+                {Math.round(lifetime.energy_kwh).toLocaleString('en-US')} kWh
+              </span>{' '}
+              of electricity
+              {lifetime.energy_since && lifetime.energy_since !== lifetime.since
+                ? ` since ${formatDate(lifetime.energy_since)}`
+                : ''}
+              , about{' '}
+              <span className="font-medium text-inkwell">
+                {formatSgd(lifetime.energy_kwh * ELECTRICITY_SGD_PER_KWH)}
+              </span>{' '}
+              at {formatSgd(ELECTRICITY_SGD_PER_KWH)} a kWh.
+            </p>
+          )}
 
           {next && (
             <div className="mt-3">

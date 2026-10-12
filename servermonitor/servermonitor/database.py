@@ -204,6 +204,15 @@ CREATE TABLE IF NOT EXISTS lifetime_gpu_time (
     first_at INTEGER NOT NULL
 ) WITHOUT ROWID;
 
+-- The energy its GPUs have drawn, per server: a running total (joules, from
+-- their power at each sample over the time since the last) that the cleanup
+-- never trims, for the electricity on the lab's milestone card.
+CREATE TABLE IF NOT EXISTS lifetime_energy (
+    host TEXT PRIMARY KEY,
+    joules REAL NOT NULL,
+    first_at INTEGER NOT NULL
+) WITHOUT ROWID;
+
 -- The same running total per user, for each person's baker card.
 CREATE TABLE IF NOT EXISTS lifetime_user_time (
     username TEXT PRIMARY KEY,
@@ -489,6 +498,7 @@ class Database:
             if legacy:
                 self._migrate_legacy(connection, legacy)
             self._seed_lifetime(connection)
+            self._seed_energy(connection)
             self._repair_cut_names(connection)
         if legacy:
             # Give the space of the dropped sample tables back to the disk.
@@ -526,6 +536,7 @@ class Database:
             )
             self._add_user_sums(connection, result, duration)
             self._add_lifetime(connection, result, duration)
+            self._add_energy(connection, result, duration)
 
     @staticmethod
     def _add_lifetime(connection: sqlite3.Connection, result: CollectionResult, duration_seconds: int) -> None:
@@ -601,6 +612,35 @@ class Database:
             )
             connection.execute("DELETE FROM lifetime_user_time WHERE username = ?", (cut,))
 
+    @staticmethod
+    def _add_energy(connection: sqlite3.Connection, result: CollectionResult, duration_seconds: int) -> None:
+        """Add the energy the host's GPUs drew since the last sample, at the power
+        they read now, to its lifetime total."""
+        power = sum(gpu.power_w for gpu in result.gpus if gpu.power_w is not None)
+        if duration_seconds <= 0 or power <= 0:
+            return
+        connection.execute(
+            """
+            INSERT INTO lifetime_energy (host, joules, first_at) VALUES (?, ?, ?)
+            ON CONFLICT (host) DO UPDATE SET joules = joules + excluded.joules
+            """,
+            (result.host, power * duration_seconds, result.sampled_at - duration_seconds),
+        )
+
+    def _seed_energy(self, connection: sqlite3.Connection) -> None:
+        """Start the energy totals, once, from the hourly GPU sums already kept:
+        each power reading standing for one sampling interval."""
+        if connection.execute("SELECT 1 FROM lifetime_energy LIMIT 1").fetchone():
+            return
+        connection.execute(
+            """
+            INSERT INTO lifetime_energy (host, joules, first_at)
+            SELECT host, SUM(power_sum) * ?, MIN(bucket) FROM gpu_hour
+            GROUP BY host HAVING SUM(power_sum) > 0
+            """,
+            (self.interval_seconds,),
+        )
+
     def _seed_lifetime(self, connection: sqlite3.Connection) -> None:
         """Start the lifetime totals, once each, from the hourly user sums
         already kept: each server's hours counted under its GPUs' model, and
@@ -639,9 +679,9 @@ class Database:
         )
 
     def lifetime(self, now: int | None = None) -> dict[str, Any]:
-        """All GPU time ever credited, in GPU-hours in total and per model, and
-        the lab's recent pace: GPU-hours a day over the last PACE_DAYS, or over
-        the days since the first record if fewer."""
+        """All GPU time ever credited, in GPU-hours in total and per model; the
+        lab's recent pace: GPU-hours a day over the last PACE_DAYS, or over the
+        days since the first record if fewer; and the energy its GPUs have drawn."""
         now = int(time.time()) if now is None else now
         with self.connect() as connection:
             rows = connection.execute(
@@ -651,6 +691,7 @@ class Database:
                 "SELECT SUM(active_gpu_seconds) FROM user_hour WHERE bucket >= ? AND username != ?",
                 (now - PACE_DAYS * 86400, UNKNOWN_USER),
             ).fetchone()[0]
+            energy = connection.execute("SELECT SUM(joules), MIN(first_at) FROM lifetime_energy").fetchone()
         since = min((int(row["first_at"]) for row in rows), default=None)
         days = min(PACE_DAYS, (now - since) / 86400) if since is not None else 0
         return {
@@ -658,6 +699,9 @@ class Database:
             "gpu_hours": round(sum(row["gpu_seconds"] for row in rows) / 3600, 1),
             "models": [{"model": row["model"], "gpu_hours": round(row["gpu_seconds"] / 3600, 1)} for row in rows],
             "gpu_hours_per_day": round((recent or 0) / 3600 / days, 1) if days >= 1 else None,
+            # The energy the GPUs have drawn (kWh), and since when.
+            "energy_kwh": round(energy[0] / 3.6e6, 1) if energy[0] else None,
+            "energy_since": energy[1],
         }
 
     @staticmethod

@@ -1,5 +1,7 @@
 import { useId } from 'react';
 import { useGrowingShare } from '../hooks/useGrowingShare';
+import { POWER_ICON_FULL_SHARE } from '../shared/config';
+import { BOLT_WITH_SPARKLES, KEY_SPARKLES, Sparkle } from '../shared/Sparkles';
 
 // Small icons that show their tile's reading, drawn like stroke icons on a 24
 // unit grid in the metric's colour. share runs from 0 to 1.
@@ -101,10 +103,28 @@ function StickIcon({ share, color }) {
 const BOLT =
   'M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z';
 
-// A lightning bolt that fills from the bottom up.
+// A lightning bolt that fills from the bottom up, full at
+// POWER_ICON_FULL_SHARE of the power limit; from there on it is a GPU tile's
+// bolt, solid, with its sparkles twinkling round it.
 function BoltIcon({ share, color }) {
   const id = useId();
-  const value = clamp(share);
+  const value = clamp(share / POWER_ICON_FULL_SHARE);
+  if (value >= 1) {
+    return (
+      <g style={{ color }}>
+        {KEY_SPARKLES.map((sparkle, index) => (
+          <Sparkle key={index} sparkle={sparkle} index={index} />
+        ))}
+        <path
+          d={BOLT_WITH_SPARKLES}
+          fill="currentColor"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+      </g>
+    );
+  }
   return (
     <>
       <defs>

@@ -350,6 +350,34 @@ class DatabaseTest(unittest.TestCase):
             rows = connection.execute("SELECT model, gpu_seconds FROM lifetime_gpu_time").fetchall()
         self.assertEqual([(row[0], row[1]) for row in rows], [("Test GPU", 120)])
 
+    def test_lifetime_energy_adds_up_the_gpus_power_and_survives_cleanup(self) -> None:
+        start = 1_700_000_000
+        for offset in (0, 60, 120):
+            self.database.save(successful_result(start + offset))
+        # 240 W across the server's GPUs for two 60 s intervals.
+        with self.database.connect() as connection:
+            joules = connection.execute("SELECT joules FROM lifetime_energy").fetchone()[0]
+        self.assertEqual(joules, 240 * 120)
+        lifetime = self.database.lifetime()
+        self.assertEqual(lifetime["energy_kwh"], round(240 * 120 / 3.6e6, 1))
+        self.assertEqual(lifetime["energy_since"], start)
+        self.database.cleanup(rollup_retention_days=1, now=start + 10 * 86400)
+        with self.database.connect() as connection:
+            self.assertEqual(connection.execute("SELECT joules FROM lifetime_energy").fetchone()[0], 240 * 120)
+
+    def test_lifetime_energy_is_seeded_once_from_hourly_sums(self) -> None:
+        start = 1_700_000_000
+        for offset in (0, 60, 120):
+            self.database.save(successful_result(start + offset))
+        with self.database.connect() as connection:
+            connection.execute("DELETE FROM lifetime_energy")
+        self.database.initialize()
+        self.database.initialize()
+        with self.database.connect() as connection:
+            rows = connection.execute("SELECT host, joules FROM lifetime_energy").fetchall()
+        # Each of the three readings of 240 W standing for a 60 s interval.
+        self.assertEqual([(row[0], row[1]) for row in rows], [("brezel", 3 * 240 * self.database.interval_seconds)])
+
     def test_lifetime_per_user_is_counted_and_seeded_once(self) -> None:
         start = 1_700_000_000
         for offset in (0, 60, 120):

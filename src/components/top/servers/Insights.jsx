@@ -1,6 +1,14 @@
 import { useState } from 'react';
-import { Hourglass } from 'lucide-react';
-import { HELD_IDLE_FLAG_SECONDS, HELD_IDLE_REMIND_SECONDS, READING_STYLES, SERIES } from '../shared/config';
+import { Hourglass, Users } from 'lucide-react';
+import {
+  HELD_IDLE_FLAG_SECONDS,
+  HELD_IDLE_REMIND_SECONDS,
+  READING_STYLES,
+  SERIES,
+  SHARED_GPU_AFTER_SECONDS,
+  SHARED_GPU_COLOR,
+  SHARED_GPU_SHARE,
+} from '../shared/config';
 
 // The compact view rings' soft compute blue.
 const SPARKLINE_COLOR = '#6F90EA';
@@ -347,6 +355,73 @@ export function IdleBanner({ items, onOpen }) {
         Just a friendly nudge: if you have finished with {items.length === 1 ? 'it' : 'them'}, freeing{' '}
         {items.length === 1 ? 'the GPU' : 'the GPUs'} would make room for others’ bakes. No worries if it is still
         needed.
+      </p>
+    </Banner>
+  );
+}
+
+// GPUs the viewer shares in earnest with someone else: each of them holding
+// SHARED_GPU_SHARE or more of its memory, both there SHARED_GPU_AFTER_SECONDS
+// or more (as long as the shorter-running of their longest jobs there; not
+// when that is unknown); with who else and how much.
+export function mySharedGpus(hosts, me) {
+  const long = (user) => (user.running_seconds ?? 0) >= SHARED_GPU_AFTER_SECONDS;
+  return hosts.flatMap((host) =>
+    host.gpus.flatMap((gpu) => {
+      const total = gpu.memory_total_mb;
+      const big = total
+        ? gpu.users.filter((user) => user.used_memory_mb >= SHARED_GPU_SHARE * total && long(user))
+        : [];
+      const mine = big.find((user) => user.username === me);
+      if (!mine || big.length < 2) return [];
+      return [{ host: host.name, gpu, memory: mine.used_memory_mb, others: big.filter((user) => user !== mine) }];
+    }),
+  );
+}
+
+// A gentle, low-priority suggestion to whoever shares a GPU that way (each of
+// them gets it on their own page) that they may want to coordinate.
+export function SharedBanner({ items, onOpen }) {
+  if (!items.length) return null;
+  const color = SHARED_GPU_COLOR;
+  const gpuName = ({ host, gpu }) => (
+    <BannerLink color={color} onClick={onOpen && (() => onOpen(host))}>
+      {host} · GPU {gpu.index}
+    </BannerLink>
+  );
+  const who = (others) =>
+    others.map((user, index) => (
+      <span key={user.username}>
+        {index > 0 && (index === others.length - 1 ? ' and ' : ', ')}
+        <span className="font-medium">{user.username}</span>{' '}
+        <span className="whitespace-nowrap text-data-grey">({formatMemory(user.used_memory_mb)})</span>
+      </span>
+    ));
+  const [first] = items;
+  return (
+    <Banner icon={Users} color={color}>
+      <p className="text-inkwell">
+        {items.length === 1 ? (
+          <>
+            You and {who(first.others)} are both baking on {gpuName(first)}, with {formatMemory(first.memory)} of yours
+            in it.
+          </>
+        ) : (
+          <>
+            You are sharing {items.length} GPUs, each with a good part held by someone else:{' '}
+            {items.map((item, index) => (
+              <span key={`${item.host}/${item.gpu.index}`}>
+                {index > 0 && '; '}
+                {gpuName(item)} with {who(item.others)}
+              </span>
+            ))}
+            .
+          </>
+        )}
+      </p>
+      <p className="text-data-grey">
+        Two big bakes in one oven can slow each other down or run it out of memory. You might want to have a quick word
+        and coordinate.
       </p>
     </Banner>
   );

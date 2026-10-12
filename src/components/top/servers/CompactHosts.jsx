@@ -27,6 +27,7 @@ import {
 import { formatMemory, formatMemoryOf, hasCurrentData, ramLevel, temperatureLevel, userColor } from '../shared/format';
 import { ReservationMark, ReserveControl, clashingUsers, findReservation } from '../alerts/Reservations';
 import { useGrowingShare } from '../hooks/useGrowingShare';
+import { BOLT_WITH_SPARKLES, KEY_SPARKLES, Sparkle, sparklePath } from '../shared/Sparkles';
 
 function describe(gpu, host, reservation) {
   const parts = [
@@ -197,45 +198,9 @@ function TileBolt({ amount, charge }) {
   const fill = useGrowingShare(charge);
   return (
     <svg {...ICON_PROPS} style={heatStyle(amount)}>
-      {charge >= 1 && KEY_SPARKLES.map((sparkle, index) => <TileSparkle key={index} sparkle={sparkle} index={index} />)}
+      {charge >= 1 && KEY_SPARKLES.map((sparkle, index) => <Sparkle key={index} sparkle={sparkle} index={index} />)}
       <path d={BOLT} fill="currentColor" fillOpacity={fill} />
     </svg>
-  );
-}
-
-// Each sparkle waits a random while, BLINK_WAIT_MS, before every blink, so no
-// two keep step. A new key restarts the blink's animation.
-const BLINK_WAIT_MS = [1500, 6000];
-
-function TileSparkle({ sparkle: [x, y, r], index }) {
-  const [blinks, setBlinks] = useState(0);
-  useEffect(() => {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
-    let timer;
-    const wait = () => {
-      timer = setTimeout(
-        () => {
-          setBlinks((count) => count + 1);
-          wait();
-        },
-        BLINK_WAIT_MS[0] + Math.random() * (BLINK_WAIT_MS[1] - BLINK_WAIT_MS[0]),
-      );
-    };
-    wait();
-    return () => clearTimeout(timer);
-  }, []);
-  const box = { transformBox: 'fill-box', transformOrigin: 'center' };
-  return (
-    <g className="motion-safe:animate-sparkle-in" style={{ ...box, animationDelay: `${0.9 + index * 0.14}s` }}>
-      <path
-        key={blinks}
-        d={sparklePath(x, y, r)}
-        fill="currentColor"
-        stroke="none"
-        className={blinks ? 'motion-safe:animate-sparkle-blink' : undefined}
-        style={box}
-      />
-    </g>
   );
 }
 
@@ -574,19 +539,7 @@ function TemperatureScale() {
 // the heat colours the bolt fills in and three sparkles twinkle in round it one
 // by one, the biggest first, then it all fades back to an empty bolt. With
 // reduced motion it holds the empty bolt at the middle colour.
-const BOLT = 'M13 2 3 14h9l-1 8 10-12h-9l1-8z';
-const KEY_SPARKLES = [
-  [20.8, 3.2, 3.6],
-  [3.4, 20.6, 2.6],
-  [21.2, 19.6, 1.9],
-];
-
-// A four-point sparkle centred on (x, y), drawn like the croissant's.
-function sparklePath(x, y, r) {
-  const k = r * 0.12;
-  return `M${x} ${y - r}Q${x + k} ${y - k} ${x + r} ${y}Q${x + k} ${y + k} ${x} ${y + r}Q${x - k} ${y + k} ${x - r} ${y}Q${x - k} ${y - k} ${x} ${y - r}Z`;
-}
-
+const BOLT = BOLT_WITH_SPARKLES;
 function PowerScale() {
   return (
     <svg

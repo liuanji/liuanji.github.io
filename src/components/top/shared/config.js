@@ -65,6 +65,10 @@ export const POWER_ICON_RANGE = { from: 0.7, to: 1 };
 // From this share of its power limit a GPU's bolt fills in and sparkles, the
 // power key's end state: a quiet sign it is working flat out, not a warning.
 export const POWER_SPARKLE_SHARE = 0.85;
+// The overview's power icon fills in as the GPUs' total draw rises, full at
+// this share of their total power limit (a busy lab rarely draws more), where
+// it turns into the tiles' sparkling bolt.
+export const POWER_ICON_FULL_SHARE = 0.4;
 
 // A server's RAM as a share of its total; jobs get killed when it runs out.
 export const RAM_LEVELS = { warm: 0.8, hot: 0.9 };
@@ -97,6 +101,9 @@ export const LEVEL_SERIES = {
 // citynomads.com).
 export const CLOUD_SGD_PER_GPU_HOUR = 2.3;
 export const CROISSANT_SGD = 3;
+// What a kWh of electricity costs, for the GPUs' electricity on the milestone
+// box: roughly Singapore's regulated tariff (with GST); adjust as it changes.
+export const ELECTRICITY_SGD_PER_KWH = 0.3;
 
 // The milestone box's bakery basket, one treat per server: rough Singapore
 // prices in 2026 for a butter croissant, a German-style brezel (S$3-5 at
@@ -139,6 +146,13 @@ export const RESERVATION_MARKS = { mine: '#8478D6', others: '#8593AA' };
 export const HELD_IDLE_FLAG_SECONDS = 3600;
 // Its owner gets a kind note at the top of their own page sooner, after this long.
 export const HELD_IDLE_REMIND_SECONDS = 30 * 60;
+// Two or more people each holding at least this share of a GPU's memory, both
+// for SHARED_GPU_AFTER_SECONDS or more (their jobs there running that long),
+// are sharing it in earnest: each gets a quiet, low-priority note suggesting
+// they coordinate, in this colour.
+export const SHARED_GPU_SHARE = 0.2;
+export const SHARED_GPU_AFTER_SECONDS = 10 * 60;
+export const SHARED_GPU_COLOR = '#8E7CC3';
 
 // What the servers cost, which the lab's GPU time pays back at the cloud rate
 // above, for the milestone box (shown only as a share, never as prices).

@@ -31,6 +31,7 @@ import {
   RANGES,
   RESERVATION_CLASH,
   SERIES,
+  SHARED_GPU_COLOR,
 } from '../components/top/shared/config';
 import { LiveDot, Notice, SectionLabel, SegmentedControl, Switch } from '../components/top/shared/controls';
 import {
@@ -42,7 +43,7 @@ import {
   formatPercent,
   formatPower,
 } from '../components/top/shared/format';
-import { IdleBanner, myHeldIdle } from '../components/top/servers/Insights';
+import { IdleBanner, SharedBanner, myHeldIdle, mySharedGpus } from '../components/top/servers/Insights';
 import { OverheatBanner, myOverheated } from '../components/top/alerts/Overheat';
 import { ClashBanner, myClashes } from '../components/top/alerts/Reservations';
 import { useReservations } from '../components/top/hooks/useReservations';
@@ -308,6 +309,8 @@ export default function Top() {
   // Like clashes, checked on every server's disks.
   const cleanups = cleanupReminders(disks.data?.hosts ?? [], user);
   const heldIdle = myHeldIdle(currentHosts, user);
+  // GPUs the viewer shares in earnest with someone: low priority, so last.
+  const shared = mySharedGpus(currentHosts, user);
   // GPUs of the viewer's running over OVERHEAT_C: urgent, so on top and in the pill.
   const overheated = myOverheated(currentHosts, user);
   // The viewer's notices, for the pill in the corner.
@@ -332,6 +335,7 @@ export default function Top() {
       label: 'Scratch space to tidy',
       urgent: cleanupIsUrgent(cleanups),
     },
+    shared.length && { key: 'shared', color: SHARED_GPU_COLOR, label: 'Sharing a GPU with someone' },
   ].filter(Boolean);
 
   return (
@@ -420,6 +424,7 @@ export default function Top() {
                 <ClashBanner clashes={clashes} onOpen={hosts.length > 1 ? showHost : undefined} />
                 <IdleBanner items={heldIdle} onOpen={hosts.length > 1 ? showHost : undefined} />
                 <CleanupBanner reminders={cleanups} onOpen={showStorage} />
+                <SharedBanner items={shared} onOpen={hosts.length > 1 ? showHost : undefined} />
               </NotesPill>
               {hosts.length > 1 && (
                 <div id="top-servers" className="mb-8 scroll-mt-28">
