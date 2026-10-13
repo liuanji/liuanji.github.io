@@ -763,13 +763,14 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           box.current.style.clipPath = `polygon(${l}px ${t}px, ${r}px ${t}px, ${r}px ${b}px, ${l}px ${b}px)`;
         } else if (box.current.style.clipPath) box.current.style.clipPath = '';
       }
-      // Up on the bakery's oven, or on her way up there or off it, she is drawn
-      // over its card (pop-ups are z-50).
+      // Up on the bakery's oven, or on her way up there, down off it or away,
+      // she is drawn over its card (pop-ups are z-50).
       if (layer.current) {
         const oven = (element) =>
           element?.isConnected &&
           (element.hasAttribute('data-cat-oven') || element.hasAttribute('data-cat-oven-front'));
-        layer.current.style.zIndex = oven(state.perch) || oven(state.go?.card) ? '55' : '';
+        const leaping = state.mode === 'leap' && (oven(state.target) || oven(state.leapFrom));
+        layer.current.style.zIndex = oven(state.perch) || oven(state.go?.card) || leaping ? '55' : '';
       }
       if (tilt.current) {
         // Its nose is on the left unless the drawing is mirrored to face right.
@@ -869,6 +870,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       const falling = duration === DROP_MS;
       Object.assign(state, {
         mode: falling ? 'fall' : 'leap',
+        leapFrom: state.perch,
         gravity: false,
         tumbling: false,
         from: { x: state.x, y: state.y },
@@ -6754,9 +6756,12 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           show(onSide() ? 'cling' : 'crouch');
           if (time > state.until) {
             const [perch, at, duration, side] = state.spring;
+            const from = state.perch;
             state.mode = 'leaping';
             state.perch = null;
             leapTo(perch, at, duration, side);
+            // (Where it sprang from, for the leap: see place.)
+            state.leapFrom = from;
           }
           break;
         case 'crouch':
