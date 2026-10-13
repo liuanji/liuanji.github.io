@@ -637,11 +637,30 @@ export function RamDetails({ host, system, level, trend = null, children = null,
   const shown = useGrowingShare(used / total);
   const inUse = LEVEL_SERIES[level] ?? RING_SERIES.memory;
   const swapKnown = system.swap_total_mb != null && system.swap_used_mb != null;
+  // The file cache (files the system keeps in spare RAM and hands back the
+  // moment programs need it), in a paler shade of the RAM green, and swap,
+  // which lives on disk, in the disk hue.
+  const cache = (
+    <Metric
+      label="File cache"
+      value={system.memory_cache_mb == null ? '—' : formatMemory(system.memory_cache_mb)}
+      share={system.memory_cache_mb == null ? null : system.memory_cache_mb / total}
+      series={CACHE_SERIES}
+    />
+  );
+  const swap = (
+    <Metric
+      label="Swap"
+      value={swapKnown ? formatMemoryOf(system.swap_used_mb, system.swap_total_mb) : '—'}
+      share={swapKnown && system.swap_total_mb ? system.swap_used_mb / system.swap_total_mb : null}
+      series={SERIES.disk}
+    />
+  );
   return (
     <PartBox
       compact={compact}
       large={
-        <div className="flex w-[112px] flex-shrink-0 flex-col items-center justify-center">
+        <div className="flex w-[124px] flex-shrink-0 flex-col items-center justify-center">
           <StickGlyph share={shown} pace={used / total} color={inUse.color} width={112} animated />
           <span
             className="mt-3 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell"
@@ -649,6 +668,11 @@ export function RamDetails({ host, system, level, trend = null, children = null,
           >
             {Math.round(shown * 100)}%
           </span>
+          {/* Under the figure (in use), the cache and swap. */}
+          <div className="mt-5 w-full space-y-3">
+            {cache}
+            {swap}
+          </div>
         </div>
       }
       small={<StickGlyph share={shown} pace={used / total} color={inUse.color} width={60} animated />}
@@ -659,26 +683,17 @@ export function RamDetails({ host, system, level, trend = null, children = null,
       }
       subtitle={`${formatMemory(total)} total`}
     >
-      {/* In use across the top; below it the file cache (files the system keeps
-          in spare RAM and hands back the moment programs need it), in a paler
-          shade of the RAM green, and swap, which lives on disk, in the disk hue. */}
-      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3.5">
-        <div className="col-span-2">
-          <Metric label="In use" value={formatMemory(used)} share={used / total} series={inUse} />
+      {/* Compact (the expanded view's box), in use across the top and the
+          cache and swap below it; else just the chart, beside them. */}
+      {compact && (
+        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3.5">
+          <div className="col-span-2">
+            <Metric label="In use" value={formatMemory(used)} share={used / total} series={inUse} />
+          </div>
+          {cache}
+          {swap}
         </div>
-        <Metric
-          label="File cache"
-          value={system.memory_cache_mb == null ? '—' : formatMemory(system.memory_cache_mb)}
-          share={system.memory_cache_mb == null ? null : system.memory_cache_mb / total}
-          series={CACHE_SERIES}
-        />
-        <Metric
-          label="Swap"
-          value={swapKnown ? formatMemoryOf(system.swap_used_mb, system.swap_total_mb) : '—'}
-          share={swapKnown && system.swap_total_mb ? system.swap_used_mb / system.swap_total_mb : null}
-          series={SERIES.disk}
-        />
-      </div>
+      )}
       {trend}
       {children}
       <BoxFooter phrase={pressurePhrase('ram', used / total, host)} />
