@@ -668,11 +668,22 @@ export function RamDetails({ host, system, level, trend = null, children = null,
           >
             {Math.round(shown * 100)}%
           </span>
-          {/* Under the figure (in use), the cache and swap. */}
-          <div className="mt-5 w-full space-y-3">
-            {cache}
-            {swap}
-          </div>
+          {/* Under the figure (in use), the cache and swap: just their figures,
+              each with a dot in its colour. */}
+          <dl className="mt-5 grid w-full gap-2.5 text-center font-mono">
+            {[
+              ['File cache', system.memory_cache_mb == null ? '—' : formatMemory(system.memory_cache_mb), CACHE_SERIES],
+              ['Swap', swapKnown ? formatMemoryOf(system.swap_used_mb, system.swap_total_mb) : '—', SERIES.disk],
+            ].map(([label, value, series]) => (
+              <div key={label}>
+                <dt className="flex items-center justify-center gap-1.5 text-[10px] text-data-grey">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: series.color }} aria-hidden="true" />
+                  {label}
+                </dt>
+                <dd className="mt-0.5 text-sm tabular-nums text-inkwell">{value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       }
       small={<StickGlyph share={shown} pace={used / total} color={inUse.color} width={60} animated />}
