@@ -79,11 +79,12 @@ function Flying({ pastry, from, duration }) {
 }
 
 // The packing: how many of this round's six are in the box, and whether the
-// box is being sent off or a new round set out.
-function usePacking(every, flight) {
-  const [packing, setPacking] = useState({ round: 0, packed: 0, phase: 'packing' });
+// box is being sent off or a new round set out (carried: the last one went in
+// by the roaming cat's paws, not hopping). Held (the cat busy at it), it waits.
+function usePacking(every, flight, held) {
+  const [packing, setPacking] = useState({ round: 0, packed: 0, phase: 'packing', carried: false });
   useEffect(() => {
-    if (!every || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
+    if (!every || held || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
     const { phase, packed } = packing;
     const [wait, next] =
       phase === 'refill'
@@ -91,13 +92,21 @@ function usePacking(every, flight) {
         : phase === 'sending'
           ? [SEND_OFF_MS, (current) => ({ round: current.round + 1, packed: 0, phase: 'refill' })]
           : packed < PILE.length
-            ? [every, (current) => ({ ...current, packed: current.packed + 1 })]
+            ? [every, (current) => ({ ...current, packed: current.packed + 1, carried: false })]
             : [flight + 150, (current) => ({ ...current, phase: 'sending' })];
     const timer = setTimeout(() => setPacking(next), wait);
     return () => clearTimeout(timer);
-  }, [packing, every, flight]);
-  return packing;
+  }, [packing, every, flight, held]);
+  return [packing, setPacking];
 }
+
+// How long the cat may hold the packing up before it carries on regardless.
+const HOLD_MS = 20_000;
+// The scene's box (its own units: 144 across from 8, 60 down from 34) on
+// the 260 px it is drawn at.
+const PX = 260 / 144;
+const px = (u) => (u - 8) * PX;
+const py = (v) => (v - 34) * PX;
 
 // load is the share of the server's GPUs in use, which sets the pace.
 function PackingScene({ pastry, status, load }) {
@@ -105,122 +114,169 @@ function PackingScene({ pastry, status, load }) {
   const asleep = !every;
   // A hop never outlasts the gap to the next pastry.
   const flight = every ? Math.min(FLIGHT_MS, every * 0.85) : FLIGHT_MS;
-  const { round, packed, phase } = usePacking(every, flight);
+  // The roaming cat at the counter (RoamingCat.jsx), telling it what she does
+  // ('bakery-pack' events): holding the packing up while she is in the box or
+  // packing by paw, letting it go on, and taking the top pastry off the pile
+  // (to carry into the box, or to eat).
+  const [held, setHeld] = useState(false);
+  const [{ round, packed, phase, carried }, setPacking] = usePacking(every, flight, held);
+  useEffect(() => {
+    const onCat = (event) => {
+      if (event.detail === 'hold') setHeld(true);
+      else if (event.detail === 'go') setHeld(false);
+      else if (event.detail === 'pick') {
+        setPacking((current) =>
+          current.phase === 'packing' && current.packed < PILE.length
+            ? { ...current, packed: current.packed + 1, carried: true }
+            : current,
+        );
+      }
+    };
+    window.addEventListener('bakery-pack', onCat);
+    return () => window.removeEventListener('bakery-pack', onCat);
+  }, [setPacking]);
+  useEffect(() => {
+    if (!held) return undefined;
+    const timer = setTimeout(() => setHeld(false), HOLD_MS);
+    return () => clearTimeout(timer);
+  }, [held]);
   return (
-    <svg viewBox="8 34 144 60" className="h-auto w-[260px] overflow-visible" aria-hidden="true">
-      {asleep &&
-        ['z', 'z', 'Z'].map((letter, index) => (
-          <text
-            key={index}
-            x={64 + index * 7}
-            y={56 - index * 6}
-            fontFamily="JetBrains Mono, monospace"
-            fontSize={7 + index * 2}
-            fontWeight="600"
-            fill="#A3B1C6"
-            className="opacity-0 motion-safe:animate-snooze"
-            style={{ animationDelay: `${index * 0.9}s` }}
-          >
-            {letter}
-          </text>
-        ))}
-      <line x1="18" y1="88.6" x2="142" y2="88.6" stroke={GLYPH.unlit} strokeWidth="2" strokeLinecap="round" />
-      {/* The pile: the pastries not packed yet, bottom row first so the upper
-          ones sit on top; a new round's pop in one after another. */}
-      {PILE.map((at, index) => ({ at, index }))
-        .reverse()
-        .filter(({ index }) => index >= packed)
-        .map(({ at, index }) => (
-          <g
-            key={`${round}-${index}`}
-            className={round > 0 ? 'motion-safe:animate-pile-pop' : undefined}
-            style={{
-              transformBox: 'fill-box',
-              transformOrigin: 'center bottom',
-              animationDelay: `${(PILE.length - 1 - index) * 0.1}s`,
-            }}
-          >
-            <Small pastry={pastry} at={at} />
-          </g>
-        ))}
-      {status === 'closed' && (
-        // A cloth over the pile while the bakery is closed.
-        <path
-          d="M24 88.5c0-12 10-24 28-24s28 12 28 24z"
-          fill="#F4EFE7"
-          stroke="#E2D8C8"
-          strokeWidth="1.4"
-          strokeLinejoin="round"
-        />
-      )}
-      {/* The box: its inside, the pastry on its way in, then its front with
-          the label; full, it gets its lid and is taken away, and an empty one
-          comes in its place. */}
-      <g
-        key={`box-${round}`}
-        className={
-          phase === 'sending'
-            ? 'motion-safe:animate-box-leave'
-            : round > 0
-              ? 'motion-safe:animate-box-enter'
-              : undefined
-        }
-      >
-        <rect x="97" y="66" width="30" height="8" rx="1.2" fill={BOX.inside} />
-        {phase === 'packing' && packed > 0 && (
-          <Flying key={`${round}-${packed}`} pastry={pastry} from={PILE[packed - 1]} duration={flight} />
-        )}
-        <rect x="95" y="72" width="34" height="16.5" rx="2" fill={BOX.kraft} stroke={BOX.edge} strokeWidth="1.2" />
-        {phase === 'sending' && (
-          <rect
-            x="93.5"
-            y="65"
-            width="37"
-            height="7.5"
-            rx="2"
-            fill={BOX.lid}
-            stroke={BOX.edge}
-            strokeWidth="1.2"
-            className="motion-safe:animate-box-lid"
-          />
-        )}
-        <rect x="102" y="76" width="20" height="8.5" rx="2" fill="white" stroke="#E2CFA9" strokeWidth="0.8" />
-        {asleep ? (
-          <text
-            x="112"
-            y="82"
-            textAnchor="middle"
-            fontFamily="JetBrains Mono, monospace"
-            fontSize="5"
-            fontWeight="700"
-            letterSpacing="0.6"
-            fill={HOST_STATUS.closed.color}
-          >
-            CLOSED
-          </text>
-        ) : phase === 'sending' ? (
+    <div className="relative w-[260px]">
+      <svg viewBox="8 34 144 60" className="h-auto w-[260px] overflow-visible" aria-hidden="true">
+        {asleep &&
+          ['z', 'z', 'Z'].map((letter, index) => (
+            <text
+              key={index}
+              x={64 + index * 7}
+              y={56 - index * 6}
+              fontFamily="JetBrains Mono, monospace"
+              fontSize={7 + index * 2}
+              fontWeight="600"
+              fill="#A3B1C6"
+              className="opacity-0 motion-safe:animate-snooze"
+              style={{ animationDelay: `${index * 0.9}s` }}
+            >
+              {letter}
+            </text>
+          ))}
+        <line x1="18" y1="88.6" x2="142" y2="88.6" stroke={GLYPH.unlit} strokeWidth="2" strokeLinecap="round" />
+        {/* The pile: the pastries not packed yet, bottom row first so the upper
+            ones sit on top; a new round's pop in one after another. */}
+        {PILE.map((at, index) => ({ at, index }))
+          .reverse()
+          .filter(({ index }) => index >= packed)
+          .map(({ at, index }) => (
+            <g
+              key={`${round}-${index}`}
+              className={round > 0 ? 'motion-safe:animate-pile-pop' : undefined}
+              style={{
+                transformBox: 'fill-box',
+                transformOrigin: 'center bottom',
+                animationDelay: `${(PILE.length - 1 - index) * 0.1}s`,
+              }}
+            >
+              <Small pastry={pastry} at={at} />
+            </g>
+          ))}
+        {status === 'closed' && (
+          // A cloth over the pile while the bakery is closed.
           <path
-            d="M108.5 80.2l2.2 2.2 4.6-4.6"
-            fill="none"
-            stroke={BOX.ink}
-            strokeWidth="1.3"
-            strokeLinecap="round"
+            d="M24 88.5c0-12 10-24 28-24s28 12 28 24z"
+            fill="#F4EFE7"
+            stroke="#E2D8C8"
+            strokeWidth="1.4"
             strokeLinejoin="round"
           />
-        ) : (
-          PILE.map((_, index) => (
-            <circle
-              key={index}
-              cx={105 + index * 2.8}
-              cy="80.25"
-              r="0.95"
-              fill={index < packed ? BOX.ink : BOX.dot}
-              style={{ transition: `fill 0.3s ease ${flight * 0.8}ms` }}
-            />
-          ))
         )}
-      </g>
-    </svg>
+        {/* The box: its inside, the pastry on its way in, then its front with
+            the label; full, it gets its lid and is taken away, and an empty one
+            comes in its place. */}
+        <g
+          key={`box-${round}`}
+          className={
+            phase === 'sending'
+              ? 'motion-safe:animate-box-leave'
+              : round > 0
+                ? 'motion-safe:animate-box-enter'
+                : undefined
+          }
+        >
+          <rect x="97" y="66" width="30" height="8" rx="1.2" fill={BOX.inside} />
+          {phase === 'packing' && packed > 0 && !carried && (
+            <Flying key={`${round}-${packed}`} pastry={pastry} from={PILE[packed - 1]} duration={flight} />
+          )}
+          <rect x="95" y="72" width="34" height="16.5" rx="2" fill={BOX.kraft} stroke={BOX.edge} strokeWidth="1.2" />
+          {phase === 'sending' && (
+            <rect
+              x="93.5"
+              y="65"
+              width="37"
+              height="7.5"
+              rx="2"
+              fill={BOX.lid}
+              stroke={BOX.edge}
+              strokeWidth="1.2"
+              className="motion-safe:animate-box-lid"
+            />
+          )}
+          <rect x="102" y="76" width="20" height="8.5" rx="2" fill="white" stroke="#E2CFA9" strokeWidth="0.8" />
+          {asleep ? (
+            <text
+              x="112"
+              y="82"
+              textAnchor="middle"
+              fontFamily="JetBrains Mono, monospace"
+              fontSize="5"
+              fontWeight="700"
+              letterSpacing="0.6"
+              fill={HOST_STATUS.closed.color}
+            >
+              CLOSED
+            </text>
+          ) : phase === 'sending' ? (
+            <path
+              d="M108.5 80.2l2.2 2.2 4.6-4.6"
+              fill="none"
+              stroke={BOX.ink}
+              strokeWidth="1.3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ) : (
+            PILE.map((_, index) => (
+              <circle
+                key={index}
+                cx={105 + index * 2.8}
+                cy="80.25"
+                r="0.95"
+                fill={index < packed ? BOX.ink : BOX.dot}
+                style={{ transition: `fill 0.3s ease ${flight * 0.8}ms` }}
+              />
+            ))
+          )}
+        </g>
+      </svg>
+      {/* For the roaming cat: the counter (its top edge the counter's line,
+          wider than the scene, as she keeps clear of a perch's ends), saying
+          how the packing is; and the box's top, to sit in. */}
+      <div
+        aria-hidden="true"
+        data-cat-scene
+        data-cat-pack={asleep ? 'asleep' : 'awake'}
+        data-pack-left={PILE.length - packed}
+        data-pack-phase={phase}
+        data-pack-pastry={pastry.name}
+        className="pointer-events-none absolute"
+        style={{ left: -40, width: 340, top: py(88.6) - 1, height: 4 }}
+      />
+      <div
+        aria-hidden="true"
+        data-cat-scene
+        data-cat-pack-box
+        className="pointer-events-none absolute"
+        style={{ left: px(95), width: 34 * PX, top: py(72) - 1, height: 4 }}
+      />
+    </div>
   );
 }
 
@@ -297,7 +353,8 @@ function PackingCard({ host, status, reportedAt, now, load }) {
   );
 }
 
-// A server's status pill, which opens its packing counter.
+// A server's status pill, which opens its packing counter (data-pack-trigger:
+// the roaming cat's "visit a packing counter" opens it too).
 export function HostStatus({ host, now }) {
   return (
     <DetailsPopover
@@ -311,9 +368,13 @@ export function HostStatus({ host, now }) {
         />
       }
       width="w-[340px]"
+      // (Stays till a scroll or a click outside: the roaming cat comes over
+      // to it whenever it opens.)
+      sticky
     >
       <button
         type="button"
+        data-pack-trigger
         aria-label={`${host.name}: ${(HOST_STATUS[host.status] ?? HOST_STATUS.unseen).label}. Show its counter.`}
         className="group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20"
       >

@@ -485,6 +485,18 @@ export const SCRAPBOOK = [
     ],
   },
   {
+    key: 'packing',
+    title: 'At the packing counter',
+    moments: [
+      { id: 'pack:box', label: 'If it fits, she sits', pose: 'peek', stage: 'packbox', say: 'prr' },
+      { id: 'pack:help', label: 'Helping pack', pose: 'reach', facing: 1, stage: 'pack', say: '✦' },
+      { id: 'pack:snack', label: 'A sneaky snack', pose: 'wink', stage: 'pack', say: 'shh' },
+      { id: 'pack:cheer', label: 'Cheering a box off', pose: 'clap2', mood: 'purring', stage: 'pack', say: '✦' },
+      { id: 'pack:nap', label: 'Napping on the box', pose: 'sleep', stage: 'packbox', say: 'z' },
+      { id: 'pack:nudge', label: 'Nudging the sleepy pile', pose: 'reach', stage: 'pack', say: 'mew?' },
+    ],
+  },
+  {
     key: 'in',
     title: 'Back into view',
     moments: [
@@ -684,6 +696,7 @@ const AGAIN = new Set([
   'notes',
   'atyou',
   'oven',
+  'pack',
 ]);
 export function replayOf(id) {
   const [group, name] = id.split(':');

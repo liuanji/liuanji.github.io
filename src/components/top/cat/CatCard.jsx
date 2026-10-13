@@ -89,6 +89,7 @@ const ACTIONS = [
       ['atyou:paper', 'Throw a paper ball at you'],
       ['oven:visit', 'Visit the bakery’s oven'],
       ['oven:cookie', 'A cookie from a little oven'],
+      ['pack:visit', 'Visit a packing counter'],
       ['act:groom', 'Groom'],
       ['act:knead', 'Knead'],
       ['act:belly', 'Roll belly-up'],

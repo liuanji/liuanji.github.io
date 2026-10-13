@@ -84,8 +84,48 @@ function OvenStage({ kind, x, y }) {
 // notes pill or its all-clear croissant; the inside of a panel; the bakery's
 // oven (oven, ovenoff, ovenclosed; moved along by a moment's stageDx); or
 // nothing.
+// A server's packing counter (HostPacking.jsx): its counter, a little pile
+// to her left and a box to her right (pack); or the box itself, her feet on
+// its top edge (packbox).
+const KRAFT = { box: '#ECD7B2', edge: '#C9A877', label: '#E2CFA9', pastry: '#E9C88E', crust: '#C49A62' };
+function PackStage({ kind, x, y }) {
+  if (kind === 'packbox') {
+    return (
+      <svg className="absolute" style={{ left: x - 40, top: y - 2 }} width="80" height="40" aria-hidden="true">
+        <rect x="3" y="2" width="74" height="34" rx="4" fill={KRAFT.box} stroke={KRAFT.edge} strokeWidth="2" />
+        <rect x="24" y="12" width="32" height="14" rx="3" fill="white" stroke={KRAFT.label} strokeWidth="1.2" />
+      </svg>
+    );
+  }
+  return (
+    <svg className="absolute" style={{ left: x - 72, top: y - 34 }} width="144" height="40" aria-hidden="true">
+      <line x1="2" y1="34.5" x2="142" y2="34.5" stroke="#E6EBF1" strokeWidth="2" strokeLinecap="round" />
+      {[
+        [8, 22],
+        [24, 22],
+        [16, 10],
+      ].map(([left, top]) => (
+        <rect
+          key={`${left}-${top}`}
+          x={left}
+          y={top}
+          width="14"
+          height="12"
+          rx="4"
+          fill={KRAFT.pastry}
+          stroke={KRAFT.crust}
+          strokeWidth="1.2"
+        />
+      ))}
+      <rect x="104" y="14" width="36" height="20" rx="2.5" fill={KRAFT.box} stroke={KRAFT.edge} strokeWidth="1.4" />
+      <rect x="112" y="19" width="20" height="9" rx="2" fill="white" stroke={KRAFT.label} strokeWidth="0.9" />
+    </svg>
+  );
+}
+
 function Stage({ kind, x, y }) {
   if (kind === 'none') return null;
+  if (kind === 'pack' || kind === 'packbox') return <PackStage kind={kind} x={x} y={y} />;
   if (kind.startsWith('oven')) return <OvenStage kind={kind} x={x} y={y} />;
   if (kind === 'ring') return <Ring left={x - 32} top={y - 2} />;
   if (kind === 'side') {

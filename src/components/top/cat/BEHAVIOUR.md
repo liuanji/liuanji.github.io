@@ -470,6 +470,36 @@ to the nearest panel in view that the card does not cover. Asked from her
 card ("Visit the bakery's oven"), or from her scrapbook, the card opens (and
 stays open) if it is not, and up she goes.
 
+### A server's packing counter
+
+A server's status pill opens its packing counter (a pile of six of its
+pastry, hopping one by one into a bakery box). Like the bakery's card, it
+stays open till a scroll or a click outside, and she goes to it whenever it
+opens, landing on the counter between the pile and the box. What she does is
+an equal pick (never the same twice running) of those that fit:
+
+| Counter | What she may do |
+|---|---|
+| Packing, the box empty or one in | Box, Help, Snack |
+| Packing, two or more left on the pile | Help, Snack |
+| Packing, one left | Snack |
+| The box going off, or a new one coming | Cheer |
+| Asleep (the server not answering, or closed) | Nap, Nudge |
+
+| Doing | What happens |
+|---|---|
+| Box | If it fits, she sits: she hops into the box, peeking over its front ("prr"), ducks, peeks again (a heart), and hops out. The packing waits while she is in it. |
+| Help | She holds the packing up and packs two or three herself: the top one off the pile into her paw, then over and down into the box (its dots counting it). A cheer ("✦"), and the packing goes on. |
+| Snack | A glance each way, the top one off the pile, and she eats it ("nom", "crunch"; that box goes out one short); a lick, and "shh" with a wink. |
+| Cheer | She claps the full box off ("✦"), a heart. |
+| Nap | Up onto the box, curled up asleep on it for 9–13 s. |
+| Nudge | She taps the sleeping pile twice ("mew?"), nothing; she lies down by it a while. |
+
+The counter carries on by itself if she is gone 20 s without letting it.
+Half the time she does a second thing there; then she leaps off to the
+nearest panel in view the card does not cover. Asked from her card ("Visit a
+packing counter"), the first server's in view opens.
+
 **A cookie, earned.** Each time your cookies today go up by a whole one (a
 GPU-hour your jobs held; the counts refresh every 5 minutes), one is due to
 her. At her next stir, a little countertop oven turns up beside her, "ding!",
@@ -574,8 +604,8 @@ everything she can be asked to do, in two levels: first its kinds (moves, by
 itself, naps, with you, GPU cards, treats, toys, each with how many it holds),
 and a click on one shows what is in it, with a way back up. In all: the moves (walk, run, sniff, spook,
 pounce), her other interactions (with a visit to your notes, and each of the
-four things she can throw at you, a visit to the bakery's oven and an
-earned cookie), her naps (each of the six beds, the sunbeam,
+four things she can throw at you, a visit to the bakery's oven, an earned
+cookie and a visit to a packing counter), her naps (each of the six beds, the sunbeam,
 nodding off, flopping over, dreaming, curling up, a yawn), the GPU card visits
 (greyed out unless a running GPU's card, or for "add oil" an idle one, is fully
 in view when the list opens), the things to do with you (belly rub, brushing,
@@ -589,7 +619,7 @@ are new since you last looked; a click opens it.
 
 ## Her scrapbook
 
-The first time she does each of 153 things, she keeps a page for it, and a
+The first time she does each of 159 things, she keeps a page for it, and a
 little open book rises off her. It is kept in this browser (`scrapbook.js`),
 and opens over the page from her card: each kind with how many of it she has
 done, then a card for each, drawn in her pose there (with what she had with
@@ -623,6 +653,7 @@ are not buttons.
 | Your notes | 8: the five ways of calling you, "you noticed!", applause, a thumbs up |
 | Pop-up cards | 15: the six things on top, startled, scared off, and seven ways over |
 | At the bakery | 11: a whole bake, nose to the glass, turning up the heat, warm on the oven, watching it bake, the power button, a pinched pastry, the timer, dozing with it, knocking, an earned cookie |
+| At the packing counter | 6: in the box, helping pack, a sneaky snack, cheering a box off, napping on the box, nudging the pile |
 | Back into view | 11: every way in but the plain leap, the helicopter and the UFO apart |
 | Mishaps | 7: trip, slip, spook, sniff, a speck, off the page, dropped from up high |
 | Trapped | 7: each escape |

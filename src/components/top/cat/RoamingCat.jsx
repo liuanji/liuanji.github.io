@@ -460,6 +460,15 @@ const OVEN_UNITS = 160;
 function ovenOf(card) {
   return card?.querySelector?.('[data-cat-oven]') ?? null;
 }
+// A server's packing counter (its status pill's card, HostPacking.jsx), the
+// same: its counter a perch, saying how the packing is. Either is a scene she
+// goes to whenever its card opens.
+function packOf(card) {
+  return card?.querySelector?.('[data-cat-pack]') ?? null;
+}
+function sceneOf(card) {
+  return ovenOf(card) ?? packOf(card);
+}
 // How long after one earned cookie before the next is handed out.
 const COOKIE_REST_MS = 3 * 60 * 1000;
 
@@ -768,7 +777,9 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       if (layer.current) {
         const oven = (element) =>
           element?.isConnected &&
-          (element.hasAttribute('data-cat-oven') || element.hasAttribute('data-cat-oven-front'));
+          (element.hasAttribute('data-cat-scene') ||
+            element.hasAttribute('data-cat-oven') ||
+            element.hasAttribute('data-cat-oven-front'));
         const leaping = state.mode === 'leap' && (oven(state.target) || oven(state.leapFrom));
         layer.current.style.zIndex = oven(state.perch) || oven(state.go?.card) || leaping ? '55' : '';
       }
@@ -2469,17 +2480,21 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       if (kind === 'delayed') fits.push('timer');
       return fits;
     };
-    // Done up there: half the time (again) another thing there, else off to
-    // a panel in view that the card does not cover.
-    const offOven = (oven, again = true) => ({
+    // Done at a card's scene (the oven, a packing counter): half the time
+    // (again) another thing there, else off to a panel in view that the card
+    // does not cover.
+    const offScene = (scene, again = true) => ({
       pose: 'sit',
       ms: 300,
       start: (step, time) => {
-        if (again && oven.isConnected && Math.random() < 0.5) {
-          play(ovenReactions[pickAfresh('oven', ovenFits(oven))](oven, false), time);
+        if (again && scene.isConnected && Math.random() < 0.5) {
+          const [table, fits, key] = scene.hasAttribute('data-cat-pack')
+            ? [packReactions, packFits, 'pack']
+            : [ovenReactions, ovenFits, 'oven'];
+          play(table[pickAfresh(key, fits(scene))](scene, false), time);
           return;
         }
-        const card = (oven.closest('[role="dialog"]') ?? oven).getBoundingClientRect();
+        const card = (scene.closest('[role="dialog"]') ?? scene).getBoundingClientRect();
         const clear = visiblePerches()
           .map((perch) => ({ perch, rect: perch.getBoundingClientRect() }))
           .filter(
@@ -2580,17 +2595,17 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           ...(on || !done ? pawOn(oven, 112, 1, 'off', '!') : []),
           { pose: 'sit', mood: 'purring', ms: 500 },
           ...takeOut(oven),
-          offOven(oven, again),
+          offScene(oven, again),
         ];
       },
       // Baked already, and the oven off: out it comes.
-      steal: (oven, again) => [...takeOut(oven), offOven(oven, again)],
+      steal: (oven, again) => [...takeOut(oven), offScene(oven, again)],
       // Watching it bake, and a mew at you for it.
       watch: (oven, again) => [
         ...watchIt(oven, 7000),
         { pose: 'sniff', ms: 1000, start: () => say('sniff') },
         { pose: 'beg', mood: 'hungry', ms: 1800, start: () => say('mew') },
-        offOven(oven, again),
+        offScene(oven, again),
       ],
       // The power button: off ("!", a jump, then an innocent wink), or on to
       // help ("♪", "✦").
@@ -2608,7 +2623,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
                 { pose: 'sit', mood: 'purring', ms: 1200, start: () => say('✦') },
                 { pose: 'cheer', ms: 800 },
               ]),
-          offOven(oven, again),
+          offScene(oven, again),
         ];
       },
       // The heat dial turned up ("click"): the glow flares and the steam
@@ -2624,7 +2639,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         },
         { pose: 'sit', mood: 'sneeze', ms: 900, start: () => say('achoo!') },
         { pose: 'groom', ms: 1300 },
-        offOven(oven, again),
+        offScene(oven, again),
       ],
       // Down onto the counter in front of the window: up on her hind legs,
       // paws on the glass, peering in ("mm…" at a pastry baking, "…" in a
@@ -2632,7 +2647,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       // and back up on top.
       window: (oven, again) => {
         const front = oven.parentElement?.querySelector('[data-cat-oven-front]');
-        if (!front) return [offOven(oven, again)];
+        if (!front) return [offScene(oven, again)];
         const lit = ovenIs(oven).on;
         // Up on her toes, paws on the glass.
         const up = () => (state.lift = 12);
@@ -2660,7 +2675,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
                     pose: 'sit',
                     ms: 300,
                     start: () => {
-                      state.resume = { steps: () => [offOven(oven, again)] };
+                      state.resume = { steps: () => [offScene(oven, again)] };
                       leapTo(oven, ovenX(oven, 80), HOP_MS);
                     },
                   },
@@ -2679,7 +2694,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         snooze(random(9000, 13000)),
         { pose: 'stretch', mood: 'yawn', ms: 1300 },
         { pose: 'sit', mood: 'purring', ms: 700, start: () => say('heart') },
-        offOven(oven, again),
+        offScene(oven, again),
       ],
       // Late: beside the kitchen timer, she bats it (her paw at her drawing's
       // x 36, 30 up), and it rings: a leap, a puff of fright, a glare.
@@ -2697,7 +2712,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         },
         { pose: 'hiss', ms: 900, start: () => say('hsss') },
         { pose: 'sit', mood: 'sulk', ms: 1400, start: () => say('…') },
-        offOven(oven, again),
+        offScene(oven, again),
       ],
       // Closed: curled up beside the dozing oven, its z's and hers.
       snooze: (oven, again) => [
@@ -2706,7 +2721,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         { pose: 'rest', mood: 'drowsy', ms: 1300 },
         snooze(random(10000, 14000)),
         { pose: 'stretch', mood: 'yawn', ms: 1300 },
-        offOven(oven, again),
+        offScene(oven, again),
       ],
       // Closed: she knocks on it (it rattles), and nobody comes ("…", "mew?");
       // she lies down by it a while.
@@ -2721,7 +2736,214 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         { pose: 'sit', mood: 'sad', ms: 1200, start: () => say('mew?') },
         { pose: 'rest', mood: 'drowsy', ms: 1500 },
         snooze(random(6000, 8000)),
-        offOven(oven, again),
+        offScene(oven, again),
+      ],
+    });
+    // At a server's packing counter (its status pill's card, HostPacking.jsx:
+    // a scene 144 units across from 8 and 60 down from 34; the pile of six,
+    // 34 to 70 across, its top pastry 71 down; the counter's line 88.6 down;
+    // the box 95 to 129 across, its front's top 72). She stands at the
+    // counter, between the pile and the box, and has her paws in it: if the
+    // box is (nearly) empty, in she hops (if it fits, she sits), peeking over
+    // its front, and the packing waits for her; she takes the packing over a
+    // while, carrying pastries from the pile into the box herself; she sneaks
+    // one off the pile and eats it; she cheers a full box off; and with the
+    // counter asleep (the server not answering, or closed) she naps on the
+    // box, or nudges the sleeping pile. She tells the counter what she does
+    // to it (a 'bakery-pack' event: hold, go, pick).
+    const packTell = (what) => window.dispatchEvent(new CustomEvent('bakery-pack', { detail: what }));
+    // A spot in the counter's scene, on the page, and the scene's scale.
+    const packAt = (counter, u, v = 88.6) => {
+      const rect = counter.parentElement.querySelector('svg').getBoundingClientRect();
+      const scale = rect.width / 144;
+      return { x: rect.left + window.scrollX + (u - 8) * scale, y: rect.top + window.scrollY + (v - 34) * scale, scale };
+    };
+    // The pile's spots, in the order they go (as HostPacking.jsx's PILE).
+    const PACK_PILE = [
+      [52, 71],
+      [61, 79.5],
+      [43, 79.5],
+      [70, 88],
+      [52, 88],
+      [34, 88],
+    ];
+    const packFits = (counter) => {
+      const { catPack: kind, packLeft, packPhase: phase } = counter.dataset;
+      if (kind === 'asleep') return ['nap', 'nudge'];
+      const left = Number(packLeft);
+      const fits = phase === 'packing' && left >= 2 ? ['help', 'snack'] : phase === 'packing' && left ? ['snack'] : [];
+      if (phase === 'packing' && left >= 5) fits.push('box');
+      return fits.length ? fits : ['cheer'];
+    };
+    // Her paw at her drawing's (dx, dy), on the page.
+    const pawAt = (dx, dy) => ({ x: state.x - state.facing * (dx - 60) * UNIT, y: state.y - (88 - dy) * UNIT });
+    // One of the pile's pastries (at the counter's size), wherever it is.
+    const packPastry = (counter, extra) =>
+      putThing({
+        kind: 'pastry',
+        variant: counter.dataset.packPastry,
+        scale: (packAt(counter, 0).scale * 0.5) / 0.68,
+        ...extra,
+      });
+    // The top one off the pile, into her reaching paw (facing the pile, on
+    // her left); then (kept) held in front of her.
+    const pickOne = (counter) => ({
+      pose: 'reach',
+      ms: 450,
+      start: (step) => {
+        step.from = PACK_PILE[PACK_PILE.length - Number(counter.dataset.packLeft)] ?? PACK_PILE[0];
+        packTell('pick');
+      },
+      frame: (step, time, k) => {
+        const from = packAt(counter, ...step.from);
+        const paw = pawAt(36, 62);
+        packPastry(counter, {
+          x: from.x + (paw.x - from.x) * k,
+          y: from.y + (paw.y - from.y) * k - 14 * Math.sin(Math.PI * k),
+        });
+      },
+    });
+    const packReactions = noted('pack', {
+      // In she hops (the packing waiting for her), peeking over the box's
+      // front, ducks, peeks again; out she hops, and it goes on.
+      box: (counter, again) => {
+        const box = counter.parentElement.querySelector('[data-cat-pack-box]');
+        const at = packAt(counter, 86).x;
+        return [
+          { to: at },
+          { pose: 'sit', ms: 700, start: () => ((state.facing = 1), say('?')) },
+          {
+            pose: 'crouch',
+            ms: 300,
+            start: () => {
+              packTell('hold');
+              state.resume = {
+                steps: () => [
+                  { pose: 'peek', ms: 1900, start: () => say('prr') },
+                  { pose: 'lurk', ms: 900 },
+                  { pose: 'peek', ms: 1800, start: () => say('heart') },
+                  {
+                    pose: 'peek',
+                    ms: 300,
+                    start: () => {
+                      state.resume = {
+                        steps: () => [{ pose: 'sit', ms: 500, start: () => packTell('go') }, offScene(counter, again)],
+                      };
+                      leapTo(counter, at, HOP_MS);
+                    },
+                  },
+                ],
+              };
+              if (box) leapTo(box, null, HOP_MS);
+            },
+          },
+        ];
+      },
+      // The packing held, she packs two or three herself: each off the pile
+      // into her paw, then over and down into the box; a cheer, and it goes on.
+      help: (counter, again) => {
+        const count = Math.min(3, Number(counter.dataset.packLeft));
+        const into = (step, time, k) => {
+          const box = packAt(counter, 112, 70);
+          const paw = pawAt(36, 62);
+          packPastry(counter, {
+            x: paw.x + (box.x - paw.x) * k,
+            y: paw.y + (box.y - paw.y) * k - 16 * Math.sin(Math.PI * k),
+            opacity: k > 0.8 ? 0 : 1,
+          });
+        };
+        return [
+          { to: packAt(counter, 86).x },
+          { pose: 'sit', ms: 500, start: () => (packTell('hold'), say('!')) },
+          ...Array.from({ length: count }, () => [
+            { pose: 'sit', ms: 300, start: () => (state.facing = -1) },
+            pickOne(counter),
+            { pose: 'sit', ms: 300, start: () => (state.facing = 1) },
+            { pose: 'reach', ms: 450, frame: into },
+            { pose: 'sit', ms: 250, start: () => putThing(null) },
+          ]).flat(),
+          { pose: 'cheer', ms: 900, start: () => (packTell('go'), say('✦')) },
+          offScene(counter, again),
+        ];
+      },
+      // A glance each way, one off the pile, and eaten ("nom", "crunch");
+      // "shh", with a wink.
+      snack: (counter, again) => {
+        const front = () => ({ x: state.x - 16, y: state.y });
+        return [
+          { to: packAt(counter, 86).x },
+          { pose: 'sit', ms: 500, start: () => (state.facing = 1) },
+          { pose: 'sit', ms: 500, start: () => (state.facing = -1) },
+          pickOne(counter),
+          { pose: 'crouch', ms: 700, start: () => packPastry(counter, front()) },
+          { pose: 'crouch', ms: 700, start: () => (say('nom'), packPastry(counter, { ...front(), scale: 0.9 })) },
+          {
+            pose: 'sit',
+            mood: 'purring',
+            ms: 900,
+            start: () => (packPastry(counter, { ...front(), scale: 0.5, opacity: 0 }), say('crunch')),
+          },
+          { pose: 'groom', ms: 1200, start: () => putThing(null) },
+          { pose: 'wink', ms: 1000, start: () => say('shh') },
+          offScene(counter, again),
+        ];
+      },
+      // A full box going off (or a new one coming): she claps it away.
+      cheer: (counter, again) => [
+        { to: packAt(counter, 86).x },
+        { pose: 'sit', ms: 400, start: () => (state.facing = 1) },
+        ...[0, 1, 2].flatMap((beat) => [
+          { pose: 'clap', mood: 'purring', ms: 300, start: () => beat === 0 && say('✦') },
+          { pose: 'clap2', mood: 'purring', ms: 300 },
+        ]),
+        { pose: 'sit', mood: 'purring', ms: 700, start: () => say('heart') },
+        offScene(counter, again),
+      ],
+      // Asleep: up on the box, curled up asleep on it.
+      nap: (counter, again) => {
+        const box = counter.parentElement.querySelector('[data-cat-pack-box]');
+        const at = packAt(counter, 86).x;
+        return [
+          { to: at },
+          {
+            pose: 'sit',
+            mood: 'drowsy',
+            ms: 900,
+            start: () => {
+              say('…');
+              state.resume = {
+                steps: () => [
+                  { pose: 'rest', mood: 'drowsy', ms: 1200 },
+                  snooze(random(9000, 13000)),
+                  { pose: 'stretch', mood: 'yawn', ms: 1300 },
+                  {
+                    pose: 'sit',
+                    ms: 300,
+                    start: () => {
+                      state.resume = { steps: () => [offScene(counter, again)] };
+                      leapTo(counter, at, HOP_MS);
+                    },
+                  },
+                ],
+              };
+              if (box) leapTo(box, null, HOP_MS);
+            },
+          },
+        ];
+      },
+      // Asleep: she taps the sleeping pile ("mew?"), twice; nothing; she lies
+      // down by it a while.
+      nudge: (counter, again) => [
+        { to: packAt(counter, 86).x },
+        { pose: 'sit', ms: 500, start: () => (state.facing = -1) },
+        ...[0, 1].flatMap(() => [
+          { pose: 'reach', ms: 300, start: () => say('mew?') },
+          { pose: 'sit', ms: 500 },
+        ]),
+        { pose: 'sit', mood: 'sad', ms: 1200, start: () => say('…') },
+        { pose: 'rest', mood: 'drowsy', ms: 1300 },
+        snooze(random(6000, 8000)),
+        offScene(counter, again),
       ],
     });
     // Her owner has earned another cookie (a GPU-hour): a little oven turns
@@ -3010,9 +3232,10 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     };
     const goOver = (card, blocked) => {
       // The bakery's card: up onto its oven (drawn over the card), there to
-      // do something with it.
+      // do something with it; a packing counter's, onto its counter.
       const oven = state.forcePopup?.reaction ? null : ovenOf(card);
-      const target = oven ?? card;
+      const counter = state.forcePopup?.reaction || oven ? null : packOf(card);
+      const target = oven ?? counter ?? card;
       const rect = target.getBoundingClientRect();
       // Nowhere on it to sit: too narrow, or its top under the navigation bar
       // or down at the bottom of the window.
@@ -3025,6 +3248,10 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         const name = ovenReactions[state.forceOven] ? state.forceOven : pickAfresh('oven', fits);
         state.lastAt = { ...state.lastAt, oven: name };
         steps = () => ovenReactions[name](oven);
+      } else if (counter) {
+        const name = packReactions[state.forcePack] ? state.forcePack : pickAfresh('pack', packFits(counter));
+        state.lastAt = { ...state.lastAt, pack: name };
+        steps = () => packReactions[name](counter);
       } else {
         const reactions = Object.keys(popupReactions).filter((name) => name !== state.lastPopup);
         const reaction = state.forcePopup?.reaction ?? reactions[Math.floor(Math.random() * reactions.length)];
@@ -3178,7 +3405,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       if (quietRef.current || state.inside || !card?.isConnected || !POPUP_MODES.has(state.mode)) return;
       // (The card she is up on, on its oven, she is drawn over.)
       if (state.perch && card.contains(state.perch)) return;
-      const oven = ovenOf(card);
+      const scene = sceneOf(card);
       const rect = card.getBoundingClientRect();
       const edge = page(rect);
       const press = state.lastPress;
@@ -3191,7 +3418,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
                 rect.top < window.innerHeight &&
                 gapTo(edge, state.x, state.y - HEIGHT / 2) < POPUP_NEAR
               ? 'near'
-              : state.forcePopup || oven
+              : state.forcePopup || scene
                 ? 'clicked'
                 : null;
       if (!kind) return;
@@ -3201,10 +3428,10 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       if (kind === 'blocked' ? time - (state.popupAt ?? -Infinity) < POPUP_REST_MS : state.popupSeen === wrapper)
         return;
       state.popupSeen = wrapper;
-      if (oven) state.ovenSeen = wrapper;
+      if (scene) state.sceneSeen = wrapper;
       const weights = { ...POPUP_OUTCOMES[kind] };
       if (state.mode === 'sleep' && weights.nothing) weights.nothing *= 2;
-      const outcome = state.forcePopup?.outcome ?? (oven ? 'over' : pick(weights));
+      const outcome = state.forcePopup?.outcome ?? (scene ? 'over' : pick(weights));
       if (outcome === 'nothing') return;
       state.manual = false;
       state.popupAt = time;
@@ -5302,21 +5529,29 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     window.addEventListener('bakery-cat-toy', onToy);
     // Asked from its card to do something in particular: it does it, from its
     // panel's top edge (hopping up off a side, or off a GPU's tile, first).
-    // Asked (from her card or her scrapbook) to visit the bakery's oven: its
-    // card opened (and kept open) if it isn't, then up onto it, to do that,
-    // if it fits how the oven is, or else something that does.
-    const visitOven = (name) => {
-      const open = () => openPopups().find(ovenOf);
+    // Asked (from her card or her scrapbook) to visit the bakery's oven, or
+    // a packing counter (the first server's in view): its card opened (and
+    // kept open) if it isn't, then over she goes, to do that (or, asked for
+    // nothing in particular, what fits).
+    const visitScene = (kind, name) => {
+      const find = kind === 'pack' ? packOf : ovenOf;
+      const force = kind === 'pack' ? 'forcePack' : 'forceOven';
+      const open = () => openPopups().find(find);
       const go = () => {
-        state.forceOven = name;
+        state[force] = name;
         const card = open();
         const went = Boolean(card) && goOver(card, false);
-        state.forceOven = null;
+        state[force] = null;
         if (!went) say('?');
       };
       if (open()) go();
       else {
-        document.querySelector('[data-bakery-trigger]')?.click();
+        const triggers = [...document.querySelectorAll(kind === 'pack' ? '[data-pack-trigger]' : '[data-bakery-trigger]')];
+        const inView = triggers.find((trigger) => {
+          const rect = trigger.getBoundingClientRect();
+          return rect.width && rect.top > topClear() && rect.bottom < window.innerHeight - 40;
+        });
+        (inView ?? triggers[0])?.click();
         setTimeout(go, 450);
       }
     };
@@ -5363,7 +5598,8 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       else if (group === 'toss' && tossed[name]) play(tossed[name](), time);
       else if (group === 'atyou' && atYou[name]) play(atYou[name](), time);
       else if (group === 'oven' && name === 'cookie') play(earned.cookie(), time);
-      else if (group === 'oven') visitOven(name);
+      else if (group === 'oven') visitScene('oven', name);
+      else if (group === 'pack') visitScene('pack', name);
       else if (group === 'bed' && BED_LIFT[name] !== undefined) play(doings.bed(name), time);
       else if (group === 'gpu' && !visitGpu(name)) say('?');
     };
@@ -5742,7 +5978,8 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         else if (name.startsWith('toss:')) play(tossed[name.slice(5)](), performance.now());
         else if (name.startsWith('atyou:')) play(atYou[name.slice(6)](), performance.now());
         else if (name === 'oven:cookie') play(earned.cookie(), performance.now());
-        else if (name.startsWith('oven:')) visitOven(name.slice(5));
+        else if (name.startsWith('oven:')) visitScene('oven', name.slice(5));
+        else if (name.startsWith('pack:')) visitScene('pack', name.slice(5));
         else if (name.startsWith('bed:')) play(doings.bed(name.slice(4)), performance.now());
         else if (name.startsWith('gpu:')) return visitGpu(name.slice(4));
         // notes:<way> (or notes: for any) sends her to the notes pill, there to
@@ -5890,11 +6127,11 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
             (card) => coverOf(page(card.getBoundingClientRect()), state.x, state.y) >= POPUP_BLOCKS,
           );
           if (over) onPopup(over, time);
-          // The bakery's card open, and she has not been up on it since it
-          // opened (busy when it did): now she goes.
-          const bakery = openPopups().find(ovenOf);
-          if (!over && bakery && state.ovenSeen !== bakery.closest('[data-radix-popper-content-wrapper]')) {
-            onPopup(bakery, time);
+          // The bakery's card (or a packing counter's) open, and she has not
+          // been to it since it opened (busy when it did): now she goes.
+          const scene = openPopups().find(sceneOf);
+          if (!over && scene && state.sceneSeen !== scene.closest('[data-radix-popper-content-wrapper]')) {
+            onPopup(scene, time);
           }
         }
       }
