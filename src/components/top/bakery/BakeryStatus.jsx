@@ -69,7 +69,7 @@ function mixColor(from, to, amount) {
   return `rgb(${a.map((value, index) => Math.round(value + (b[index] - value) * amount)).join(',')})`;
 }
 
-function OvenScene({ state, pastry, leaving, bake, on, doneness, rattle }) {
+function OvenScene({ state, pastry, leaving, bake, on, doneness, rattle, ring }) {
   const { glow, light } = SCENE[state];
   const warm = state !== 'closed';
   // Baking: the oven open for business and switched on.
@@ -84,6 +84,22 @@ function OvenScene({ state, pastry, leaving, bake, on, doneness, rattle }) {
       { duration: 400, easing: 'ease-in-out' },
     );
   }, [rattle]);
+  // The kitchen timer, batted by the cat, rings: it shakes, lines bursting
+  // off it, for a moment.
+  const timer = useRef(null);
+  const [ringing, setRinging] = useState(false);
+  useEffect(() => {
+    if (!ring) return undefined;
+    setRinging(true);
+    if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      timer.current?.animate(
+        [0, -8, 8, -8, 8, -6, 6, 0].map((turn) => ({ transform: `rotate(${turn}deg)` })),
+        { duration: 900, easing: 'ease-in-out' },
+      );
+    }
+    const off = setTimeout(() => setRinging(false), 1200);
+    return () => clearTimeout(off);
+  }, [ring]);
   return (
     <svg viewBox="0 0 160 112" className="h-auto w-[250px] overflow-visible" aria-hidden="true">
       {state === 'live' &&
@@ -102,7 +118,15 @@ function OvenScene({ state, pastry, leaving, bake, on, doneness, rattle }) {
         ))}
       {state === 'delayed' && (
         // A kitchen timer on top of the oven, its hand going round.
-        <g>
+        <g ref={timer} style={{ transformBox: 'view-box', transformOrigin: '80px 26px' }}>
+          {ringing && (
+            <path
+              d="M66 9l-4-3M94 9l4-3M65 16h-5M95 16h5M67 23l-4 2M93 23l4 2"
+              stroke={HOST_STATUS.stale.color}
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+          )}
           <circle cx="80" cy="16" r="10" fill="white" stroke={GLYPH.outline} strokeWidth="2" />
           <rect x="77" y="3" width="6" height="3" rx="1" fill={GLYPH.outline} />
           <path
@@ -382,6 +406,23 @@ export function BakeryCard({ state, generatedAt, now }) {
     const timer = setTimeout(() => setBatch((current) => ({ ...current, leaving: null })), 2600);
     return () => clearTimeout(timer);
   }, [batch.bake, batch.leaving]);
+  // The roaming cat, up on the oven (RoamingCat.jsx), at its knob, door and
+  // timer: switching it off or on, taking out a baked pastry (the door
+  // rattles if it isn't ready), ringing the timer, or knocking.
+  const [ring, setRing] = useState(0);
+  const catDid = useRef(null);
+  catDid.current = (what) => {
+    if (what === 'on' || what === 'off') setBatch((current) => ({ ...current, on: what === 'on' }));
+    else if (what === 'take')
+      setBatch((current) => (ready(current) ? swap(current) : { ...current, rattle: current.rattle + 1 }));
+    else if (what === 'knock') setBatch((current) => ({ ...current, rattle: current.rattle + 1 }));
+    else if (what === 'ring') setRing((count) => count + 1);
+  };
+  useEffect(() => {
+    const onCat = (event) => catDid.current(event.detail);
+    window.addEventListener('bakery-oven', onCat);
+    return () => window.removeEventListener('bakery-oven', onCat);
+  }, []);
   const pastry = PASTRIES[batch.index];
   const warm = state !== 'closed';
   // While live, the line follows the pastry and how far it has got, a new
@@ -416,8 +457,21 @@ export function BakeryCard({ state, generatedAt, now }) {
               leaving={warm ? batch.leaving : null}
               doneness={doneness.value}
               rattle={batch.rattle}
+              ring={ring}
               bake={batch.bake}
               on={warm && batch.on}
+            />
+            {/* The oven's top, for the roaming cat to stand on: as wide as the
+                scene (she keeps clear of a perch's ends), its top edge the
+                oven's (y = 30 of the scene's 112), saying how the oven is. */}
+            <div
+              aria-hidden="true"
+              data-cat-oven={state}
+              data-oven-on={String(warm && batch.on)}
+              data-oven-done={String(doneness.value >= 1)}
+              data-oven-pastry={pastry.name}
+              className="pointer-events-none absolute left-0 w-[250px]"
+              style={{ top: (30 * 250) / 160, height: (70 * 250) / 160 }}
             />
             {warm && (
               <>

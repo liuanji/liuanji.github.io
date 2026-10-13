@@ -84,6 +84,8 @@ function Freshness({ overview, now }) {
       >
         <button
           type="button"
+          // (Mochi's "visit the oven" opens it too.)
+          data-bakery-trigger
           aria-label={`${state.label}. Show the bakery.`}
           className="-mx-1.5 -my-1 flex items-center gap-2 rounded-lg px-1.5 py-1 transition-colors hover:bg-[#F1F3F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20 data-[state=open]:bg-[#ECEFF3]"
         >

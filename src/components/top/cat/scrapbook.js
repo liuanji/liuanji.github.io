@@ -442,6 +442,46 @@ export const SCRAPBOOK = [
     ],
   },
   {
+    key: 'bakery',
+    title: 'At the bakery',
+    moments: [
+      { id: 'oven:warm', label: 'Warm on the oven', pose: 'sleep', stage: 'oven', say: 'z' },
+      { id: 'oven:watch', label: 'Watching it bake', pose: 'dangle', stage: 'oven', say: 'mm…' },
+      // Her dangling paw (6 px out, facing right) on the power button.
+      { id: 'oven:knob', label: 'Paw on the power', pose: 'dangle', facing: 1, dx: 30, stageDx: -39, stage: 'ovenoff', say: '!' },
+      {
+        id: 'oven:steal',
+        label: 'A pastry, pinched',
+        pose: 'crouch',
+        stage: 'ovenoff',
+        things: [{ kind: 'pastry', dx: -30, dy: 0 }],
+        say: 'nom',
+      },
+      {
+        id: 'oven:timer',
+        label: 'The timer rang!',
+        pose: 'startle',
+        lift: 16,
+        stage: 'oven',
+        things: [{ kind: 'timer', dx: -32, dy: -10, scale: 1.4 }],
+        say: '!',
+      },
+      { id: 'oven:snooze', label: 'Dozing with the oven', pose: 'sleep', stage: 'ovenclosed', say: 'z' },
+      { id: 'oven:knock', label: 'Knock knock', pose: 'pat', stage: 'ovenclosed', say: 'knock' },
+      {
+        id: 'oven:cookie',
+        label: 'A cookie, earned',
+        pose: 'sit',
+        mood: 'purring',
+        things: [
+          { kind: 'minioven', count: 1, scale: 1.3, dx: -44, dy: 0 },
+          { kind: 'treat', dx: -20, dy: -4 },
+        ],
+        say: 'ding!',
+      },
+    ],
+  },
+  {
     key: 'in',
     title: 'Back into view',
     moments: [
@@ -627,7 +667,21 @@ export function keepMoment(id) {
 // What to ask her for (as her card's list asks, RoamingCat's onDo) to have
 // her do a moment again; null for those that only come about of themselves
 // (ways back into view, pop-up cards, trips, escapes and the like).
-const AGAIN = new Set(['doing', 'act', 'bed', 'dance', 'wish', 'game', 'treat', 'toss', 'gpu', 'follow', 'notes', 'atyou']);
+const AGAIN = new Set([
+  'doing',
+  'act',
+  'bed',
+  'dance',
+  'wish',
+  'game',
+  'treat',
+  'toss',
+  'gpu',
+  'follow',
+  'notes',
+  'atyou',
+  'oven',
+]);
 export function replayOf(id) {
   const [group, name] = id.split(':');
   if (id === 'notes:noticed') return null;

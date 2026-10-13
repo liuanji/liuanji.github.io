@@ -49,11 +49,41 @@ function Ring({ left, top, size = 64 }) {
 }
 
 const PANEL = 'absolute border border-[#E6DED2] bg-white';
+// The bakery's oven (as in its card, BakeryStatus.jsx: 1.4 px a unit here),
+// the middle of its top (80, 30) at (x, y): on, off, or closed and cold.
+const OVEN_LINE = '#C5CEDB';
+function OvenStage({ kind, x, y }) {
+  const scale = 1.4;
+  const on = kind === 'oven';
+  const warm = kind !== 'ovenclosed';
+  return (
+    <svg
+      className="absolute"
+      style={{ left: x - 50 * scale, top: y - 2 * scale }}
+      width={100 * scale}
+      height={72 * scale}
+      viewBox="30 28 100 72"
+      aria-hidden="true"
+    >
+      <rect x="36" y="30" width="88" height="70" rx="9" fill="white" stroke={OVEN_LINE} strokeWidth="2.2" />
+      <line x1="36" y1="45" x2="124" y2="45" stroke={OVEN_LINE} strokeWidth="2" />
+      <circle cx="49" cy="37.5" r="3.2" fill="white" stroke={OVEN_LINE} strokeWidth="1.8" />
+      <circle cx="60" cy="37.5" r="3.2" fill="white" stroke={OVEN_LINE} strokeWidth="1.8" />
+      <circle cx="112" cy="37.5" r={warm ? 4.2 : 2.6} fill={warm ? (on ? '#5BBE98' : '#EDA748') : OVEN_LINE} />
+      <rect x="46" y="53" width="68" height="38" rx="6" fill={on ? '#F4B860' : '#EEF1F5'} opacity={on ? 0.6 : 1} />
+      <rect x="46" y="53" width="68" height="38" rx="6" fill="none" stroke={OVEN_LINE} strokeWidth="2" />
+      <line x1="58" y1="49" x2="102" y2="49" stroke={OVEN_LINE} strokeWidth="2.4" strokeLinecap="round" />
+    </svg>
+  );
+}
 // What she stands on: a panel's top edge, or its end; a GPU's tile (on it,
 // or beside it) or its ring; a pop-up card, or its side to cling to; the
-// notes pill or its all-clear croissant; the inside of a panel; or nothing.
+// notes pill or its all-clear croissant; the inside of a panel; the bakery's
+// oven (oven, ovenoff, ovenclosed; moved along by a moment's stageDx); or
+// nothing.
 function Stage({ kind, x, y }) {
   if (kind === 'none') return null;
+  if (kind.startsWith('oven')) return <OvenStage kind={kind} x={x} y={y} />;
   if (kind === 'ring') return <Ring left={x - 32} top={y - 2} />;
   if (kind === 'side') {
     return (
@@ -157,7 +187,7 @@ export function Vignette({ moment, ghost = false }) {
         ...(moment.zoom && { transform: `scale(${moment.zoom})`, transformOrigin: `${x}px ${y}px` }),
       }}
     >
-      {!ghost && <Stage kind={stage} x={x} y={y} />}
+      {!ghost && <Stage kind={stage} x={x + (moment.stageDx ?? 0)} y={y} />}
       <div className="absolute inset-0" style={ghost ? { filter: 'brightness(0)', opacity: 0.1 } : undefined}>
         {things.filter((item) => !item.front).map(thing)}
         <svg

@@ -67,6 +67,62 @@ function Croissant() {
   );
 }
 
+// One of the bakery's pastries (by name, variant), small, its base at (0, 0).
+function PastryThing({ variant }) {
+  const pastry = PASTRIES.find((each) => each.name === variant) ?? CROISSANT;
+  return (
+    <g transform="scale(0.68) translate(-80 -83)">
+      <g transform={pastry.transform}>
+        {pastry.shapes.map(({ tag: Shape, topping: _topping, ...shape }, index) => (
+          <Shape key={index} {...shape} />
+        ))}
+      </g>
+    </g>
+  );
+}
+
+// A little countertop oven, its feet at (0, 0): a dial, a glowing window, and
+// a door hinged at the bottom that drops open (count, 0 shut to 1 open).
+function MiniOven({ count: open = 0 }) {
+  const fold = Math.cos(open * Math.PI * 0.6);
+  return (
+    <g>
+      <path d="M-11 0v-1.6M11 0v-1.6" stroke="#9AA6B8" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="-14" y="-19" width="28" height="18" rx="3" fill="white" stroke="#9AA6B8" strokeWidth="1.3" />
+      <rect x="-11" y="-16" width="16" height="12" rx="1.6" fill="#F4B860" opacity="0.55" />
+      <circle cx="9" cy="-13" r="1.8" fill="white" stroke="#9AA6B8" strokeWidth="1" />
+      <circle cx="9" cy="-7.4" r="1.1" fill="#E39A55" />
+      <g transform={`translate(0 -4) scale(1 ${fold}) translate(0 4)`}>
+        <rect
+          x="-11"
+          y="-16"
+          width="16"
+          height="12"
+          rx="1.6"
+          fill="white"
+          fillOpacity="0.25"
+          stroke="#9AA6B8"
+          strokeWidth="1.1"
+        />
+        <path d="M-8.4-14.6h10.8" stroke="#9AA6B8" strokeWidth="1.2" strokeLinecap="round" />
+      </g>
+    </g>
+  );
+}
+
+// A kitchen timer, as on the bakery's oven, ringing, its middle at (0, 0).
+function KitchenTimer() {
+  return (
+    <g>
+      <circle r="6.4" fill="white" stroke="#9AA6B8" strokeWidth="1.3" />
+      <rect x="-1.9" y="-8.4" width="3.8" height="2" rx="0.6" fill="#9AA6B8" />
+      <path d="M0 0v-4.2" stroke="#E3B655" strokeWidth="1.3" strokeLinecap="round" />
+      <circle r="1" fill="#E3B655" />
+      <path d="M-9-5l-2.4-1.8M9-5l2.4-1.8M-9.6 0h-3M9.6 0h3" stroke="#E3B655" strokeWidth="1" strokeLinecap="round" />
+    </g>
+  );
+}
+
 // A big croissant flying along with her riding on it (her feet at (0, 0), on
 // its top), speed lines trailing behind (it faces left; flip for right).
 function FlyingCroissant() {
@@ -1631,6 +1687,9 @@ const THINGS = {
   bigbubble: BigBubble,
   bowl: TreatBowl,
   lobbed: Lobbed,
+  pastry: PastryThing,
+  minioven: MiniOven,
+  timer: KitchenTimer,
   smear: Smear,
   bonk: Bonk,
 };
@@ -1691,6 +1750,9 @@ const REACH = {
   bigbubble: 44,
   bowl: 20,
   lobbed: 10,
+  pastry: 24,
+  minioven: 20,
+  timer: 14,
   smear: 30,
   bonk: 30,
 };

@@ -424,6 +424,53 @@ running):
 If the card closes before she gets there, or while she is on it, she drops onto
 the panel below.
 
+### The bakery's oven
+
+The card behind the page's "Live" dot (the bakery: an oven, a pastry baking
+in it, its power button, and a kitchen timer on top when the data is late) is
+one she is keener on. She notices it from 450 px off rather than 300, and
+what she does about it goes:
+
+| What she does | Clicked | Near | Blocked |
+|---|---|---|---|
+| Nothing | 15% | 30% | – |
+| Startle | 5% | 5% | – |
+| Scared | 5% | 5% | 20% |
+| Up onto the oven | 75% | 60% | 80% |
+
+Going over, she lands on the oven's top itself, and is drawn over the card
+while she is up there (and on her way up and off). What she does there is an
+equal pick (never the same twice running) of those that fit how the oven is:
+
+| Oven | What she may do |
+|---|---|
+| On | Warm, Watch, Power |
+| Off, its pastry baked | Pinch, Power |
+| Off, its pastry not yet baked | Power |
+| Late (any of the above) | also Timer |
+| Closed | Doze, Knock |
+
+| Doing | What happens |
+|---|---|
+| Warm | Into the steam over the middle: a loaf ("prr"), then fast asleep for 9–13 s; a stretch and a heart. |
+| Watch | She lies over the front, a paw hanging down ("mm…"), watching till the pastry is baked (or 7 s); a cheer ("✦") if it is, a sniff, and a mew at you. |
+| Power | Over to the power button, her paw hanging down onto it, and she presses it: the oven really goes off ("!", a jump, then "…" and an innocent wink), or on to help ("♪", "✦", a cheer). |
+| Pinch | She paws at the door, it swings down and the tray slides out (the card's own take-out, a new raw pastry going in), and the pastry hops up beside her. She eats it ("nom", "crunch"), and licks her lips, a heart. |
+| Timer | Beside the kitchen timer she bats it twice, and it rings, shaking: she leaps ("!"), puffs up ("hsss"), and glares ("…"). |
+| Doze | Curled up beside the dozing oven, its z's and hers, for 10–14 s. |
+| Knock | She knocks on it twice ("knock"; it rattles), nobody comes ("…", "mew?"), and she lies down by it a while. |
+
+Then she leaps off to the nearest panel in view that the card does not cover.
+Asked from her card ("Visit the bakery's oven"), or from her scrapbook, the
+card opens (and stays open) if it is not, and up she goes.
+
+**A cookie, earned.** Each time your cookies today go up by a whole one (a
+GPU-hour your jobs held; the counts refresh every 5 minutes), one is due to
+her. At her next stir, a little countertop oven turns up beside her, "ding!",
+its door drops open and the cookie hops out; she eats it ("nom", "crunch",
++6 to her spirits) and grooms, a heart. One at a time, and no sooner than 3
+minutes after the last.
+
 **Scared.** Puffed up like a Halloween cat, she hisses at it ("hsss!", with a
 jump). When blocked she bolts first and hisses once clear. Then she flees along
 her panel, ears pinned back, until she is clear of the card and at least 160 px
@@ -521,7 +568,8 @@ everything she can be asked to do, in two levels: first its kinds (moves, by
 itself, naps, with you, GPU cards, treats, toys, each with how many it holds),
 and a click on one shows what is in it, with a way back up. In all: the moves (walk, run, sniff, spook,
 pounce), her other interactions (with a visit to your notes, and each of the
-four things she can throw at you), her naps (each of the six beds, the sunbeam,
+four things she can throw at you, a visit to the bakery's oven and an
+earned cookie), her naps (each of the six beds, the sunbeam,
 nodding off, flopping over, dreaming, curling up, a yawn), the GPU card visits
 (greyed out unless a running GPU's card, or for "add oil" an idle one, is fully
 in view when the list opens), the things to do with you (belly rub, brushing,
@@ -535,7 +583,7 @@ are new since you last looked; a click opens it.
 
 ## Her scrapbook
 
-The first time she does each of 142 things, she keeps a page for it, and a
+The first time she does each of 150 things, she keeps a page for it, and a
 little open book rises off her. It is kept in this browser (`scrapbook.js`),
 and opens over the page from her card: each kind with how many of it she has
 done, then a card for each, drawn in her pose there (with what she had with
@@ -552,7 +600,7 @@ does not count: it only makes her do it, till she next settles.
 
 Clicked while she roams, a page she has had closes the scrapbook and asks her
 to do it again, where it can be asked for (her doings, naps, dances, treats,
-toys, games, wishes, GPU card visits, throws at you, calls at your notes and cheers, a few
+toys, games, wishes, GPU card visits, throws at you, the oven and the cookie, calls at your notes and cheers, a few
 mishaps, the ways of following you). The rest, which only come about of
 themselves (ways back into view, pop-up cards, trips, escapes and the like),
 are not buttons.
@@ -568,6 +616,7 @@ are not buttons.
 | GPU cards | 9: each visit |
 | Your notes | 8: the five ways of calling you, "you noticed!", applause, a thumbs up |
 | Pop-up cards | 15: the six things on top, startled, scared off, and seven ways over |
+| At the bakery | 8: warm on the oven, watching it bake, the power button, a pinched pastry, the timer, dozing with it, knocking, an earned cookie |
 | Back into view | 11: every way in but the plain leap, the helicopter and the UFO apart |
 | Mishaps | 7: trip, slip, spook, sniff, a speck, off the page, dropped from up high |
 | Trapped | 7: each escape |
