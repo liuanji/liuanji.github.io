@@ -766,7 +766,9 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       // Up on the bakery's oven, or on her way up there or off it, she is drawn
       // over its card (pop-ups are z-50).
       if (layer.current) {
-        const oven = (element) => element?.hasAttribute?.('data-cat-oven');
+        const oven = (element) =>
+          element?.isConnected &&
+          (element.hasAttribute('data-cat-oven') || element.hasAttribute('data-cat-oven-front'));
         layer.current.style.zIndex = oven(state.perch) || oven(state.go?.card) ? '55' : '';
       }
       if (tilt.current) {
@@ -2436,32 +2438,45 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     ];
 
     // Up on the bakery's oven (its card's scene, BakeryStatus.jsx: the oven's
-    // top 88 of its 160 units across, from 36; its power button at 112, a
-    // little below the top; a kitchen timer on top in the middle when late).
-    // What she does there depends on how the oven is: warming herself in its
-    // steam, or watching the pastry bake, while it is on; pawing its power
-    // button, off or on; once a pastry is baked and the oven off, taking it
-    // out and eating it; late, batting the timer till it rings; closed, a nap
-    // with the dozing oven, or knocking on it. She tells the card what she
-    // does to it (a 'bakery-oven' event), and it does it.
-    // A spot on the oven's top, u along in the scene's units, on the page.
+    // top 88 of its 160 units across, from 36; its two dials at 49 and 60 and
+    // its power button at 112, a little below the top; its window 46 to 114
+    // across and 53 to 91 down; the counter it stands on at 106 down; a kitchen
+    // timer on top in the middle when late). What she does there depends on
+    // how the oven is, and she has her paws on it: a whole bake (switched on,
+    // watched till done, switched off, the door opened and the pastry eaten),
+    // or just the eating of one already baked; down at its window, paws on the
+    // glass, peering in, then polishing it; turning up the heat (the glow
+    // flares, the steam rushes, and it is too hot for her); warming herself
+    // in its steam; late, batting the timer till it rings; closed, a nap with
+    // the dozing oven, or knocking on it. Half the time she does a second
+    // thing before she goes. She tells the card what she does to it (a
+    // 'bakery-oven' event), and it does it.
+    // A spot on the oven's top (or the counter), u along in the scene's units,
+    // on the page.
     const ovenX = (oven, u) => {
       const rect = oven.getBoundingClientRect();
       return rect.left + window.scrollX + (u * rect.width) / OVEN_UNITS;
     };
     const ovenTell = (what) => window.dispatchEvent(new CustomEvent('bakery-oven', { detail: what }));
+    const ovenIs = (oven) => ({ on: oven.dataset.ovenOn === 'true', done: oven.dataset.ovenDone === 'true' });
     const ovenFits = (oven) => {
-      const { catOven: kind, ovenOn, ovenDone } = oven.dataset;
-      if (kind === 'closed') return ['snooze', 'knock'];
-      const fits = ovenOn === 'true' ? ['warm', 'watch', 'knob'] : ovenDone === 'true' ? ['steal', 'knob'] : ['knob'];
+      const { catOven: kind } = oven.dataset;
+      if (kind === 'closed') return ['snooze', 'knock', 'window'];
+      const { on, done } = ovenIs(oven);
+      const fits = !on && done ? ['steal', 'window'] : on ? ['bake', 'dial', 'window', 'warm'] : ['bake', 'window'];
       if (kind === 'delayed') fits.push('timer');
       return fits;
     };
-    // Done up there: off to a panel in view that the card does not cover.
-    const offOven = (oven) => ({
+    // Done up there: half the time (again) another thing there, else off to
+    // a panel in view that the card does not cover.
+    const offOven = (oven, again = true) => ({
       pose: 'sit',
       ms: 300,
-      start: () => {
+      start: (step, time) => {
+        if (again && oven.isConnected && Math.random() < 0.5) {
+          play(ovenReactions[pickAfresh('oven', ovenFits(oven))](oven, false), time);
+          return;
+        }
         const card = (oven.closest('[role="dialog"]') ?? oven).getBoundingClientRect();
         const clear = visiblePerches()
           .map((perch) => ({ perch, rect: perch.getBoundingClientRect() }))
@@ -2477,59 +2492,113 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       },
     });
     const snooze = (ms) => ({ pose: 'sleep', ms, frame: () => Math.random() < 0.005 && say('z') });
-    const ovenReactions = noted('oven', {
-      // Into the steam over the middle: a loaf, purring, then fast asleep.
-      warm: (oven) => [
-        { to: ovenX(oven, 80) },
-        { pose: 'sit', mood: 'purring', ms: 700, start: () => say('~') },
-        { pose: 'rest', mood: 'purring', ms: 1600, start: () => say('prr') },
-        snooze(random(9000, 13000)),
-        { pose: 'stretch', mood: 'yawn', ms: 1300 },
-        { pose: 'sit', mood: 'purring', ms: 700, start: () => say('heart') },
-        offOven(oven),
-      ],
-      // Lying over the front, a paw hanging down, watching it bake ("mm…")
-      // till it is done (or a while): a cheer, a sniff, and a mew at you.
-      watch: (oven) => [
-        { to: ovenX(oven, 80) },
+    // Over to a dial or the power button, her paw hanging down onto it (her
+    // drawing's x 53, 7 in from her middle: to her left facing left, to her
+    // right facing right), and a press.
+    const pawOn = (oven, u, facing, what, words) => [
+      { to: ovenX(oven, u) + facing * -(60 - 53) * UNIT },
+      { pose: 'sit', ms: 450, start: () => (state.facing = facing) },
+      { pose: 'dangle', ms: 600 },
+      { pose: 'dangle', ms: 450, start: () => (ovenTell(what), say(words), what !== 'hot' && saw('oven:knob')) },
+    ];
+    // Lying over the front, a paw hanging down, watching it bake ("mm…") till
+    // it is done (or up to most): a cheer if it is.
+    const watchIt = (oven, most = 9000) => [
+      { to: ovenX(oven, 80) },
+      {
+        pose: 'dangle',
+        ms: most,
+        start: () => (say('mm…'), saw('oven:watch')),
+        frame: (step, time) => {
+          if (time - step.started > 1800 && ovenIs(oven).done) step.done = true;
+        },
+      },
+      {
+        pose: 'cheer',
+        ms: 900,
+        start: (step) => {
+          step.pose = ovenIs(oven).done ? 'cheer' : 'sit';
+          say(ovenIs(oven).done ? '✦' : '…');
+        },
+      },
+    ];
+    // The door: she paws at it (it opens only on a baked pastry with the oven
+    // off; else it rattles), the tray slides out, and up the pastry hops onto
+    // the top beside her, to be eaten ("nom", "crunch"), a heart.
+    const takeOut = (oven) => {
+      const kind = oven.dataset.ovenPastry;
+      const spot = () => ovenX(oven, 100);
+      const pastry = (extra) => putThing({ kind: 'pastry', variant: kind, x: spot(), y: state.y, ...extra });
+      const eat = [
+        {
+          pose: 'startle',
+          ms: 700,
+          start: () => (say('!'), saw('oven:steal')),
+          // Up out of the window (its middle, 80 across and 42 down from the
+          // top) onto the top beside her.
+          frame: (step, time, k) => {
+            const rect = oven.getBoundingClientRect();
+            const from = { x: ovenX(oven, 80), y: state.y + (42 * rect.width) / OVEN_UNITS };
+            pastry({
+              x: from.x + (spot() - from.x) * k,
+              y: from.y + (state.y - from.y) * k - 40 * Math.sin(Math.PI * k),
+              rotate: 360 * k,
+            });
+          },
+        },
+        { pose: 'crouch', ms: 700, start: () => pastry() },
+        { pose: 'crouch', ms: 700, start: () => (say('nom'), pastry({ scale: 0.7 })) },
+        { pose: 'crouch', ms: 700, start: () => pastry({ scale: 0.4 }) },
+        { pose: 'sit', mood: 'purring', ms: 900, start: () => (pastry({ scale: 0.4, opacity: 0 }), say('crunch')) },
+        { pose: 'groom', ms: 1300, start: () => (putThing(null), say('heart')) },
+      ];
+      return [
+        { to: ovenX(oven, 66) },
+        { pose: 'sit', ms: 500, start: () => (state.facing = 1) },
+        { pose: 'dangle', ms: 700, start: () => say('…') },
         {
           pose: 'dangle',
-          ms: 7000,
-          start: () => say('mm…'),
-          frame: (step, time) => {
-            if (time - step.started > 2400 && oven.dataset.ovenDone === 'true') step.done = true;
-          },
-        },
-        {
-          pose: 'cheer',
           ms: 900,
-          start: (step) => {
-            const done = oven.dataset.ovenDone === 'true';
-            step.pose = done ? 'cheer' : 'sit';
-            say(done ? '✦' : '…');
+          start: () => {
+            const ready = ovenIs(oven).done && !ovenIs(oven).on;
+            ovenTell('take');
+            state.steps.unshift(...(ready ? eat : [{ pose: 'sit', mood: 'sulk', ms: 1400, start: () => say('?') }]));
           },
         },
+      ];
+    };
+    const ovenReactions = noted('oven', {
+      // A whole bake: switched on if it is off, watched till it is done,
+      // switched off, and out it comes.
+      bake: (oven, again) => {
+        const { on, done } = ovenIs(oven);
+        return [
+          ...(!on && !done ? [...pawOn(oven, 112, 1, 'on', '♪'), { pose: 'sit', mood: 'purring', ms: 600 }] : []),
+          ...(!done ? watchIt(oven) : []),
+          ...(on || !done ? pawOn(oven, 112, 1, 'off', '!') : []),
+          { pose: 'sit', mood: 'purring', ms: 500 },
+          ...takeOut(oven),
+          offOven(oven, again),
+        ];
+      },
+      // Baked already, and the oven off: out it comes.
+      steal: (oven, again) => [...takeOut(oven), offOven(oven, again)],
+      // Watching it bake, and a mew at you for it.
+      watch: (oven, again) => [
+        ...watchIt(oven, 7000),
         { pose: 'sniff', ms: 1000, start: () => say('sniff') },
         { pose: 'beg', mood: 'hungry', ms: 1800, start: () => say('mew') },
-        offOven(oven),
+        offOven(oven, again),
       ],
-      // Over to the power button, her paw hanging down onto it (her drawing's
-      // x 53, mirrored facing right), and press: off ("!", then an innocent
-      // wink) or on, to help ("♪").
-      knob: (oven) => {
-        const on = oven.dataset.ovenOn === 'true';
+      // The power button: off ("!", a jump, then an innocent wink), or on to
+      // help ("♪", "✦").
+      knob: (oven, again) => {
+        const { on } = ovenIs(oven);
         return [
-          { to: ovenX(oven, 112) - (60 - 53) * UNIT },
-          { pose: 'sit', ms: 600, start: () => ((state.facing = 1), say('?')) },
-          { pose: 'dangle', ms: 700 },
-          { pose: 'dangle', ms: 500, start: () => (ovenTell(on ? 'off' : 'on'), say(on ? '!' : '♪')) },
+          ...pawOn(oven, 112, 1, on ? 'off' : 'on', on ? '!' : '♪'),
           ...(on
             ? [
-                {
-                  pose: 'startle',
-                  ms: 520,
-                  frame: (step, time, k) => (state.lift = 14 * Math.sin(Math.PI * k)),
-                },
+                { pose: 'startle', ms: 520, frame: (step, time, k) => (state.lift = 14 * Math.sin(Math.PI * k)) },
                 { pose: 'sit', ms: 900, start: () => ((state.facing = -1), say('…')) },
                 { pose: 'wink', ms: 1000 },
               ]
@@ -2537,53 +2606,82 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
                 { pose: 'sit', mood: 'purring', ms: 1200, start: () => say('✦') },
                 { pose: 'cheer', ms: 800 },
               ]),
-          offOven(oven),
+          offOven(oven, again),
         ];
       },
-      // A baked pastry, the oven off: she paws the door, it swings down and
-      // the tray slides out, and up the pastry hops beside her; she eats it
-      // ("nom", "crunch"), licks her lips, a heart.
-      steal: (oven) => {
-        const kind = oven.dataset.ovenPastry;
-        const ready = oven.dataset.ovenDone === 'true' && oven.dataset.ovenOn !== 'true';
-        const spot = () => ovenX(oven, 100);
-        const pastry = (extra) => putThing({ kind: 'pastry', variant: kind, x: spot(), y: state.y, ...extra });
+      // The heat dial turned up ("click"): the glow flares and the steam
+      // rushes up round her; too hot ("hot!"), a jump, a sneeze, a lick.
+      dial: (oven, again) => [
+        ...pawOn(oven, 60, -1, 'hot', 'click'),
+        { pose: 'sit', ms: 900, start: () => say('…') },
+        {
+          pose: 'startle',
+          ms: 600,
+          start: () => say('hot!'),
+          frame: (step, time, k) => (state.lift = 24 * Math.sin(Math.PI * k)),
+        },
+        { pose: 'sit', mood: 'sneeze', ms: 900, start: () => say('achoo!') },
+        { pose: 'groom', ms: 1300 },
+        offOven(oven, again),
+      ],
+      // Down onto the counter in front of the window: up on her hind legs,
+      // paws on the glass, peering in ("mm…" at a pastry baking, "…" in a
+      // cold oven); then polishing it, paws going round ("squeak"), a sparkle;
+      // and back up on top.
+      window: (oven, again) => {
+        const front = oven.parentElement?.querySelector('[data-cat-oven-front]');
+        if (!front) return [offOven(oven, again)];
+        const lit = ovenIs(oven).on;
+        // Up on her toes, paws on the glass.
+        const up = () => (state.lift = 12);
         return [
-          { to: ovenX(oven, 66) },
-          { pose: 'sit', ms: 700, start: () => ((state.facing = 1), say('?')) },
-          { pose: 'dangle', ms: 800, start: () => say('…') },
-          { pose: 'dangle', ms: 900, start: () => ovenTell('take') },
-          ...(ready
-            ? [
-                {
-                  pose: 'startle',
-                  ms: 700,
-                  start: () => say('!'),
-                  // Up out of the window (its middle, 80 across and 42 down from
-                  // the top) onto the top beside her.
-                  frame: (step, time, k) => {
-                    const rect = oven.getBoundingClientRect();
-                    const from = { x: ovenX(oven, 80), y: state.y + (42 * rect.width) / OVEN_UNITS };
-                    pastry({
-                      x: from.x + (spot() - from.x) * k,
-                      y: from.y + (state.y - from.y) * k - 40 * Math.sin(Math.PI * k),
-                      rotate: 360 * k,
-                    });
+          {
+            pose: 'sit',
+            ms: 400,
+            start: () => {
+              state.resume = {
+                steps: () => [
+                  { pose: 'sit', ms: 500, start: () => (state.facing = -1) },
+                  { pose: 'press', ms: 2600, start: () => say(lit ? 'mm…' : '…'), frame: up },
+                  ...[0, 1, 2].flatMap((beat) => [
+                    {
+                      pose: 'wave',
+                      ms: 320,
+                      start: () => beat === 0 && say('squeak'),
+                      frame: up,
+                    },
+                    { pose: 'press', ms: 320, frame: up },
+                  ]),
+                  { pose: 'cheer', ms: 800, start: () => say('✦') },
+                  { pose: 'sit', mood: 'purring', ms: 700, start: () => say(lit ? 'heart' : '…') },
+                  {
+                    pose: 'sit',
+                    ms: 300,
+                    start: () => {
+                      state.resume = { steps: () => [offOven(oven, again)] };
+                      leapTo(oven, ovenX(oven, 80), HOP_MS);
+                    },
                   },
-                },
-                { pose: 'crouch', ms: 700, start: () => pastry() },
-                { pose: 'crouch', ms: 700, start: () => (say('nom'), pastry({ scale: 0.7 })) },
-                { pose: 'crouch', ms: 700, start: () => pastry({ scale: 0.4 }) },
-                { pose: 'sit', mood: 'purring', ms: 900, start: () => (pastry({ scale: 0.4, opacity: 0 }), say('crunch')) },
-                { pose: 'groom', ms: 1300, start: () => (putThing(null), say('heart')) },
-              ]
-            : [{ pose: 'sit', mood: 'sulk', ms: 1400, start: () => say('?') }]),
-          offOven(oven),
+                ],
+              };
+              leapTo(front, ovenX(oven, 80), HOP_MS);
+            },
+          },
         ];
       },
+      // Into the steam over the middle: a loaf, purring, then fast asleep.
+      warm: (oven, again) => [
+        { to: ovenX(oven, 80) },
+        { pose: 'sit', mood: 'purring', ms: 700, start: () => say('~') },
+        { pose: 'rest', mood: 'purring', ms: 1600, start: () => say('prr') },
+        snooze(random(9000, 13000)),
+        { pose: 'stretch', mood: 'yawn', ms: 1300 },
+        { pose: 'sit', mood: 'purring', ms: 700, start: () => say('heart') },
+        offOven(oven, again),
+      ],
       // Late: beside the kitchen timer, she bats it (her paw at her drawing's
       // x 36, 30 up), and it rings: a leap, a puff of fright, a glare.
-      timer: (oven) => [
+      timer: (oven, again) => [
         { to: ovenX(oven, 90) + (60 - 36) * UNIT - 4 },
         { pose: 'sit', ms: 800, start: () => ((state.facing = -1), say('?')) },
         { pose: 'reach', ms: 300 },
@@ -2597,20 +2695,20 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         },
         { pose: 'hiss', ms: 900, start: () => say('hsss') },
         { pose: 'sit', mood: 'sulk', ms: 1400, start: () => say('…') },
-        offOven(oven),
+        offOven(oven, again),
       ],
       // Closed: curled up beside the dozing oven, its z's and hers.
-      snooze: (oven) => [
+      snooze: (oven, again) => [
         { to: ovenX(oven, 70) },
         { pose: 'sit', mood: 'drowsy', ms: 1200, start: () => say('…') },
         { pose: 'rest', mood: 'drowsy', ms: 1300 },
         snooze(random(10000, 14000)),
         { pose: 'stretch', mood: 'yawn', ms: 1300 },
-        offOven(oven),
+        offOven(oven, again),
       ],
       // Closed: she knocks on it (it rattles), and nobody comes ("…", "mew?");
       // she lies down by it a while.
-      knock: (oven) => [
+      knock: (oven, again) => [
         { to: ovenX(oven, 80) },
         { pose: 'sit', ms: 600, start: () => say('?') },
         ...[0, 1].flatMap(() => [
@@ -2621,7 +2719,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         { pose: 'sit', mood: 'sad', ms: 1200, start: () => say('mew?') },
         { pose: 'rest', mood: 'drowsy', ms: 1500 },
         snooze(random(6000, 8000)),
-        offOven(oven),
+        offOven(oven, again),
       ],
     });
     // Her owner has earned another cookie (a GPU-hour): a little oven turns
@@ -2922,7 +3020,8 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       let steps;
       if (oven) {
         const fits = ovenFits(oven);
-        const name = fits.includes(state.forceOven) ? state.forceOven : pickAfresh('oven', fits);
+        const name = ovenReactions[state.forceOven] ? state.forceOven : pickAfresh('oven', fits);
+        state.lastAt = { ...state.lastAt, oven: name };
         steps = () => ovenReactions[name](oven);
       } else {
         const reactions = Object.keys(popupReactions).filter((name) => name !== state.lastPopup);

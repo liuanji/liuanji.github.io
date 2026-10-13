@@ -445,6 +445,9 @@ export const SCRAPBOOK = [
     key: 'bakery',
     title: 'At the bakery',
     moments: [
+      { id: 'oven:bake', label: 'A whole bake', pose: 'cheer', stage: 'oven', say: '✦' },
+      { id: 'oven:window', label: 'Nose to the glass', pose: 'press', lift: 12, stage: 'ovenfront', say: 'mm…' },
+      { id: 'oven:dial', label: 'Turning up the heat', pose: 'startle', lift: 14, stage: 'oven', say: 'hot!' },
       { id: 'oven:warm', label: 'Warm on the oven', pose: 'sleep', stage: 'oven', say: 'z' },
       { id: 'oven:watch', label: 'Watching it bake', pose: 'dangle', stage: 'oven', say: 'mm…' },
       // Her dangling paw (6 px out, facing right) on the power button.

@@ -440,29 +440,35 @@ while she is up there does not count as outside it.
 
 Going over, she lands on the oven's top itself, and is drawn over the card
 while she is up there (and on her way up and off). What she does there is an
-equal pick (never the same twice running) of those that fit how the oven is:
+equal pick (never the same twice running) of those that fit how the oven is;
+she has her paws on it, and the oven answers:
 
 | Oven | What she may do |
 |---|---|
-| On | Warm, Watch, Power |
-| Off, its pastry baked | Pinch, Power |
-| Off, its pastry not yet baked | Power |
+| On | Bake, Heat, Window, Warm |
+| Off, its pastry baked | Pinch, Window |
+| Off, its pastry not yet baked | Bake, Window |
 | Late (any of the above) | also Timer |
-| Closed | Doze, Knock |
+| Closed | Doze, Knock, Window |
 
 | Doing | What happens |
 |---|---|
-| Warm | Into the steam over the middle: a loaf ("prr"), then fast asleep for 9–13 s; a stretch and a heart. |
-| Watch | She lies over the front, a paw hanging down ("mm…"), watching till the pastry is baked (or 7 s); a cheer ("✦") if it is, a sniff, and a mew at you. |
-| Power | Over to the power button, her paw hanging down onto it, and she presses it: the oven really goes off ("!", a jump, then "…" and an innocent wink), or on to help ("♪", "✦", a cheer). |
+| Bake | A whole bake by herself. Off, she goes over to the power button and presses it with a dangling paw ("♪"; a ring bursts off the button, the window lights up); she lies over the front watching it bake ("mm…") till it is done, and cheers ("✦"); presses the button off ("!"); then paws the door, and it is a pinch (below). |
 | Pinch | She paws at the door, it swings down and the tray slides out (the card's own take-out, a new raw pastry going in), and the pastry hops up beside her. She eats it ("nom", "crunch"), and licks her lips, a heart. |
+| Heat | Over to the left-hand dial, a paw on it ("click"): it turns, the window's glow flares and the steam comes quick and thick for 3 s. Too hot ("hot!"): she jumps, sneezes ("achoo!") and licks a paw. |
+| Window | She hops down onto the counter in front of the oven, up on her toes with her paws on the glass, peering in ("mm…" at a pastry baking, "…" in a cold oven); polishes it, paws going round ("squeak"), a sparkle ("✦"); and hops back up on top. |
+| Warm | Into the steam over the middle: a loaf ("prr"), then fast asleep for 9–13 s; a stretch and a heart. |
 | Timer | Beside the kitchen timer she bats it twice, and it rings, shaking: she leaps ("!"), puffs up ("hsss"), and glares ("…"). |
 | Doze | Curled up beside the dozing oven, its z's and hers, for 10–14 s. |
 | Knock | She knocks on it twice ("knock"; it rattles), nobody comes ("…", "mew?"), and she lies down by it a while. |
 
-Then she leaps off to the nearest panel in view that the card does not cover.
-Asked from her card ("Visit the bakery's oven"), or from her scrapbook, the
-card opens (and stays open) if it is not, and up she goes.
+Watching it bake and pressing its power button count as scrapbook pages of
+their own, and can be asked for from it (a watch, with a mew at you for the
+pastry; a press, off or on). Half the time, done with one, she does another
+there before she goes (never the same one twice running); then she leaps off
+to the nearest panel in view that the card does not cover. Asked from her
+card ("Visit the bakery's oven"), or from her scrapbook, the card opens (and
+stays open) if it is not, and up she goes.
 
 **A cookie, earned.** Each time your cookies today go up by a whole one (a
 GPU-hour your jobs held; the counts refresh every 5 minutes), one is due to
@@ -583,7 +589,7 @@ are new since you last looked; a click opens it.
 
 ## Her scrapbook
 
-The first time she does each of 150 things, she keeps a page for it, and a
+The first time she does each of 153 things, she keeps a page for it, and a
 little open book rises off her. It is kept in this browser (`scrapbook.js`),
 and opens over the page from her card: each kind with how many of it she has
 done, then a card for each, drawn in her pose there (with what she had with
@@ -616,7 +622,7 @@ are not buttons.
 | GPU cards | 9: each visit |
 | Your notes | 8: the five ways of calling you, "you noticed!", applause, a thumbs up |
 | Pop-up cards | 15: the six things on top, startled, scared off, and seven ways over |
-| At the bakery | 8: warm on the oven, watching it bake, the power button, a pinched pastry, the timer, dozing with it, knocking, an earned cookie |
+| At the bakery | 11: a whole bake, nose to the glass, turning up the heat, warm on the oven, watching it bake, the power button, a pinched pastry, the timer, dozing with it, knocking, an earned cookie |
 | Back into view | 11: every way in but the plain leap, the helicopter and the UFO apart |
 | Mishaps | 7: trip, slip, spook, sniff, a speck, off the page, dropped from up high |
 | Trapped | 7: each escape |

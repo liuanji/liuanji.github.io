@@ -12,7 +12,7 @@ const SCENE = { width: 150, height: 116 };
 const UNIT = 0.86;
 const SHRINK = 0.66;
 // Where her feet stand on each stage, down the scene.
-const STAGE_FEET = { none: 80, ring: 48, panel: 100, side: 78 };
+const STAGE_FEET = { none: 80, ring: 48, panel: 100, side: 78, ovenfront: 104 };
 const DEFAULT_FEET = 84;
 
 const RING_COLORS = { track: '#DCE3F7', compute: '#6F86D6', memoryTrack: '#DDF1E8', memory: '#5BBE98' };
@@ -50,19 +50,21 @@ function Ring({ left, top, size = 64 }) {
 
 const PANEL = 'absolute border border-[#E6DED2] bg-white';
 // The bakery's oven (as in its card, BakeryStatus.jsx: 1.4 px a unit here),
-// the middle of its top (80, 30) at (x, y): on, off, or closed and cold.
+// the middle of its top (80, 30) at (x, y): on, off, or closed and cold; or
+// (ovenfront, on) the counter in front of its window (80, 106) there.
 const OVEN_LINE = '#C5CEDB';
 function OvenStage({ kind, x, y }) {
   const scale = 1.4;
-  const on = kind === 'oven';
+  const on = kind === 'oven' || kind === 'ovenfront';
   const warm = kind !== 'ovenclosed';
+  const top = kind === 'ovenfront' ? 106 : 30;
   return (
     <svg
       className="absolute"
-      style={{ left: x - 50 * scale, top: y - 2 * scale }}
+      style={{ left: x - 50 * scale, top: y - (top - 28) * scale }}
       width={100 * scale}
-      height={72 * scale}
-      viewBox="30 28 100 72"
+      height={80 * scale}
+      viewBox="30 28 100 80"
       aria-hidden="true"
     >
       <rect x="36" y="30" width="88" height="70" rx="9" fill="white" stroke={OVEN_LINE} strokeWidth="2.2" />
@@ -73,6 +75,7 @@ function OvenStage({ kind, x, y }) {
       <rect x="46" y="53" width="68" height="38" rx="6" fill={on ? '#F4B860' : '#EEF1F5'} opacity={on ? 0.6 : 1} />
       <rect x="46" y="53" width="68" height="38" rx="6" fill="none" stroke={OVEN_LINE} strokeWidth="2" />
       <line x1="58" y1="49" x2="102" y2="49" stroke={OVEN_LINE} strokeWidth="2.4" strokeLinecap="round" />
+      <line x1="22" y1="106" x2="138" y2="106" stroke="#E6EBF1" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }

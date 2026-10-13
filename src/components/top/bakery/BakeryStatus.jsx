@@ -69,7 +69,7 @@ function mixColor(from, to, amount) {
   return `rgb(${a.map((value, index) => Math.round(value + (b[index] - value) * amount)).join(',')})`;
 }
 
-function OvenScene({ state, pastry, leaving, bake, on, doneness, rattle, ring }) {
+function OvenScene({ state, pastry, leaving, bake, on, doneness, rattle, ring, hot, press }) {
   const { glow, light } = SCENE[state];
   const warm = state !== 'closed';
   // Baking: the oven open for business and switched on.
@@ -100,6 +100,16 @@ function OvenScene({ state, pastry, leaving, bake, on, doneness, rattle, ring })
     const off = setTimeout(() => setRinging(false), 1200);
     return () => clearTimeout(off);
   }, [ring]);
+  // The heat dial, turned up by the cat: the glow flares and the steam comes
+  // quick and thick for a few seconds.
+  const [flaring, setFlaring] = useState(false);
+  useEffect(() => {
+    if (!hot) return undefined;
+    setFlaring(true);
+    const off = setTimeout(() => setFlaring(false), 3200);
+    return () => clearTimeout(off);
+  }, [hot]);
+  const flare = flaring && baking;
   return (
     <svg viewBox="0 0 160 112" className="h-auto w-[250px] overflow-visible" aria-hidden="true">
       {state === 'live' &&
@@ -113,7 +123,10 @@ function OvenScene({ state, pastry, leaving, bake, on, doneness, rattle, ring })
             strokeWidth="2.2"
             strokeLinecap="round"
             className="opacity-0 motion-safe:animate-steam"
-            style={{ animationDelay: `${index * 0.7}s` }}
+            style={{
+              animationDelay: `${index * (flare ? 0.3 : 0.7)}s`,
+              ...(flare && { animationDuration: '0.9s', strokeWidth: 2.8 }),
+            }}
           />
         ))}
       {state === 'delayed' && (
@@ -177,6 +190,21 @@ function OvenScene({ state, pastry, leaving, bake, on, doneness, rattle, ring })
         }}
       />
       <circle cx="60" cy="37.5" r="3.2" fill="white" stroke={GLYPH.outline} strokeWidth="1.8" />
+      {/* The heat dial, turned well round while it flares. */}
+      <line
+        x1="60"
+        y1="37.5"
+        x2="60"
+        y2="35.2"
+        stroke={GLYPH.outline}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        style={{
+          transformOrigin: '60px 37.5px',
+          transform: `rotate(${flare ? 135 : 0}deg)`,
+          transition: 'transform 0.5s ease-in-out',
+        }}
+      />
       {warm ? (
         // The power button: breathing amber while the oven is off, so it is
         // easy to find, and lit in the state's colour once it is on.
@@ -188,6 +216,20 @@ function OvenScene({ state, pastry, leaving, bake, on, doneness, rattle, ring })
               r="4.2"
               fill={POWER_OFF}
               className="motion-safe:animate-power-breathe"
+              style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+            />
+          )}
+          {press > 0 && (
+            // Pressed by the cat: a ring bursting off the button.
+            <circle
+              key={`press-${press}`}
+              cx="112"
+              cy="37.5"
+              r="4.2"
+              fill="none"
+              stroke={light}
+              strokeWidth="1.4"
+              className="opacity-0 motion-safe:animate-power-nudge"
               style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
             />
           )}
@@ -244,7 +286,10 @@ function OvenScene({ state, pastry, leaving, bake, on, doneness, rattle, ring })
           fill={glow}
           // Warming up when switched on; cold and dark when off.
           className={baking ? 'motion-safe:animate-oven-glow' : undefined}
-          style={{ opacity: baking ? (state === 'live' ? 0.6 : 0.4) : 0, transition: 'opacity 0.9s ease-in-out' }}
+          style={{
+            opacity: baking ? (flare ? 0.95 : state === 'live' ? 0.6 : 0.4) : 0,
+            transition: 'opacity 0.9s ease-in-out',
+          }}
         />
       )}
       <rect x="46" y="53" width="68" height="38" rx="6" fill="none" stroke={GLYPH.outline} strokeWidth="1.2" />
@@ -410,13 +455,19 @@ export function BakeryCard({ state, generatedAt, now }) {
   // timer: switching it off or on, taking out a baked pastry (the door
   // rattles if it isn't ready), ringing the timer, or knocking.
   const [ring, setRing] = useState(0);
+  const [hot, setHot] = useState(0);
+  const [press, setPress] = useState(0);
   const catDid = useRef(null);
   catDid.current = (what) => {
-    if (what === 'on' || what === 'off') setBatch((current) => ({ ...current, on: what === 'on' }));
+    if (what === 'on' || what === 'off') {
+      setBatch((current) => ({ ...current, on: what === 'on' }));
+      setPress((count) => count + 1);
+    }
     else if (what === 'take')
       setBatch((current) => (ready(current) ? swap(current) : { ...current, rattle: current.rattle + 1 }));
     else if (what === 'knock') setBatch((current) => ({ ...current, rattle: current.rattle + 1 }));
     else if (what === 'ring') setRing((count) => count + 1);
+    else if (what === 'hot') setHot((count) => count + 1);
   };
   useEffect(() => {
     const onCat = (event) => catDid.current(event.detail);
@@ -458,6 +509,8 @@ export function BakeryCard({ state, generatedAt, now }) {
               doneness={doneness.value}
               rattle={batch.rattle}
               ring={ring}
+              hot={hot}
+              press={press}
               bake={batch.bake}
               on={warm && batch.on}
             />
@@ -472,6 +525,14 @@ export function BakeryCard({ state, generatedAt, now }) {
               data-oven-pastry={pastry.name}
               className="pointer-events-none absolute left-0 w-[250px]"
               style={{ top: (30 * 250) / 160, height: (70 * 250) / 160 }}
+            />
+            {/* And the counter in front of it (its top edge the counter's line,
+                y = 106), for her to stand at the oven's window. */}
+            <div
+              aria-hidden="true"
+              data-cat-oven-front
+              className="pointer-events-none absolute left-0 w-[250px]"
+              style={{ top: (106 * 250) / 160 - 1, height: 4 }}
             />
             {warm && (
               <>
