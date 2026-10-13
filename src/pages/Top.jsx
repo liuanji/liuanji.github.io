@@ -157,7 +157,6 @@ function PeriodTiles({ period, range, history, scope, powerLimit }) {
 export default function Top() {
   useDocumentTitle('Servers · NUS Tractable Bakery Lab');
   const [params, setParams] = useSearchParams();
-  const now = useNow();
   const { token, user, signIn, signOut } = useSession();
   const { reserve, release } = useReservations(token, signOut);
   const [compact, setCompact] = useStoredFlag('gpu-status-compact', true);
@@ -177,6 +176,9 @@ export default function Top() {
   // The range a link names wins; otherwise the one last picked in this browser.
   const [savedRange, setSavedRange] = useStoredChoice('gpu-status-range');
   const overview = useStatusFile('overview', LIVE_REFRESH_MS, token);
+  // (Held while the tab is hidden, and on coming back till the overview is
+  // fresh again, so old data is never measured against a new clock.)
+  const now = useNow(10_000, overview.dataUpdatedAt);
   // With the whole overview long out of date the monitor itself has gone quiet
   // (the jump machine down or rebooting), so the servers' state is unknown: the
   // bakery is closed for now, rather than the servers down.

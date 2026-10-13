@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { gpuStatusUrl } from '../../../data/servers';
 
@@ -48,12 +48,42 @@ export function useStatusFile(name, refetchInterval, token) {
   });
 }
 
-// Wall-clock seconds, refreshed so "updated 40 s ago" keeps counting between fetches.
-export function useNow(intervalMs = 10_000) {
+// Wall-clock seconds, refreshed so "updated 40 s ago" keeps counting between
+// fetches. While the tab is hidden the clock stops, since the files are not
+// fetched then; back in view, it waits for the next fresh file (freshAt, when
+// it last came, changing) before moving on, or RESUME_WAIT_MS at most. Else,
+// in the moment before that fetch lands, everything would read as late.
+const RESUME_WAIT_MS = 8_000;
+export function useNow(intervalMs = 10_000, freshAt = 0) {
   const [now, setNow] = useState(() => Date.now() / 1000);
+  // Since when (ms) it has waited for a fresh file, and the file it had then.
+  const waiting = useRef(null);
+  const freshAtRef = useRef(freshAt);
+  freshAtRef.current = freshAt;
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now() / 1000), intervalMs);
-    return () => clearInterval(timer);
+    const tick = () => {
+      if (document.hidden) return;
+      if (waiting.current && Date.now() - waiting.current.since < RESUME_WAIT_MS) return;
+      waiting.current = null;
+      setNow(Date.now() / 1000);
+    };
+    const onVisible = () => {
+      if (document.hidden) return;
+      waiting.current = { since: Date.now(), freshAt: freshAtRef.current };
+    };
+    const timer = setInterval(tick, intervalMs);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [intervalMs]);
+  // A fresh file after coming back: the clock catches up at once.
+  useEffect(() => {
+    if (waiting.current && freshAt !== waiting.current.freshAt) {
+      waiting.current = null;
+      setNow(Date.now() / 1000);
+    }
+  }, [freshAt]);
   return now;
 }
