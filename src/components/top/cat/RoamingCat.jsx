@@ -451,14 +451,9 @@ const POPUP_OUTCOMES = {
 };
 // What it may be up to for it to notice one.
 const POPUP_MODES = new Set(['rest', 'sit', 'walk', 'act', 'sleep', 'tease', 'chase']);
-// The bakery's card (behind the page's "Live" dot, BakeryStatus.jsx) draws her
-// from further off, and she is keener on it: up onto its oven she goes.
-const OVEN_NEAR = 450;
-const OVEN_OUTCOMES = {
-  clicked: { nothing: 0.15, scared: 0.05, startle: 0.05, over: 0.75 },
-  near: { nothing: 0.3, scared: 0.05, startle: 0.05, over: 0.6 },
-  blocked: { scared: 0.2, over: 0.8 },
-};
+// The bakery's card (behind the page's "Live" dot, BakeryStatus.jsx) she
+// never lets be: whenever it opens, wherever she is, up onto its oven she goes
+// (as soon as she is free to).
 // Its oven's top, a perch the width of the oven's scene (OVEN_UNITS across in
 // the scene's own units), saying how the oven is.
 const OVEN_UNITS = 160;
@@ -3093,9 +3088,9 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
             ? 'clicked'
             : rect.bottom > 0 &&
                 rect.top < window.innerHeight &&
-                gapTo(edge, state.x, state.y - HEIGHT / 2) < (oven ? OVEN_NEAR : POPUP_NEAR)
+                gapTo(edge, state.x, state.y - HEIGHT / 2) < POPUP_NEAR
               ? 'near'
-              : state.forcePopup
+              : state.forcePopup || oven
                 ? 'clicked'
                 : null;
       if (!kind) return;
@@ -3105,9 +3100,10 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       if (kind === 'blocked' ? time - (state.popupAt ?? -Infinity) < POPUP_REST_MS : state.popupSeen === wrapper)
         return;
       state.popupSeen = wrapper;
-      const weights = { ...(oven ? OVEN_OUTCOMES : POPUP_OUTCOMES)[kind] };
+      if (oven) state.ovenSeen = wrapper;
+      const weights = { ...POPUP_OUTCOMES[kind] };
       if (state.mode === 'sleep' && weights.nothing) weights.nothing *= 2;
-      const outcome = state.forcePopup?.outcome ?? pick(weights);
+      const outcome = state.forcePopup?.outcome ?? (oven ? 'over' : pick(weights));
       if (outcome === 'nothing') return;
       state.manual = false;
       state.popupAt = time;
@@ -5793,6 +5789,12 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
             (card) => coverOf(page(card.getBoundingClientRect()), state.x, state.y) >= POPUP_BLOCKS,
           );
           if (over) onPopup(over, time);
+          // The bakery's card open, and she has not been up on it since it
+          // opened (busy when it did): now she goes.
+          const bakery = openPopups().find(ovenOf);
+          if (!over && bakery && state.ovenSeen !== bakery.closest('[data-radix-popper-content-wrapper]')) {
+            onPopup(bakery, time);
+          }
         }
       }
       // Trapped in a panel: it keeps to the panel's floor, between its walls.
@@ -7121,7 +7123,13 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     // Above the page's panels (their popups go to z-10) but under its floating
     // bars: the navigation bar (z-50), the notes pill and the range rail (z-30).
     // (Over it, up on the bakery's oven or on her way there: see place.)
-    <div ref={layer} className="pointer-events-none absolute left-0 top-0 z-20" style={{ width: 0, height: 0 }}>
+    // (data-cat-layer: a click on her is not one outside the bakery's card.)
+    <div
+      ref={layer}
+      data-cat-layer
+      className="pointer-events-none absolute left-0 top-0 z-20"
+      style={{ width: 0, height: 0 }}
+    >
       {/* The thing it is playing with, behind it. */}
       {things
         .filter((item) => !item.front)

@@ -227,10 +227,16 @@ const HOVER_OPEN_MS = 2000;
 // How long a hover-opened box waits for the mouse to reach it before closing.
 const HOVER_CLOSE_MS = 200;
 
+// How far the page may scroll under a sticky box before it closes.
+const STICKY_SCROLL_PX = 8;
+
 // A click opens a box that stays until Escape or a click elsewhere. A long
 // hover opens one that closes again when the mouse leaves both the tile and
-// the box; clicking the tile while it is open keeps it open instead.
-export function DetailsPopover({ content, width, children }) {
+// the box; clicking the tile while it is open keeps it open instead. A sticky
+// box (the bakery's) stays however it opened, until Escape, a click elsewhere
+// or a scroll of the page; a click on the roaming cat (who may be up on it)
+// does not count as elsewhere.
+export function DetailsPopover({ content, width, sticky = false, children }) {
   const [open, setOpen] = useState(false);
   const pinned = useRef(false);
   const openTimer = useRef(undefined);
@@ -242,12 +248,26 @@ export function DetailsPopover({ content, width, children }) {
   };
   useEffect(() => clearTimers, []);
 
+  useEffect(() => {
+    if (!sticky || !open) return undefined;
+    const from = window.scrollY;
+    const onScroll = () => {
+      if (Math.abs(window.scrollY - from) > STICKY_SCROLL_PX) setOpen(false);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [sticky, open]);
+
   const hoverIn = (event) => {
     if (event.pointerType !== 'mouse') return;
     clearTimeout(closeTimer.current);
     if (!open) {
+      const over = event.currentTarget;
       openTimer.current = setTimeout(() => {
-        pinned.current = false;
+        // (Only if the mouse is still on it: the page scrolling under a resting
+        // mouse can start a hover that never sees the mouse leave.)
+        if (!over.matches(':hover')) return;
+        pinned.current = sticky;
         setOpen(true);
       }, HOVER_OPEN_MS);
     }
@@ -287,6 +307,9 @@ export function DetailsPopover({ content, width, children }) {
         collisionPadding={16}
         onPointerEnter={hoverIn}
         onPointerLeave={hoverOut}
+        onInteractOutside={(event) => {
+          if (sticky && event.target?.closest?.('[data-cat-layer]')) event.preventDefault();
+        }}
         className={`${width} rounded-2xl border-border-light bg-white p-5 shadow-xl`}
       >
         {content}

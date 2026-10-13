@@ -81,6 +81,7 @@ function Freshness({ overview, now }) {
       <DetailsPopover
         content={<BakeryCard state={key} generatedAt={overview.data.generated_at} now={now} />}
         width="w-[340px]"
+        sticky
       >
         <button
           type="button"

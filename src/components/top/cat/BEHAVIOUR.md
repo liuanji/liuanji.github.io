@@ -427,16 +427,16 @@ the panel below.
 ### The bakery's oven
 
 The card behind the page's "Live" dot (the bakery: an oven, a pastry baking
-in it, its power button, and a kitchen timer on top when the data is late) is
-one she is keener on. She notices it from 450 px off rather than 300, and
-what she does about it goes:
+in it, its power button, and a kitchen timer on top when the data is late) she
+never lets be. Whenever it opens, wherever she is on the page, up onto its
+oven she goes (unless in quiet mode); busy with something when it opens, she
+goes as soon as she is free, once each time it opens. If there is nowhere on
+it to land (its top under the navigation bar or at the bottom of the window),
+she startles instead.
 
-| What she does | Clicked | Near | Blocked |
-|---|---|---|---|
-| Nothing | 15% | 30% | – |
-| Startle | 5% | 5% | – |
-| Scared | 5% | 5% | 20% |
-| Up onto the oven | 75% | 60% | 80% |
+The card itself stays open, however it was opened (a click, or a long hover),
+until Escape, a click outside it, or a scroll of the page. A click on her
+while she is up there does not count as outside it.
 
 Going over, she lands on the oven's top itself, and is drawn over the card
 while she is up there (and on her way up and off). What she does there is an
