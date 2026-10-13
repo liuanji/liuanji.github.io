@@ -30,7 +30,7 @@ const monthYear = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numer
 // A share of the servers paid off: one decimal below 10%, whole percents above.
 function paidShare(share) {
   const percent = share * 100;
-  return `${percent < 10 ? Number(percent.toFixed(1)) : Math.round(percent)}%`;
+  return `${percent < 9.95 ? percent.toFixed(1) : Math.round(percent)}%`;
 }
 
 // A milestone's round number of hours: 2.5k, 10k, 1M.
