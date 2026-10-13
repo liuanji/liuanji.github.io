@@ -595,7 +595,8 @@ function PartBox({ compact, large, small, title, subtitle, children }) {
   );
 }
 
-// The CPU's box: a large chip, its load now, and (trend) its last hour or day.
+// The CPU's box: a large chip with its load now, and (trend) its last hour or
+// day.
 // children, if any, go just above the footer; compact puts a small chip
 // before the title instead of the large one.
 export function CpuDetails({ host, system, trend = null, children = null, compact = false }) {
@@ -620,10 +621,8 @@ export function CpuDetails({ host, system, trend = null, children = null, compac
       }
       subtitle={formatCpuModel(system) ?? 'Processor'}
     >
-      <div className="mt-4">
-        <Metric label="Load now" value={`${percent}%`} share={percent / 100} series={RING_SERIES.compute} />
-      </div>
-      {trend}
+      {/* (Its load now is the figure under the chip.) */}
+      <div className="mt-1">{trend}</div>
       {children}
       <BoxFooter phrase={pressurePhrase('cpu', percent / 100, host)} />
     </PartBox>
