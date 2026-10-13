@@ -566,9 +566,7 @@ export function BoxFooter({ phrase, children = null }) {
 // A part's box: by default its large picture (and figure) in a column on the
 // left; with compact set, as in the expanded view, a small picture just before
 // the title and everything else at full width.
-// The footer (its easter egg line) runs under everything, the full width
-// of the box, as in the GPU box.
-function PartBox({ compact, large, small, title, subtitle, footer = null, children }) {
+function PartBox({ compact, large, small, title, subtitle, children }) {
   const heading = (
     <>
       <h4 className="font-tight text-base font-semibold leading-tight text-inkwell">{title}</h4>
@@ -583,20 +581,16 @@ function PartBox({ compact, large, small, title, subtitle, footer = null, childr
           <div className="min-w-0 flex-1">{heading}</div>
         </div>
         {children}
-        {footer}
       </div>
     );
   }
   return (
-    <div>
-      <div className="flex gap-6">
-        {large}
-        <div className="min-w-0 flex-1">
-          {heading}
-          {children}
-        </div>
+    <div className="flex gap-6">
+      {large}
+      <div className="min-w-0 flex-1">
+        {heading}
+        {children}
       </div>
-      {footer}
     </div>
   );
 }
@@ -617,6 +611,7 @@ export function CpuDetails({ host, system, trend = null, children = null, compac
           <span className="mt-1 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell">
             {Math.round(shown * 100)}%
           </span>
+          <span className="mt-1 font-mono text-[10px] text-data-grey">load now</span>
         </div>
       }
       small={<ChipGlyph share={shown} pace={percent / 100} color={RING_SERIES.compute.color} size={44} animated />}
@@ -626,11 +621,11 @@ export function CpuDetails({ host, system, trend = null, children = null, compac
         </>
       }
       subtitle={formatCpuModel(system) ?? 'Processor'}
-      footer={<BoxFooter phrase={pressurePhrase('cpu', percent / 100, host)} />}
     >
       {/* (Its load now is the figure under the chip.) */}
       <div className="mt-1">{trend}</div>
       {children}
+      <BoxFooter phrase={pressurePhrase('cpu', percent / 100, host)} />
     </PartBox>
   );
 }
@@ -648,7 +643,7 @@ export function RamDetails({ host, system, level, trend = null, children = null,
   // which lives on disk, in the disk hue.
   const cache = (
     <Metric
-      label="File cache"
+      label={compact ? 'File cache' : 'Cache'}
       value={system.memory_cache_mb == null ? '—' : formatMemory(system.memory_cache_mb)}
       share={system.memory_cache_mb == null ? null : system.memory_cache_mb / total}
       series={CACHE_SERIES}
@@ -666,20 +661,19 @@ export function RamDetails({ host, system, level, trend = null, children = null,
     <PartBox
       compact={compact}
       large={
-        // The stick and its figure (in use) in the middle of the room beside
-        // the title and chart; the cache and swap at the bottom, level with
-        // the chart's figures.
-        <div className="flex w-[124px] flex-shrink-0 flex-col items-center">
-          <div className="flex flex-1 flex-col items-center justify-center">
-            <StickGlyph share={shown} pace={used / total} color={inUse.color} width={112} animated />
-            <span
-              className="mt-3 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell"
-              style={level ? { color: READING_STYLES[level].color } : undefined}
-            >
-              {Math.round(shown * 100)}%
-            </span>
-          </div>
-          <div className="mt-5 w-full space-y-3 pb-1">
+        // As the GPU box: the stick, its figure and what that is; then, below
+        // a rule, the cache and swap, the column ending level with the chart's
+        // figures beside it.
+        <div className="flex w-[120px] flex-shrink-0 flex-col items-center justify-center">
+          <StickGlyph share={shown} pace={used / total} color={inUse.color} width={104} animated />
+          <span
+            className="mt-3 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell"
+            style={level ? { color: READING_STYLES[level].color } : undefined}
+          >
+            {Math.round(shown * 100)}%
+          </span>
+          <span className="mt-1 font-mono text-[10px] text-data-grey">in use now</span>
+          <div className="mt-4 w-full space-y-2.5 border-t border-border-light pt-3">
             {cache}
             {swap}
           </div>
@@ -692,7 +686,6 @@ export function RamDetails({ host, system, level, trend = null, children = null,
         </>
       }
       subtitle={`${formatMemory(total)} total`}
-      footer={<BoxFooter phrase={pressurePhrase('ram', used / total, host)} />}
     >
       {/* Compact (the expanded view's box), in use across the top and the
           cache and swap below it; else just the chart, beside them. */}
@@ -707,6 +700,7 @@ export function RamDetails({ host, system, level, trend = null, children = null,
       )}
       {trend}
       {children}
+      <BoxFooter phrase={pressurePhrase('ram', used / total, host)} />
     </PartBox>
   );
 }
