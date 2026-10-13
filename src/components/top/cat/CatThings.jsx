@@ -1173,6 +1173,215 @@ function PaperBall() {
   );
 }
 
+// A little strawberry, its middle at (x, y), its leaves on top.
+function Strawberry({ x, y, line, turn = 0 }) {
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${turn})`}>
+      <path
+        d="M0 4.2C-1.6 3.4-3.4 1.2-3.4-.8c0-1.8 1.4-2.6 3.4-2.6S3.4-2.6 3.4-.8C3.4 1.2 1.6 3.4 0 4.2z"
+        fill="#E9828E"
+        stroke="#C9606E"
+        strokeWidth={line * 0.8}
+        strokeLinejoin="round"
+      />
+      <g fill="#FBE3A8">
+        <circle cx="-1.4" cy="-0.6" r="0.4" />
+        <circle cx="1.3" cy="-0.4" r="0.4" />
+        <circle cx="0" cy="1.6" r="0.4" />
+      </g>
+      <path
+        d="M0-3.2-2.2-4.4M0-3.2l2.2-1.2M0-3.2v-1.8"
+        fill="none"
+        stroke="#7FB07A"
+        strokeWidth={line}
+        strokeLinecap="round"
+      />
+    </g>
+  );
+}
+
+// Something thrown at whoever is watching, coming at them face on, its middle
+// at (0, 0): drawn at its size on screen (radius count, in pixels) rather than
+// scaled up, so its outline stays fine however near it comes. A rubber ball, a
+// ball of dough, a cream puff, or a ball of paper. (Drawn at a radius of 10.)
+function Lobbed({ variant = 'ball', count: r = 5 }) {
+  const line = ((0.9 + r * 0.02) * 10) / r;
+  const shapes = {
+    ball: (
+      <>
+        <circle r="10" fill="#F2B8C2" stroke="#D98E9C" strokeWidth={line} />
+        <path d="M-9.6 2.6q9.6-5.6 19.2 0" fill="none" stroke="#FCE3E7" strokeWidth="2.4" />
+        <circle cx="-3.6" cy="-4.2" r="2" fill="white" opacity="0.8" />
+      </>
+    ),
+    dough: (
+      <>
+        <path
+          d="M0-10c6 0 10 4 10 9.5S6 10 0 10-10 6-10 .5-6-10 0-10z"
+          fill="#F3E2BE"
+          stroke="#CDAC78"
+          strokeWidth={line}
+        />
+        <path d="M-5 3.4q3 2 6.4.8" fill="none" stroke="#CDAC78" strokeWidth={line * 0.8} strokeLinecap="round" />
+        <g fill="white" opacity="0.8">
+          <circle cx="-4" cy="-3.6" r="0.9" />
+          <circle cx="3.2" cy="-5.4" r="0.7" />
+          <circle cx="5.4" cy="1.6" r="0.8" />
+        </g>
+      </>
+    ),
+    puff: (
+      <>
+        <path d="M-10 1c0 6 4.5 9 10 9s10-3 10-9z" fill="#E9B865" stroke="#C9973D" strokeWidth={line} />
+        <ellipse rx="11" ry="3.4" cy="0.6" fill="#FFF8EE" stroke="#E2D5C2" strokeWidth={line} />
+        <path
+          d="M-9-1c0-5 4-8.6 9-8.6S9-6 9-1c-3 1.4-15 1.4-18 0z"
+          fill="#EDC074"
+          stroke="#C9973D"
+          strokeWidth={line}
+        />
+        <g fill="white" opacity="0.85">
+          <circle cx="-4.6" cy="-4" r="0.8" />
+          <circle cx="4.4" cy="-4.4" r="0.7" />
+          <circle cx="1.6" cy="-2.4" r="0.6" />
+        </g>
+        <Strawberry x={0} y={-9.4} line={line} />
+      </>
+    ),
+    // Crumpled notepaper: a jagged outline, folds catching the light, and
+    // bits of its ruled lines going every which way.
+    paper: (
+      <>
+        <path
+          d="M10 0 8.6 4.6 4.4 8.6 1.8 7.4-.4 9.6-5.2 8.2-8.8 4.6-9.6-.2-8.2-4.8-5.8-6-4.6-8.8.6-9.8 5.2-8 8.8-4.2 8.4-1.8z"
+          fill="#F6F7F9"
+          stroke="#A3ADBB"
+          strokeWidth={line}
+          strokeLinejoin="round"
+        />
+        <path d="M-.4 9.6-5.2 8.2-2 3zM5.2-8 8.8-4.2 3-2.4zM-8.2-4.8-9.6-.2-3.6-1.6z" fill="#E4E8EE" />
+        <path d="M1.8 7.4-2 3 3-2.4 8.4-1.8M-2 3-3.6-1.6-5.8-6M3-2.4.6-9.8M-3.6-1.6 3-2.4" fill="none" stroke="#C2CAD6" strokeWidth={line * 0.7} strokeLinejoin="round" />
+        <path d="M-7.6 2.6l3.8 1M3.4 4.4l4.4-1.6M-3 -6.4l4.6 1.4M4.4-5.6l2.6 1.8" stroke="#B9C9EC" strokeWidth={line * 0.6} strokeLinecap="round" />
+      </>
+    ),
+  };
+  return <g transform={`scale(${r / 10})`}>{shapes[variant]}</g>;
+}
+
+// What a thrown thing leaves on the glass (radius count, as it hit, in
+// pixels; t from 0 to 1 as it settles): a cream puff's splat, its drips
+// running down, the strawberry stuck in the middle; or a ball of dough
+// squashed flat, sagging.
+function Smear({ variant = 'cream', count: r = 40, t = 0 }) {
+  const line = ((0.9 + r * 0.02) * 10) / r;
+  if (variant === 'dough')
+    return (
+      <g transform={`scale(${(r / 10) * 1.2} ${(r / 10) * 1.2 * (1 + 0.12 * t)})`}>
+        <path
+          d="M0-9.6c3.4-.4 5 1.4 7.4 1.6s3.4 2.8 2.8 5.4 1 4.6-1 6.6-4.4 1.4-6.4 3.4S-1 10-3.6 9.2s-3.4-2-5.4-3.4-1.6-4.4-1-7S-8.8-6.6-6.4-8 -3.4-9.2 0-9.6z"
+          fill="#F3E2BE"
+          stroke="#CDAC78"
+          strokeWidth={line / 1.2}
+        />
+        <path
+          d="M-4.6-2.6q1.6 1.2 3.4.4M1.6 2.4q1.8 1 3.6 0M-2.4 5q1.2.8 2.6.2"
+          fill="none"
+          stroke="#CDAC78"
+          strokeWidth={(line / 1.2) * 0.8}
+          strokeLinecap="round"
+        />
+        <g fill="white" opacity="0.8">
+          <circle cx="4" cy="-5" r="0.7" />
+          <circle cx="-5.6" cy="2.4" r="0.8" />
+          <circle cx="12" cy="-6" r="0.6" />
+          <circle cx="-11.4" cy="-4" r="0.5" />
+        </g>
+      </g>
+    );
+  const drips = [
+    [-6.4, 7.6, 7],
+    [0.6, 9.6, 11],
+    [6.8, 6.6, 5],
+  ];
+  const edge = line / 1.2;
+  // A drip: down from under the splat, ending in a round bead.
+  const drip = (x, y, length) => `M${x - 1.2} ${y - 3}v${3 + length * t}a1.6 1.6 0 1 0 2.4 0v${-3 - length * t}z`;
+  // A crumb of the choux, stuck in the cream.
+  const crumb = (x, y, turn) => (
+    <path
+      d="M-2.6 1c-.6-2 .6-3.4 2.4-3.4s3.2 1 3 2.8c-.2 1.4-1.6 1.6-2.8 1.6S-2.2 2.2-2.6 1z"
+      fill="#EDC074"
+      stroke="#C9973D"
+      strokeWidth={edge * 0.8}
+      transform={`translate(${x} ${y}) rotate(${turn})`}
+    />
+  );
+  return (
+    <g transform={`scale(${(r / 10) * 1.2})`}>
+      {drips.map(([x, y, length]) => (
+        <path key={x} d={drip(x, y, length)} fill="#FFF8EE" stroke="#E2D5C2" strokeWidth={edge} />
+      ))}
+      <path
+        d="M0-11c2.6 0 3 2.6 5.2 2.8s4.6-2.2 6.2-.4-.8 3.8.6 5.6 3.8 2.2 3 4.4-4 1.2-5.2 3-.4 4.8-3 5.4S3 8.6 0 8.6s-4.4 3.6-6.6 2.8-.8-3.6-3-4.8-5-.8-5.2-3.2 3-2.6 2.8-4.8-2.6-3.2-1.6-5.2 4.2.6 5.8-.6S-2.6-11 0-11z"
+        fill="#FFF8EE"
+        stroke="#E2D5C2"
+        strokeWidth={edge}
+      />
+      {/* Over the splat's edge where each drip leaves it. */}
+      {drips.map(([x, y]) => (
+        <rect key={x} x={x - 1.2 + edge / 2} y={y - 4} width={2.4 - edge} height="4.4" fill="#FFF8EE" />
+      ))}
+      <g fill="#FFF8EE" stroke="#E2D5C2" strokeWidth={edge}>
+        <circle cx="-13.4" cy="-7" r="1.2" />
+        <circle cx="14.2" cy="5.6" r="1" />
+        <circle cx="9" cy="-12" r="0.8" />
+      </g>
+      {crumb(-6.4, -4.6, -20)}
+      {crumb(6.2, 2.6, 30)}
+      {crumb(-3.6, 4.4, 160)}
+      <Strawberry x={1} y={-2.4} line={edge} turn={14} />
+    </g>
+  );
+}
+
+// A thing hitting the glass: little lines bursting out round it (radius
+// count, in pixels; t from 0 to 1 as they spread and fade), a sparkle, and
+// the sound of it (text) up by its top left, lingering a little longer.
+function Bonk({ count: r = 40, t = 0, text }) {
+  const from = r * (1.08 + 0.3 * t);
+  const to = r * (1.32 + 0.5 * t);
+  return (
+    <g>
+      <g opacity={Math.max(0, 1 - 1.6 * t)} stroke="#A3ADBB" strokeWidth="2" strokeLinecap="round">
+        {Array.from({ length: 8 }, (_, index) => {
+          const turn = (index / 8) * 2 * Math.PI + 0.3;
+          const [x, y] = [Math.cos(turn), Math.sin(turn)];
+          return <path key={index} d={`M${x * from} ${y * from}L${x * to} ${y * to}`} />;
+        })}
+        <path
+          d={`M${r * 0.9} ${-r * 1.1}m0-6v12m-6-6h12`}
+          stroke="#E3C27A"
+          transform={`rotate(${45 * t} ${r * 0.9} ${-r * 1.1})`}
+        />
+      </g>
+      {text && (
+        <text
+          x={-r * 0.95}
+          y={-r * 1.12 - 8 * t}
+          textAnchor="middle"
+          fontSize="16"
+          fontWeight="600"
+          fill="#7F8CA3"
+          opacity={Math.min(1, 3 * (1 - t))}
+          transform={`rotate(-12 ${-r * 0.95} ${-r * 1.12})`}
+        >
+          {text}
+        </text>
+      )}
+    </g>
+  );
+}
+
 // A paper bag from the bakery, standing on the edge (its bottom at y = 0, its
 // open top BAG_HEIGHT up), crumpled at the rim, stamped with a little
 // croissant.
@@ -1421,6 +1630,9 @@ const THINGS = {
   trampoline: Trampoline,
   bigbubble: BigBubble,
   bowl: TreatBowl,
+  lobbed: Lobbed,
+  smear: Smear,
+  bonk: Bonk,
 };
 // How far each reaches round its base, for the box it is drawn in.
 const REACH = {
@@ -1478,6 +1690,9 @@ const REACH = {
   trampoline: 28,
   bigbubble: 44,
   bowl: 20,
+  lobbed: 10,
+  smear: 30,
+  bonk: 30,
 };
 
 // What it may wish for in a thought bubble, as its label puts it: a toy to

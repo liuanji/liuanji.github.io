@@ -125,13 +125,13 @@ of all stirs on a top edge is the kind's chance spread over the list.
 |---|---|---|
 | Starving | yawn, sunbeam nap, crumb, sneeze, a bed nap (twice over), nodding off, flopping over, dreaming, sleep, beg | ~5.2% (a bed nap ~10.4%) |
 | Hungry | crumb, yawn, sneeze, butterfly, box, bird watching, a bed nap (twice over), nodding off, flopping over, dreaming, beg, groom, curling up, cheering the all-clear | ~3.7% (a bed nap ~7.3%) |
-| Content | butterfly, box, croissant, sunbeam nap, a bed nap, nodding off, curling up, tail chase, yawn, sneeze, crumb, dance, bird watching, scratching, dough, backflip, groom, knead, batting something off the screen, cheering the all-clear | 2.4% (naps ~9.6% in all) |
-| Well fed | butterfly, box, croissant, tail chase, dance, sneeze, crumb, sunbeam nap, a bed nap, curling up, bird watching, scratching, dough, backflip, knead, zoomies, groom, batting something off the screen, cheering the all-clear | ~2.4% (naps ~7.1% in all) |
-| Full | sunbeam nap, box, yawn, croissant, dance, sneeze, scratching, dough, backflip, belly-up, groom, knead, batting something off the screen, cheering the all-clear | ~2.7% |
+| Content | butterfly, box, croissant, sunbeam nap, a bed nap (twice over), nodding off, curling up (twice over), tail chase, yawn, sneeze, crumb, dance, bird watching, scratching, dough, backflip, groom, knead, batting something off the screen, throwing something at you, cheering the all-clear | ~2.1% (naps ~12.5% in all) |
+| Well fed | butterfly, box, croissant, tail chase, dance, sneeze, crumb, sunbeam nap, a bed nap (twice over), nodding off, curling up (twice over), bird watching, scratching, dough, backflip, knead, zoomies, groom, batting something off the screen, throwing something at you, cheering the all-clear | ~2.0% (naps ~11.7% in all) |
+| Full | sunbeam nap, box, yawn, croissant, dance, sneeze, scratching, dough, backflip, belly-up, groom, knead, batting something off the screen, throwing something at you, cheering the all-clear | ~2.5% |
 
 Cheering the all-clear (see Your notes) is on the list only while the notes
 pill shows its all-clear croissant; otherwise the rest share its part: hungry
-~3.9% each (a bed nap ~7.9%), content ~2.5%, well fed ~2.5%, full ~2.9%.
+~3.9% each (a bed nap ~7.9%), content ~2.2%, well fed ~2.0%, full ~2.7%.
 
 **Batting something off the screen:** something turns up within reach (a
 bouncy ball, a ball of yarn, a cookie, a croissant, a paper ball or her toy
@@ -139,6 +139,27 @@ mouse). She eyes it ("?"), looks at you, taps it once, and then swats it
 ("!") clean off the screen, spinning in an arc past the nearer side of the
 window. She watches it go ("…"), there is a faint "…bonk" from out of sight,
 and she sits there looking innocent, with a wink.
+
+**Throwing something at you:** the other way round. Something turns up beside
+her (an equal pick, never the same twice running: a rubber ball, a ball of
+dough, a cream puff with a strawberry on top, or a ball of crumpled
+notepaper). She looks at you ("?"), winds up with it held high, one eye shut
+to aim ("…"), and lets fly. It comes at you face on, slow to grow at first
+and then rushing up, and hits the glass somewhere about the middle of the
+window (a little burst of lines, and the sound of it):
+
+- **The ball** ("boing!") bounces back the way it came, and she catches it in
+  both paws, pleased (a heart).
+- **The dough** ("splot") sticks, squashed flat. She puts both paws over her
+  mouth ("oops"), it sags and slides down a little, then drops away out of
+  the window; a wink.
+- **The cream puff** ("splat!") splats, cream dripping down round its
+  strawberry. She claps, giggling ("hehe"), while the drips run, then winks as
+  it fades.
+- **The paper ball** ("tok!") bonks off and drops out of the window. She looks
+  the other way, whistling ("♪"), then back at you with a wink.
+
+Its size where it hits is 7–9.5% of the window's shorter side (as a radius).
 
 Five more join her list only at certain levels (one more equal pick each,
 so the others' shares shrink a little):
@@ -161,7 +182,8 @@ when starving):
   round proofing basket (banneton), a plush doughnut bed (iced and sprinkled),
   a flour sack, or a croissant cushion. She goes over, sniffs it, hops in (or
   up), turns round twice, lies down, kneads it a little, and curls up asleep
-  for 8–11 s (16–28 s hungry, 24–40 s starving), dreaming of a fish-shaped cookie 40% of the time ("mm…"); then a
+  for 8–11 s (18–26 s well fed, 20–30 s content, 16–28 s hungry, 24–40 s
+  starving; full, 8–11 s), dreaming of a fish-shaped cookie 40% of the time ("mm…"); then a
   stretch with a big yawn, out she hops, and the bed goes. Or, sleepy where
   she is, she lies down and curls up, and a gingham tea towel drifts down over
   her; when she wakes it slips off.
@@ -178,7 +200,8 @@ when starving):
 
 Full, she hardly ever sleeps: her only nap is the sunbeam (under 3% of her
 stirs), and she dozes off with the pointer still for 3 minutes only 3% of the
-time.
+time. Content or well fed, she naps about one stir in eight or nine, which
+with those longer naps keeps her asleep roughly 15–17% of the time.
 
 - **Bird watching:** a bird flutters in and lands nearby; she chatters at it
   ("ek ek"), wiggles, pounces, and it flies off ("?").
@@ -497,7 +520,8 @@ spirits (Mood), and the switch letting her roam. While she roams, a barely-there
 everything she can be asked to do, in two levels: first its kinds (moves, by
 itself, naps, with you, GPU cards, treats, toys, each with how many it holds),
 and a click on one shows what is in it, with a way back up. In all: the moves (walk, run, sniff, spook,
-pounce), her other interactions (with a visit to your notes), her naps (each of the six beds, the sunbeam,
+pounce), her other interactions (with a visit to your notes, and each of the
+four things she can throw at you), her naps (each of the six beds, the sunbeam,
 nodding off, flopping over, dreaming, curling up, a yawn), the GPU card visits
 (greyed out unless a running GPU's card, or for "add oil" an idle one, is fully
 in view when the list opens), the things to do with you (belly rub, brushing,
@@ -511,7 +535,7 @@ are new since you last looked; a click opens it.
 
 ## Her scrapbook
 
-The first time she does each of 138 things, she keeps a page for it, and a
+The first time she does each of 142 things, she keeps a page for it, and a
 little open book rises off her. It is kept in this browser (`scrapbook.js`),
 and opens over the page from her card: each kind with how many of it she has
 done, then a card for each, drawn in her pose there (with what she had with
@@ -528,14 +552,14 @@ does not count: it only makes her do it, till she next settles.
 
 Clicked while she roams, a page she has had closes the scrapbook and asks her
 to do it again, where it can be asked for (her doings, naps, dances, treats,
-toys, games, wishes, GPU card visits, calls at your notes and cheers, a few
+toys, games, wishes, GPU card visits, throws at you, calls at your notes and cheers, a few
 mishaps, the ways of following you). The rest, which only come about of
 themselves (ways back into view, pop-up cards, trips, escapes and the like),
 are not buttons.
 
 | Kind | Pages |
 |---|---|
-| By herself | 21: butterfly, box, croissant, tail chase, sneeze, crumb, bird watching, scratching, dough, backflip, grooming, kneading, belly-up, begging, zoomies, batting something off the screen, and the five at certain levels |
+| By herself | 25: butterfly, box, croissant, tail chase, sneeze, crumb, bird watching, scratching, dough, backflip, grooming, kneading, belly-up, begging, zoomies, batting something off the screen, the four things thrown at you, and the five at certain levels |
 | Naps | 12: the six beds, sunbeam, nodding off, flopping over, dreaming, curling up, a yawn |
 | Dances | 7: happy paws, shuffle, twirl, moonwalk, disco, the robot, the hula |
 | With you | 20: batting at the pointer, keep-away, caught, petting, a rub against your hand, a pounce on the pointer, belly rub, brushing, photo shoot, the five games, and the six ways of following you |

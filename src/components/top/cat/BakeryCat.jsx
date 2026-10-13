@@ -581,6 +581,11 @@ export const ROAM_POSES = {
   clap: ({ mood = 'purring' }) => <Clapping mood={mood} />,
   clap2: ({ mood = 'purring' }) => <Clapping mood={mood} together />,
   thumbs: ({ mood = 'wink' }) => <ThumbsUp mood={mood} />,
+  // Throwing something at whoever is watching: winding up, the follow-through,
+  // and "oops", paws over its mouth.
+  windup: () => <WindingUp />,
+  lob: () => <Lobbing />,
+  oops: () => <Oops />,
   // Pushing something along (to its left): leaning in, front paws braced flat
   // against it, hind legs digging in, straining.
   push: () => <Pushing />,
@@ -2528,6 +2533,72 @@ function ThumbsUp({ mood }) {
       <path d="M35 49.6Q35.8 45.4 34.4 42.6" fill="none" stroke={BELLY} strokeWidth="3.4" strokeLinecap="round" />
       <rect x="27.6" y="47.2" width="10.4" height="9.4" rx="4.4" fill={BELLY} stroke={EDGE} strokeWidth="1.4" />
       <path d="M28.4 50.4h4.4M28.4 53.4h4.4" stroke={EDGE} strokeWidth="1" strokeLinecap="round" opacity="0.8" />
+    </g>
+  );
+}
+
+// Throwing something at whoever is watching: sat up and leaning back, the paw
+// with it drawn back high beside its head, one eye shut to take aim; then the
+// follow-through, leaning in, its paw thrust out towards you (toe beans
+// showing), a swish where it came from; and "oops": both paws over its mouth,
+// a bead of sweat.
+function WindingUp() {
+  return (
+    <g transform="rotate(6 60 88)">
+      <Sitting mood="wink" stage={STAGES[2]} raised />
+      <path d="M46 72Q34 62 32.4 41" fill="none" stroke={EDGE} strokeWidth="7" strokeLinecap="round" />
+      <path d="M46 72Q34 62 32.4 41" fill="none" stroke={FUR} strokeWidth="4.6" strokeLinecap="round" />
+      <ellipse
+        cx="32.2"
+        cy="38.4"
+        rx="4.6"
+        ry="5"
+        fill={BELLY}
+        stroke={EDGE}
+        strokeWidth="1.4"
+        transform="rotate(-12 32.2 38.4)"
+      />
+    </g>
+  );
+}
+function Lobbing() {
+  return (
+    <g>
+      <path
+        d="M28 40Q27 54 38 62M33 37Q31 49 39 56"
+        fill="none"
+        stroke="#C9D2DE"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <g transform="rotate(-4 60 88)">
+        <Sitting mood="purring" stage={STAGES[2]} raised />
+        <path d="M46 73Q44 70 45.4 66" fill="none" stroke={EDGE} strokeWidth="7" strokeLinecap="round" />
+        <path d="M46 73Q44 70 45.4 66" fill="none" stroke={FUR} strokeWidth="4.6" strokeLinecap="round" />
+        <ellipse cx="45.4" cy="63.4" rx="5.8" ry="6.2" fill={BELLY} stroke={EDGE} strokeWidth="1.3" />
+        <ellipse cx="45.4" cy="65.4" rx="2.7" ry="2.3" fill={PINK} />
+        <circle cx="42.6" cy="60.2" r="1.1" fill={PINK} />
+        <circle cx="45.4" cy="59.4" r="1.1" fill={PINK} />
+        <circle cx="48.2" cy="60.2" r="1.1" fill={PINK} />
+      </g>
+    </g>
+  );
+}
+function Oops() {
+  const arm = (d) => (
+    <>
+      <path d={d} fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
+      <path d={d} fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+    </>
+  );
+  return (
+    <g>
+      <Sitting mood="content" stage={STAGES[2]} holding />
+      {arm('M44.8 80Q45.6 66 54.4 58.6')}
+      {arm('M75.2 80Q74.4 66 65.6 58.6')}
+      <ellipse cx="56" cy="56.6" rx="4" ry="4.4" fill={BELLY} stroke={EDGE} strokeWidth="1.3" />
+      <ellipse cx="64" cy="56.6" rx="4" ry="4.4" fill={BELLY} stroke={EDGE} strokeWidth="1.3" />
+      <SweatDrop x={81} y={33} />
     </g>
   );
 }

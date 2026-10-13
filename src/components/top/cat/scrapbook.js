@@ -75,6 +75,35 @@ export const SCRAPBOOK = [
         say: '!',
       },
       {
+        id: 'atyou:ball',
+        label: 'Boing! Caught it',
+        pose: 'clap2',
+        mood: 'purring',
+        things: [{ kind: 'lobbed', variant: 'ball', count: 4.6, dx: 0, dy: -15.6, front: true }],
+        say: 'heart',
+      },
+      {
+        id: 'atyou:dough',
+        label: 'Dough on the glass',
+        pose: 'oops',
+        things: [{ kind: 'smear', variant: 'dough', count: 11, t: 0.6, dx: -46, dy: -56 }],
+        say: 'oops',
+      },
+      {
+        id: 'atyou:puff',
+        label: 'A cream puff, splat',
+        pose: 'clap',
+        mood: 'purring',
+        things: [{ kind: 'smear', variant: 'cream', count: 13, t: 1, dx: -50, dy: -62 }],
+        say: 'hehe',
+      },
+      {
+        id: 'atyou:paper',
+        label: 'A paper ball, at you',
+        pose: 'windup',
+        things: [{ kind: 'lobbed', variant: 'paper', count: 4.6, dx: -23.9, dy: -42.7 }],
+      },
+      {
         id: 'doing:emptybowl',
         label: 'An empty bowl',
         pose: 'sit',
@@ -598,7 +627,7 @@ export function keepMoment(id) {
 // What to ask her for (as her card's list asks, RoamingCat's onDo) to have
 // her do a moment again; null for those that only come about of themselves
 // (ways back into view, pop-up cards, trips, escapes and the like).
-const AGAIN = new Set(['doing', 'act', 'bed', 'dance', 'wish', 'game', 'treat', 'toss', 'gpu', 'follow', 'notes']);
+const AGAIN = new Set(['doing', 'act', 'bed', 'dance', 'wish', 'game', 'treat', 'toss', 'gpu', 'follow', 'notes', 'atyou']);
 export function replayOf(id) {
   const [group, name] = id.split(':');
   if (id === 'notes:noticed') return null;

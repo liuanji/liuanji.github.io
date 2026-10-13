@@ -134,6 +134,7 @@ const FEELS = {
     restFace: 'purring',
     doze: DOZE_AFTER,
     dozes: 1,
+    napFor: [20, 30],
     rest: [6, 13],
     notice: 170,
     tease: 0.2,
@@ -150,7 +151,8 @@ const FEELS = {
       kick: 0.08,
       oil: 0.08,
     },
-    acts: ['groom', 'knead', 'sleep'],
+    // (A nap twice: twice as likely as the others.)
+    acts: ['groom', 'knead', 'sleep', 'sleep'],
   },
   purring: {
     energy: 0.85,
@@ -159,6 +161,7 @@ const FEELS = {
     restFace: 'purring',
     doze: DOZE_AFTER,
     dozes: 1,
+    napFor: [18, 26],
     rest: [4, 9],
     notice: 210,
     tease: 0.4,
@@ -175,7 +178,7 @@ const FEELS = {
       kick: 0.08,
       oil: 0.08,
     },
-    acts: ['knead', 'zoom', 'groom', 'sleep'],
+    acts: ['knead', 'zoom', 'groom', 'sleep', 'sleep'],
   },
   loaf: {
     energy: 1,
@@ -344,6 +347,8 @@ const IDLE = {
   content: [
     'notes',
     'fling',
+    'atyou',
+    'bed',
     'bed',
     'doze',
     'butterfly',
@@ -363,7 +368,10 @@ const IDLE = {
   purring: [
     'notes',
     'fling',
+    'atyou',
     'bed',
+    'bed',
+    'doze',
     'butterfly',
     'box',
     'croissant',
@@ -377,7 +385,20 @@ const IDLE = {
     'dough',
     'backflip',
   ],
-  loaf: ['sunbeam', 'box', 'yawn', 'croissant', 'dance', 'sneeze', 'scratch', 'dough', 'backflip', 'notes', 'fling'],
+  loaf: [
+    'sunbeam',
+    'box',
+    'yawn',
+    'croissant',
+    'dance',
+    'sneeze',
+    'scratch',
+    'dough',
+    'backflip',
+    'notes',
+    'fling',
+    'atyou',
+  ],
 };
 const BUNT_EVERY = 15 * 1000;
 // And some only at certain levels (her mood from her tummy, napping to loaf;
@@ -4621,6 +4642,223 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       },
     });
 
+    // Now and then, the other way: something thrown at whoever is watching.
+    // She looks at you with it beside her, winds up (one eye shut to aim)
+    // and lets fly; it comes at you face on, growing as it nears, and hits the
+    // glass somewhere about the middle of the window. A rubber ball bounces
+    // back ("boing!") and she catches it; a ball of dough sticks ("splot"),
+    // sags, slides down a little and drops away (she is sorry: "oops"); a
+    // cream puff splats ("splat!"), dripping, and she claps, giggling, till
+    // it fades; a ball of paper bonks off ("tok!") and falls, and she looks
+    // the other way, whistling.
+    const atYou = noted(
+      'atyou',
+      Object.fromEntries(
+        [
+          ['ball', 4.6],
+          ['dough', 5.4],
+          ['puff', 6],
+          ['paper', 4.6],
+        ].map(([variant, r0]) => [
+          variant,
+          () => {
+            const dir = Math.random() < 0.5 ? -1 : 1;
+            // Where her paw is, in the drawing, on the page (it faces left;
+            // mirrored to face right).
+            const drawn = (dx, dy) => ({ x: state.x - state.facing * (dx - 60) * UNIT, y: state.y - (88 - dy) * UNIT });
+            const near = Math.min(window.innerWidth, window.innerHeight) * random(0.07, 0.095);
+            const hit = {
+              x: window.scrollX + window.innerWidth * random(0.35, 0.65),
+              y: window.scrollY + window.innerHeight * random(0.32, 0.5),
+            };
+            const thing = (extra) => ({ id: 'lob', kind: 'lobbed', variant, ...extra });
+            const beside = onEdge(state.x + dir * 26);
+            const spin = { ball: 220, dough: 140, puff: 40, paper: 540 }[variant] * dir;
+            const flight = {
+              pose: 'lob',
+              ms: 760,
+              start: (step) => (step.from = drawn(32.2, 38.4)),
+              frame: (step, time, k) => {
+                // Coming at you: slow to grow at first, then rushing up.
+                const r = r0 / (1 - k * (1 - r0 / near));
+                const w = 0.45 * k + 0.55 * ((r - r0) / (near - r0));
+                putThing(
+                  thing({
+                    count: r,
+                    x: step.from.x + (hit.x - step.from.x) * w,
+                    y: step.from.y + (hit.y - step.from.y) * w - 70 * Math.sin(Math.PI * k),
+                    rotate: spin * k,
+                  }),
+                );
+              },
+            };
+            // Off the glass and down out of the window (as it looks then, given
+            // where it is, k of the way down).
+            const drop = (ms, from, look) => ({
+              ms,
+              frame: (step, time, k) =>
+                look({ x: hit.x, y: from + (window.scrollY + window.innerHeight + near * 2 - from) * k * k }, k),
+            });
+            const bonk = (text, t, extra = []) => [
+              ...extra,
+              { id: 'bonk', kind: 'bonk', x: hit.x, y: hit.y, count: near, t, text },
+            ];
+            const windUp = [
+              {
+                pose: 'sit',
+                ms: 900,
+                start: () => {
+                  state.facing = dir;
+                  putThing(thing({ count: r0, x: beside, y: state.y - r0 }));
+                  say('?');
+                },
+              },
+              {
+                pose: 'windup',
+                ms: 900,
+                rock: { amp: 1.5, freq: 3, decay: 0 },
+                start: () => say('…'),
+                frame: (step, time) => {
+                  const paw = drawn(32.2, 38.4);
+                  putThing(thing({ count: r0, x: paw.x, y: paw.y + Math.sin(time / 90) }));
+                },
+              },
+              flight,
+            ];
+            if (variant === 'ball')
+              return [
+                ...windUp,
+                {
+                  pose: 'sit',
+                  mood: 'content',
+                  ms: 420,
+                  start: () => say('!'),
+                  frame: (step, time, k) =>
+                    putThing(bonk('boing!', k, [thing({ count: near * (1 + 0.1 * Math.sin(Math.PI * k)), ...hit })])),
+                },
+                {
+                  pose: 'clap',
+                  ms: 780,
+                  start: (step) => (step.to = drawn(60, 70.8)),
+                  frame: (step, time, k) => {
+                    // Back the way it came, shrinking, into her paws.
+                    const r = near - (near - r0) * (1 - (1 - k) ** 2);
+                    putThing(
+                      bonk('boing!', Math.min(1, 0.4 + k), [
+                        thing({
+                          count: r,
+                          x: hit.x + (step.to.x - hit.x) * k,
+                          y: hit.y + (step.to.y - hit.y) * k - 60 * Math.sin(Math.PI * k),
+                          rotate: -spin * k,
+                        }),
+                      ]),
+                    );
+                  },
+                },
+                {
+                  pose: 'clap2',
+                  mood: 'purring',
+                  ms: 1100,
+                  start: () => {
+                    const paws = drawn(60, 70.8);
+                    putThing(thing({ count: r0, ...paws }));
+                    say('heart');
+                  },
+                },
+                { pose: 'sit', mood: 'purring', ms: 600, start: () => putThing(thing({ count: r0, x: beside, y: state.y - r0, opacity: 0 })) },
+              ];
+            if (variant === 'dough') {
+              const sag = near * 0.35;
+              return [
+                ...windUp,
+                {
+                  pose: 'startle',
+                  ms: 520,
+                  start: () => say('!'),
+                  frame: (step, time, k) =>
+                    putThing(bonk('splot', k, [{ id: 'lob', kind: 'smear', variant, count: near, t: 0, ...hit }])),
+                },
+                {
+                  pose: 'oops',
+                  ms: 2400,
+                  start: () => say('oops'),
+                  frame: (step, time, k) =>
+                    putThing({ id: 'lob', kind: 'smear', variant, count: near, t: k, x: hit.x, y: hit.y + sag * k * k }),
+                },
+                {
+                  pose: 'oops',
+                  ...drop(700, hit.y + sag, (at, k) =>
+                    putThing({ id: 'lob', kind: 'smear', variant, count: near, t: 1, rotate: dir * 40 * k, ...at }),
+                  ),
+                },
+                { pose: 'sit', mood: 'content', ms: 700, start: () => putThing(null) },
+                { pose: 'wink', ms: 1000 },
+              ];
+            }
+            if (variant === 'puff')
+              return [
+                ...windUp,
+                {
+                  pose: 'sit',
+                  mood: 'purring',
+                  ms: 520,
+                  frame: (step, time, k) =>
+                    putThing(bonk('splat!', k, [{ id: 'lob', kind: 'smear', variant: 'cream', count: near, t: 0.1 * k, ...hit }])),
+                },
+                ...[0, 1, 2, 3].flatMap((beat) =>
+                  ['clap2', 'clap'].map((pose, half) => ({
+                    pose,
+                    mood: 'purring',
+                    ms: 380,
+                    start: () => beat + half === 0 && say('hehe'),
+                    frame: (step, time, k) =>
+                      putThing({
+                        id: 'lob',
+                        kind: 'smear',
+                        variant: 'cream',
+                        count: near,
+                        t: 0.1 + 0.9 * ((beat * 2 + half + k) / 8),
+                        ...hit,
+                      }),
+                  })),
+                ),
+                {
+                  pose: 'wink',
+                  ms: 1400,
+                  start: () => putThing({ id: 'lob', kind: 'smear', variant: 'cream', count: near, t: 1, opacity: 0, ...hit }),
+                },
+              ];
+            return [
+              ...windUp,
+              {
+                pose: 'sit',
+                mood: 'content',
+                ms: 300,
+                start: () => say('!'),
+                frame: (step, time, k) => putThing(bonk('tok!', k * 0.4, [thing({ count: near, ...hit, rotate: spin })])),
+              },
+              {
+                pose: 'sit',
+                mood: 'content',
+                ...drop(800, hit.y, (at, k) =>
+                  putThing(bonk('tok!', 0.4 + 0.6 * k, [thing({ count: near, rotate: spin + dir * 200 * k, ...at })])),
+                ),
+              },
+              { pose: 'sit', mood: 'content', ms: 600, start: () => (putThing(null), say('…')) },
+              { pose: 'sit', mood: 'purring', ms: 1600, start: () => ((state.facing = -dir), say('♪')) },
+              { pose: 'wink', ms: 900, start: () => (state.facing = dir) },
+            ];
+          },
+        ]),
+      ),
+    );
+    // One of them, by herself: not the one she threw last.
+    doings.atyou = () => {
+      const names = Object.keys(atYou).filter((name) => name !== state.lastAtYou);
+      state.lastAtYou = names[Math.floor(Math.random() * names.length)];
+      return atYou[state.lastAtYou]();
+    };
+
     // Treats and toys from its card; on a side, it hops up first.
     const onTreat = () => {
       if (!state.perch) return;
@@ -4713,6 +4951,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       else if (group === 'game') startGame(name, time);
       else if (group === 'treat' && treats[name]) play(treats[name](), time);
       else if (group === 'toss' && tossed[name]) play(tossed[name](), time);
+      else if (group === 'atyou' && atYou[name]) play(atYou[name](), time);
       else if (group === 'bed' && BED_LIFT[name] !== undefined) play(doings.bed(name), time);
       else if (group === 'gpu' && !visitGpu(name)) say('?');
     };
@@ -5089,6 +5328,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         else if (['yarn', 'feather', 'laser', 'mouse', 'bubbles'].includes(name)) startGame(name, performance.now());
         else if (name.startsWith('treat:')) play(treats[name.slice(6)](), performance.now());
         else if (name.startsWith('toss:')) play(tossed[name.slice(5)](), performance.now());
+        else if (name.startsWith('atyou:')) play(atYou[name.slice(6)](), performance.now());
         else if (name.startsWith('bed:')) play(doings.bed(name.slice(4)), performance.now());
         else if (name.startsWith('gpu:')) return visitGpu(name.slice(4));
         // notes:<way> (or notes: for any) sends her to the notes pill, there to
