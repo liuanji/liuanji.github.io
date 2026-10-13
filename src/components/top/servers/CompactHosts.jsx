@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { ThermometerSun } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { GpuOverview, RackGlyph } from './GpuOverview';
+import { GpuOverview, RackGlyph, SystemTrend } from './GpuOverview';
 import { HostStatus } from './HostPacking';
 import {
   LEVEL_SERIES,
@@ -404,7 +404,15 @@ function SystemMeters({ system, host, gpus, interactive, token }) {
           share={system.cpu_percent / 100}
           title={`CPU ${Math.round(system.cpu_percent)}%${system.cpu_count ? ` of ${system.cpu_count} threads` : ''}`}
           series={RING_SERIES.compute}
-          details={interactive ? <CpuDetails host={host} system={system} /> : null}
+          details={
+            interactive ? (
+              <CpuDetails
+                host={host}
+                system={system}
+                trend={<SystemTrend host={host} part="cpu" color={RING_SERIES.compute.color} token={token} />}
+              />
+            ) : null
+          }
         />
       )}
       {ramKnown && (
@@ -415,7 +423,24 @@ function SystemMeters({ system, host, gpus, interactive, token }) {
           title={`RAM ${formatMemoryOf(system.memory_used_mb, system.memory_total_mb)}`}
           series={RING_SERIES.memory}
           level={ram}
-          details={interactive ? <RamDetails host={host} system={system} level={ram} /> : null}
+          details={
+            interactive ? (
+              <RamDetails
+                host={host}
+                system={system}
+                level={ram}
+                trend={
+                  <SystemTrend
+                    host={host}
+                    part="ram"
+                    total={system.memory_total_mb}
+                    color={RING_SERIES.memory.color}
+                    token={token}
+                  />
+                }
+              />
+            ) : null
+          }
         />
       )}
       {gpus.length > 0 && (

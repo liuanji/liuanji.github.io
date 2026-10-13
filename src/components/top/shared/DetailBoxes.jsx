@@ -4,7 +4,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { StatTile } from './controls';
 import { useGrowingShare } from '../hooks/useGrowingShare';
 import { LEVEL_SERIES, POWER_ICON_RANGE, READING_STYLES, SERIES, TEMPERATURE_ICON_RANGE } from './config';
-import { formatCpuCount, formatCpuModel, formatMemory, formatMemoryOf, gpuModels, userColor } from './format';
+import { formatCpuModel, formatMemory, formatMemoryOf, gpuModels, userColor } from './format';
 import { busyGpuPhrase, freeGpuPhrase, idleGpuPhrase, pressurePhrase, reservedIdlePhrase } from './easterEggs';
 import { HeldIdleNote, formatDuration } from '../servers/Insights';
 import { ReservationMark, clashingUsers, formatLeft } from '../alerts/Reservations';
@@ -43,7 +43,7 @@ export function Metric({ label, value, share = null, series = null }) {
   return (
     <div className="min-w-0">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="font-mono text-[11px] text-data-grey">{label}</span>
+        <span className="whitespace-nowrap font-mono text-[11px] text-data-grey">{label}</span>
         <span className="whitespace-nowrap font-mono text-xs tabular-nums text-inkwell">{value}</span>
       </div>
       {share != null && (
@@ -563,11 +563,6 @@ export function BoxFooter({ phrase, children = null }) {
   );
 }
 
-function loadText(value) {
-  return value >= 100 ? value.toFixed(0) : value.toFixed(1);
-}
-
-// The CPU's box: a large chip, its load now and its load averages.
 // A part's box: by default its large picture (and figure) in a column on the
 // left; with compact set, as in the expanded view, a small picture just before
 // the title and everything else at full width.
@@ -600,11 +595,11 @@ function PartBox({ compact, large, small, title, subtitle, children }) {
   );
 }
 
-// children, if any, go just above the footer (the expanded view adds who uses
-// it); compact puts a small chip before the title instead of the large one.
-export function CpuDetails({ host, system, children = null, compact = false }) {
+// The CPU's box: a large chip, its load now, and (trend) its last hour or day.
+// children, if any, go just above the footer; compact puts a small chip
+// before the title instead of the large one.
+export function CpuDetails({ host, system, trend = null, children = null, compact = false }) {
   const percent = Math.round(system.cpu_percent ?? 0);
-  const load = system.load_averages;
   const shown = useGrowingShare(percent / 100);
   return (
     <PartBox
@@ -628,23 +623,7 @@ export function CpuDetails({ host, system, children = null, compact = false }) {
       <div className="mt-4">
         <Metric label="Load now" value={`${percent}%`} share={percent / 100} series={RING_SERIES.compute} />
       </div>
-      {load && (
-        <div className="mt-3.5">
-          {/* Load averages count runnable threads, so the core and thread counts give them scale. */}
-          <span className="font-mono text-[11px] text-data-grey">
-            Load average
-            {formatCpuCount(system) && <span className="text-data-grey/60"> · {formatCpuCount(system)}</span>}
-          </span>
-          <div className="mt-1.5 grid grid-cols-3 gap-2">
-            {['1 min', '5 min', '15 min'].map((window, index) => (
-              <div key={window} className="rounded-lg bg-[#F6F7F9] px-2.5 py-1.5">
-                <div className="font-mono text-[10px] text-data-grey">{window}</div>
-                <div className="font-mono text-xs tabular-nums text-inkwell">{loadText(load[index])}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {trend}
       {children}
       <BoxFooter phrase={pressurePhrase('cpu', percent / 100, host)} />
     </PartBox>
@@ -652,8 +631,8 @@ export function CpuDetails({ host, system, children = null, compact = false }) {
 }
 
 // The RAM's box: a large memory stick, memory in use, cache, what is still
-// available, and swap.
-export function RamDetails({ host, system, level, children = null, compact = false }) {
+// available, swap, and (trend) its last hour or day.
+export function RamDetails({ host, system, level, trend = null, children = null, compact = false }) {
   const total = system.memory_total_mb;
   const used = system.memory_used_mb;
   const shown = useGrowingShare(used / total);
@@ -701,6 +680,7 @@ export function RamDetails({ host, system, level, children = null, compact = fal
           series={SERIES.disk}
         />
       </div>
+      {trend}
       {children}
       <BoxFooter phrase={pressurePhrase('ram', used / total, host)} />
     </PartBox>

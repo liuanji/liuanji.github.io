@@ -4,7 +4,7 @@ import { BoxFooter, GLYPH, RING_SERIES } from '../shared/DetailBoxes';
 import { HISTORY_REFRESH_MS, LIVE_REFRESH_MS } from '../shared/config';
 import { Segmented } from '../shared/controls';
 import { pressurePhrase } from '../shared/easterEggs';
-import { formatAxisTime, gpuModels } from '../shared/format';
+import { formatAxisTime, formatMemory, gpuModels } from '../shared/format';
 import { useGrowingShare, useMorphedSeries } from '../hooks/useGrowingShare';
 import { useStatusFile } from '../hooks/useStatusFile';
 
@@ -329,6 +329,130 @@ export function GpuOverview({ host, token }) {
         </div>
       </div>
       <BoxFooter phrase={pressurePhrase('gpu', total ? busy / total : 0, host.name)} />
+    </div>
+  );
+}
+
+// In the CPU or RAM box (part 'cpu' or 'ram'), as the GPU box has: the last
+// hour or day of the server's CPU load or RAM in use, an area in the part's
+// colour (the moment's reading taking the key's place while hovered), then its
+// average, peak and lowest (when), as the GPU box has its own. RAM reads as an
+// amount of the server's total; CPU as a share of all its cores.
+export function SystemTrend({ host, part, total = null, color, token }) {
+  const [range, setRange] = useState('24h');
+  const [hovered, setHovered] = useState(null);
+  const history = useStatusFile(
+    `history-${host}-${range}`,
+    range === '1h' ? LIVE_REFRESH_MS : HISTORY_REFRESH_MS,
+    token,
+  ).data;
+  const key = part === 'cpu' ? 'cpu_percent' : 'ram_percent';
+  const rows = (history?.points ?? [])
+    .filter((point) => point[key] != null)
+    .map((point) => ({ timestamp: point.timestamp, share: point[key] / 100 }));
+  const shown = useMorphedSeries(rows.map((row) => row.share));
+  const drawn = rows.map((row, index) => ({ ...row, shown: shown[index] }));
+  const show = (share) =>
+    part === 'ram' && total ? formatMemory(share * total) : `${Math.round(share * 100)}%`;
+  const average = rows.length ? rows.reduce((sum, row) => sum + row.share, 0) / rows.length : null;
+  const peak = rows.reduce((best, row) => (!best || row.share > best.share ? row : best), null);
+  const lowest = rows.reduce((best, row) => (!best || row.share < best.share ? row : best), null);
+  const start = history?.start ?? rows[0]?.timestamp;
+  const end = history?.end ?? rows[rows.length - 1]?.timestamp;
+  const label = part === 'cpu' ? 'CPU load' : 'RAM in use';
+  return (
+    <div>
+      <div className="mt-3 flex items-center justify-between gap-2 font-mono text-[11px] text-data-grey">
+        <Segmented
+          label="Period shown"
+          options={[
+            ['1h', '1 h'],
+            ['24h', '24 h'],
+          ]}
+          value={range}
+          onChange={setRange}
+        />
+        {hovered ? (
+          <span className="truncate whitespace-nowrap text-[10px] text-inkwell">
+            {formatAxisTime(hovered.timestamp, '24h')} · {show(hovered.share)}
+          </span>
+        ) : (
+          <span className="flex items-center gap-1 whitespace-nowrap text-[10px]">
+            <span
+              className="h-2 w-3 rounded-sm border-t"
+              style={{ backgroundColor: `${color}33`, borderColor: color }}
+              aria-hidden="true"
+            />
+            {label}
+          </span>
+        )}
+      </div>
+      <div
+        className="mt-2.5 h-[86px]"
+        role="img"
+        aria-label={`${label} over the last ${range === '1h' ? 'hour' : '24 hours'}`}
+      >
+        {rows.length < 2 ? (
+          <p className="pt-8 text-center text-xs text-data-grey">{history ? 'Not enough data yet.' : 'Loading…'}</p>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={drawn}
+              margin={{ top: 6, right: 16, bottom: 0, left: 0 }}
+              onMouseMove={(state) => setHovered(state?.activePayload?.[0]?.payload ?? null)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <XAxis
+                dataKey="timestamp"
+                type="number"
+                domain={[start, end]}
+                ticks={[start, start + (end - start) / 2, end]}
+                tickFormatter={(time) => formatAxisTime(time, range)}
+                axisLine={{ stroke: '#EEF2F6' }}
+                tickLine={false}
+                tick={{ fill: '#94A3B8', fontSize: 10, fontFamily: 'JetBrains Mono, monospace' }}
+                tickMargin={6}
+                height={20}
+              />
+              <YAxis
+                domain={[0, 1]}
+                ticks={[0, 1]}
+                tickFormatter={(tick) => (tick ? (part === 'ram' && total ? formatMemory(total) : '100%') : '0')}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#94A3B8', fontSize: 10, fontFamily: 'JetBrains Mono, monospace' }}
+                width={part === 'ram' ? 48 : 30}
+              />
+              <ReferenceLine y={1} stroke="#E2E8F0" strokeDasharray="3 4" />
+              <Tooltip content={() => null} cursor={{ stroke: '#CBD5E1' }} isAnimationActive={false} />
+              <Area
+                type="monotone"
+                dataKey="shown"
+                stroke={color}
+                strokeWidth={1.4}
+                fill={color}
+                fillOpacity={0.14}
+                dot={false}
+                activeDot={{ r: 2.5, strokeWidth: 1.5, stroke: '#FFFFFF', fill: color }}
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <Stat label="Average" value={average == null ? '—' : show(average)} note={part === 'cpu' ? 'load' : 'in use'} />
+        <Stat
+          label="Peak"
+          value={peak ? show(peak.share) : '—'}
+          note={peak ? formatAxisTime(peak.timestamp, '24h') : ' '}
+        />
+        <Stat
+          label="Lowest"
+          value={lowest ? show(lowest.share) : '—'}
+          note={lowest ? formatAxisTime(lowest.timestamp, '24h') : ' '}
+        />
+      </div>
     </div>
   );
 }

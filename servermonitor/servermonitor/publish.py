@@ -7,7 +7,7 @@ where host is a monitored host or "all":
   process paths and GPU UUIDs (paths reveal home directories and projects)
 - stats-<host>: rolling-window summaries and user rankings for every period
 - history-<host>-<range>: trend points for the chart, for every period, with
-  only the fields the chart draws
+  only the fields the chart draws (and the CPU and RAM boxes' charts)
 - uptime-<range>: every host's checked and down seconds per bar, for every period
 - disks: every host's latest disk usage, built apart by public_disks since it
   changes only once per disk check
@@ -31,13 +31,18 @@ HISTORY_FIELDS = ("utilization", "memory_percent", "gpus_in_use")
 
 
 def public_history(points: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Only what the trend chart and the period tiles' trends draw, to one
-    decimal. Power is the total draw, like the GPU power tile: the average per
-    GPU reading times the GPUs in the point."""
+    """Only what the trend chart, the period tiles' trends and the CPU and RAM
+    boxes' charts draw, to one decimal. Power is the total draw, like the GPU
+    power tile: the average per GPU reading times the GPUs in the point. CPU
+    and RAM are the servers' load and share in use (None without readings)."""
     return [
         {
             "timestamp": point["timestamp"],
             **{key: round(point[key], 1) for key in HISTORY_FIELDS},
+            **{
+                key: None if point.get(key) is None else round(point[key], 1)
+                for key in ("cpu_percent", "ram_percent")
+            },
             "gpu_count": point["gpu_count"],
             "power_w": None
             if point.get("power_w") is None

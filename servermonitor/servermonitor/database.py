@@ -1706,8 +1706,30 @@ class Database:
                 """,
                 params,
             ).fetchall()
+            # The servers' CPU load and RAM in use (percent) over the same
+            # points, for the CPU and RAM boxes' charts (not for one GPU).
+            system = {}
+            if gpu_index is None:
+                system_where, _, system_params = _window(tier, start, end, host)
+                system = {
+                    row["point"]: row
+                    for row in connection.execute(
+                        f"""
+                        SELECT (bucket / {step}) * {step} AS point,
+                               SUM(cpu_sum) / NULLIF(SUM(cpu_count), 0) AS cpu_percent,
+                               SUM(memory_percent_sum) / NULLIF(SUM(memory_count), 0) AS ram_percent
+                        FROM {tier.system_table}
+                        WHERE {system_where}
+                        GROUP BY point
+                        """,
+                        system_params,
+                    ).fetchall()
+                }
+        rounded = lambda value: None if value is None else round(value, 2)  # noqa: E731
         return [
             {
+                "cpu_percent": rounded(system[row["point"]]["cpu_percent"]) if row["point"] in system else None,
+                "ram_percent": rounded(system[row["point"]]["ram_percent"]) if row["point"] in system else None,
                 "timestamp": row["point"],
                 "utilization": round(row["utilization"] or 0, 2),
                 "memory_percent": round(row["memory_percent"] or 0, 2),
