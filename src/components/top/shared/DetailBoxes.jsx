@@ -611,6 +611,7 @@ export function CpuDetails({ host, system, trend = null, children = null, compac
           <span className="mt-1 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell">
             {Math.round(shown * 100)}%
           </span>
+          <span className="mt-1 font-mono text-[10px] text-data-grey">load now</span>
         </div>
       }
       small={<ChipGlyph share={shown} pace={percent / 100} color={RING_SERIES.compute.color} size={44} animated />}
@@ -668,19 +669,34 @@ export function RamDetails({ host, system, level, trend = null, children = null,
           >
             {Math.round(shown * 100)}%
           </span>
-          {/* Under the figure (in use), the cache and swap: just their figures,
-              each with a dot in its colour. */}
-          <dl className="mt-5 grid w-full gap-2.5 text-center font-mono">
+          <span className="mt-1 font-mono text-[10px] text-data-grey">in use now</span>
+          {/* Under it, the cache and swap, as the GPU box's stats are: a light
+              panel with a row each, a dot in its colour, its name and figure. */}
+          <dl className="mt-4 w-full space-y-1 rounded-lg bg-[#F6F7F9] px-2.5 py-2 font-mono text-[11px]">
             {[
-              ['File cache', system.memory_cache_mb == null ? '—' : formatMemory(system.memory_cache_mb), CACHE_SERIES],
-              ['Swap', swapKnown ? formatMemoryOf(system.swap_used_mb, system.swap_total_mb) : '—', SERIES.disk],
-            ].map(([label, value, series]) => (
-              <div key={label}>
-                <dt className="flex items-center justify-center gap-1.5 text-[10px] text-data-grey">
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: series.color }} aria-hidden="true" />
+              [
+                'Cache',
+                'File cache: files kept in spare RAM, handed back the moment programs need it',
+                system.memory_cache_mb == null ? '—' : formatMemory(system.memory_cache_mb),
+                CACHE_SERIES,
+              ],
+              [
+                'Swap',
+                'Swap in use, of the swap space on disk',
+                swapKnown ? formatMemoryOf(system.swap_used_mb, system.swap_total_mb) : '—',
+                SERIES.disk,
+              ],
+            ].map(([label, title, value, series]) => (
+              <div key={label} className="flex items-baseline justify-between gap-2" title={title}>
+                <dt className="flex items-center gap-1.5 text-data-grey">
+                  <span
+                    className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                    style={{ backgroundColor: series.color }}
+                    aria-hidden="true"
+                  />
                   {label}
                 </dt>
-                <dd className="mt-0.5 text-sm tabular-nums text-inkwell">{value}</dd>
+                <dd className="whitespace-nowrap tabular-nums text-inkwell">{value}</dd>
               </div>
             ))}
           </dl>
