@@ -643,7 +643,7 @@ export function RamDetails({ host, system, level, trend = null, children = null,
   // which lives on disk, in the disk hue.
   const cache = (
     <Metric
-      label={compact ? 'File cache' : 'Cache'}
+      label="File cache"
       value={system.memory_cache_mb == null ? '—' : formatMemory(system.memory_cache_mb)}
       share={system.memory_cache_mb == null ? null : system.memory_cache_mb / total}
       series={CACHE_SERIES}
@@ -661,11 +661,9 @@ export function RamDetails({ host, system, level, trend = null, children = null,
     <PartBox
       compact={compact}
       large={
-        // As the GPU box: the stick, its figure and what that is; then, below
-        // a rule, the cache and swap, the column ending level with the chart's
-        // figures beside it.
-        <div className="flex w-[120px] flex-shrink-0 flex-col items-center justify-center">
-          <StickGlyph share={shown} pace={used / total} color={inUse.color} width={104} animated />
+        // As the GPU box: the stick, its figure and what that is.
+        <div className="flex w-[112px] flex-shrink-0 flex-col items-center justify-center">
+          <StickGlyph share={shown} pace={used / total} color={inUse.color} width={112} animated />
           <span
             className="mt-3 font-tight text-lg font-semibold leading-none tabular-nums text-inkwell"
             style={level ? { color: READING_STYLES[level].color } : undefined}
@@ -673,10 +671,6 @@ export function RamDetails({ host, system, level, trend = null, children = null,
             {Math.round(shown * 100)}%
           </span>
           <span className="mt-1 font-mono text-[10px] text-data-grey">in use now</span>
-          <div className="mt-4 w-full space-y-2.5 border-t border-border-light pt-3">
-            {cache}
-            {swap}
-          </div>
         </div>
       }
       small={<StickGlyph share={shown} pace={used / total} color={inUse.color} width={60} animated />}
@@ -688,7 +682,7 @@ export function RamDetails({ host, system, level, trend = null, children = null,
       subtitle={`${formatMemory(total)} total`}
     >
       {/* Compact (the expanded view's box), in use across the top and the
-          cache and swap below it; else just the chart, beside them. */}
+          cache and swap below it; else just the chart. */}
       {compact && (
         <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3.5">
           <div className="col-span-2">
