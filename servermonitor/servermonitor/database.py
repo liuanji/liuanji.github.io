@@ -45,6 +45,20 @@ DISK_SERIES = (
     ("365d", 7 * 86400, 52),
 )
 
+# "All time": from the first hour on record to now, in steps of a day while
+# that is up to 120 days, a week up to two years, 30 days up to eight, and a
+# quarter (91 days) beyond, so never much more than a hundred steps.
+ALL_TIME_STEPS = ((120, 86400), (730, 7 * 86400), (2920, 30 * 86400))
+QUARTER_SECONDS = 91 * 86400
+
+
+def all_time_steps(seconds: int) -> tuple[int, int]:
+    """The step and number of steps that cover an all-time span of seconds."""
+    days = seconds / 86400
+    step = next((step for most, step in ALL_TIME_STEPS if days <= most), QUARTER_SECONDS)
+    return step, max(1, math.ceil(seconds / step))
+
+
 # The lab's pace, for when its GPU time will have paid for the servers, is
 # taken over the last PACE_DAYS.
 PACE_DAYS = 30
@@ -941,13 +955,23 @@ class Database:
                     )
         return flags
 
+    def all_time_seconds(self, now: int) -> int:
+        """How long "All time" is: since the first hour on record (a day at least)."""
+        with self.connect() as connection:
+            first = connection.execute("SELECT MIN(bucket) FROM gpu_hour").fetchone()[0]
+        return max(86400, now - int(first)) if first is not None else 86400
+
+    def all_time_series(self, now: int) -> tuple[str, int, int]:
+        """All time as a series: (period, step in seconds, steps)."""
+        return ("all", *all_time_steps(self.all_time_seconds(now)))
+
     def disk_history(self, now: int, utc_offset: int) -> dict[str, dict[str, dict[str, dict[str, Any]]]]:
         """Each disk's share in use over every period of DISK_SERIES: per host and
         mount, the average share in each step, oldest first from start, None for
         a step without a check. Steps fall on the servers' local time, the last
         one under way at now."""
         spans: dict[str, tuple[int, int, int]] = {}
-        for name, step, count in DISK_SERIES:
+        for name, step, count in (*DISK_SERIES, self.all_time_series(now)):
             unit = min(step, 86400)
             end = ((now + utc_offset) // unit + 1) * unit - utc_offset
             spans[name] = (end - count * step, step, count)
@@ -1401,7 +1425,7 @@ class Database:
         (weeks end at a local midnight), the last one under way at now; the last
         hour comes from the minute sums, the rest from the hourly ones."""
         spans: dict[str, tuple[int, int, int]] = {}
-        for name, step, count in BAKER_SERIES:
+        for name, step, count in (*BAKER_SERIES, self.all_time_series(now)):
             unit = min(step, 86400)
             end = ((now + utc_offset) // unit + 1) * unit - utc_offset
             spans[name] = (end - count * step, step, count)

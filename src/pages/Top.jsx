@@ -103,7 +103,8 @@ function Freshness({ overview, now }) {
 function PeriodTiles({ period, range, history, scope, powerLimit }) {
   const ready = period?.has_data;
   const trend = { history, range, scope };
-  const incomplete = ready && Number(period.observed_hours) + 0.02 < range.hours;
+  // (All time has no set length, so it is never short of data.)
+  const incomplete = ready && range.hours != null && Number(period.observed_hours) + 0.02 < range.hours;
   return (
     <>
       {incomplete && (
@@ -285,7 +286,7 @@ export default function Top() {
   // themselves: GPU hours a day over the hours actually observed in the range.
   // A single server's stats only count its own hours, so then the milestone
   // box keeps to the lab's last month instead.
-  const observedHours = Math.min(range.hours, Number(period?.observed_hours) || 0);
+  const observedHours = Math.min(range.hours ?? Infinity, Number(period?.observed_hours) || 0);
   const rangeGpuHours = (stats.data?.users[range.value] ?? []).reduce((total, user) => total + user.gpu_hours, 0);
   const pace =
     host === 'all' && observedHours > 0

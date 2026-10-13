@@ -101,6 +101,7 @@ const weekday = new Intl.DateTimeFormat('en-GB', { weekday: 'short' });
 const dayDate = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 const date = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
 const month = new Intl.DateTimeFormat('en-GB', { month: 'short' });
+const monthYear = new Intl.DateTimeFormat('en-GB', { month: 'short', year: '2-digit' });
 const at = (format, time) => format.format(time * 1000);
 
 // How each period's chart names a step on hover, and its axis times.
@@ -114,6 +115,16 @@ const PERIOD_LABELS = {
   '30d': { step: (time) => at(dayDate, time), tick: (time) => at(date, time) },
   '90d': { step: (time) => at(dayDate, time), tick: (time) => at(date, time) },
   '365d': { step: (time) => `Week of ${at(date, time)}`, tick: (time) => at(month, time) },
+  // All time's steps grow with it: days, weeks, 30 days, then quarters.
+  all: {
+    step: (time, step) =>
+      step <= 86400
+        ? at(dayDate, time)
+        : step <= 7 * 86400
+          ? `Week of ${at(date, time)}`
+          : `From ${at(monthYear, time)}`,
+    tick: (time) => at(monthYear, time),
+  },
 };
 
 // Their GPUs in use over the period being viewed, on an axis up to their

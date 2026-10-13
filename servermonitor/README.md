@@ -61,7 +61,7 @@ ssh -N -L 8876:127.0.0.1:8765 brezel
 | `GPU_MONITOR_TIMEOUT` | `12` | 单次本机采集超时秒数 |
 | `GPU_MONITOR_BIND` | `127.0.0.1` | 网站监听地址 |
 | `GPU_MONITOR_PORT` | `8765` | 网站端口 |
-| `GPU_MONITOR_ROLLUP_RETENTION_DAYS` | `365` | 小时汇总保留天数 |
+| `GPU_MONITOR_ROLLUP_RETENTION_DAYS` | `9125`（25 年） | 小时汇总保留天数；网页的“All time”最远追溯到这里 |
 | `GPU_MONITOR_UPLOAD_URL` | 空 | 中转 Worker 地址（见 `worker/README.md`）；设置后 `serve` 每分钟上传 /top 页面的数据 |
 | `GPU_MONITOR_UPLOAD_TOKEN_FILE` | `~/.config/servermonitor/upload_token` | 上传令牌文件，每次上传时重新读取，轮换令牌无需重启 |
 | `GPU_MONITOR_CLEANUP_EXCEPTIONS_FILE` | `~/.config/servermonitor/cleanup_exceptions` | 磁盘清理额度的例外名单（见下），每次磁盘检查时重新读取，修改无需重启 |

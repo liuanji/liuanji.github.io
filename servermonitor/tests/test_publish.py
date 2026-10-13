@@ -34,13 +34,34 @@ class PublishTest(unittest.TestCase):
     def test_publishes_every_host_and_range(self) -> None:
         files = build_files(self.settings, self.database, now=self.start + 60)
 
-        ranges = ("1h", "24h", "7d", "30d", "90d", "365d")
+        ranges = ("1h", "24h", "7d", "30d", "90d", "365d", "all")
         expected = {"overview"} | {
             f"{kind}-{host}{suffix}"
             for host in ("all", "brezel", "toast")
             for kind, suffix in [("stats", "")] + [("history", f"-{name}") for name in ranges]
         } | {f"uptime-{name}" for name in ranges} | {"gpus-brezel", "gpus-toast"}
         self.assertEqual(set(files), expected)
+
+    def test_all_time_runs_from_the_first_hour_on_record(self) -> None:
+        now = self.start + 10 * 86400
+        files = build_files(self.settings, self.database, now=now, utc_offset=0)
+        first = self.start - self.start % 3600
+        history = files["history-all-all"]
+        self.assertEqual((history["start"], history["end"]), (first, now))
+        self.assertIn("all", [period["range"] for period in files["stats-all"]["periods"]])
+        self.assertEqual(sorted(user["username"] for user in files["stats-all"]["users"]["all"]), ["alice", "bob"])
+        # Ten days: daily bars, enough of them to reach back to the first record.
+        uptime = files["uptime-all"]
+        self.assertEqual(uptime["bar_seconds"], 86400)
+        self.assertLessEqual(uptime["start"], first)
+
+    def test_all_time_steps_grow_with_its_length(self) -> None:
+        from servermonitor.database import all_time_steps
+
+        self.assertEqual(all_time_steps(30 * 86400), (86400, 30))
+        self.assertEqual(all_time_steps(400 * 86400), (7 * 86400, 58))
+        self.assertEqual(all_time_steps(1000 * 86400), (30 * 86400, 34))
+        self.assertEqual(all_time_steps(25 * 365 * 86400), (91 * 86400, 101))
 
     def test_live_only_publishes_overview_and_hour_histories(self) -> None:
         files = build_files(self.settings, self.database, now=self.start + 60, live_only=True)

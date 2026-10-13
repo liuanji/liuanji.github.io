@@ -39,7 +39,7 @@ class Settings:
     collection_timeout_seconds: int = 12
     bind: str = "127.0.0.1"
     port: int = 8765
-    rollup_retention_days: int = 365
+    rollup_retention_days: int = 25 * 365
     # Base URL of the relay Worker; None disables uploading.
     upload_url: str | None = None
     upload_token_path: Path = Path("~/.config/servermonitor/upload_token").expanduser()
@@ -98,8 +98,9 @@ class Settings:
             collection_timeout_seconds=_positive_int("GPU_MONITOR_TIMEOUT", 12),
             bind=os.environ.get("GPU_MONITOR_BIND", "127.0.0.1"),
             port=_positive_int("GPU_MONITOR_PORT", 8765),
+            # Twenty-five years: the page's "All time" reaches back as far as this.
             rollup_retention_days=_positive_int(
-                "GPU_MONITOR_ROLLUP_RETENTION_DAYS", 365
+                "GPU_MONITOR_ROLLUP_RETENTION_DAYS", 25 * 365
             ),
             upload_url=upload_url,
             upload_token_path=Path(

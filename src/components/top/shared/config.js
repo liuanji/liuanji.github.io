@@ -10,6 +10,8 @@ export const RANGES = [
   { value: '30d', label: 'Month', title: 'Last 30 days', hours: 30 * 24, ago: '30 days ago' },
   { value: '90d', label: '3 months', title: 'Last 90 days', hours: 90 * 24, ago: '90 days ago' },
   { value: '365d', label: 'Year', title: 'Last 365 days', hours: 365 * 24, ago: '1 year ago' },
+  // From the first hour on record (the backend keeps 25 years); no fixed length.
+  { value: 'all', label: 'All time', title: 'All time', hours: null, ago: 'The start' },
 ];
 export const DEFAULT_RANGE = RANGES[1];
 

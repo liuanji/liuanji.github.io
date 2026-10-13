@@ -181,7 +181,7 @@ class DatabaseTest(unittest.TestCase):
         day = history["24h"]
         self.assertEqual((day["step"], len(day["values"])), (1800, 48))
         self.assertEqual(day["values"][-3:], [0.5, None, 0.8])
-        self.assertEqual(sorted(history), ["1h", "24h", "30d", "365d", "7d", "90d"])
+        self.assertEqual(sorted(history), ["1h", "24h", "30d", "365d", "7d", "90d", "all"])
         # Checks older than the retention go.
         self.database.cleanup(rollup_retention_days=1, now=start + 3 * 86400)
         self.assertEqual(self.database.disk_history(now=start + 3 * 86400, utc_offset=0), {})
@@ -417,7 +417,7 @@ class DatabaseTest(unittest.TestCase):
         hour = alice["series"]["1h"]
         self.assertEqual((hour["step"], len(hour["values"])), (300, 12))
         self.assertEqual(hour["values"][-2], 1.0)
-        self.assertEqual(sorted(alice["series"]), ["1h", "24h", "30d", "365d", "7d", "90d"])
+        self.assertEqual(sorted(alice["series"]), ["1h", "24h", "30d", "365d", "7d", "90d", "all"])
         # Someone who only baked long ago keeps a card, without recent habits.
         with self.database.connect() as connection:
             connection.execute("INSERT INTO lifetime_user_time VALUES ('carol', 7200, 1600000000)")

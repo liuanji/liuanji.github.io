@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import Settings
-from .database import Database, disk_users, granted_quota, load_cleanup_exceptions
+from .database import Database, all_time_steps, disk_users, granted_quota, load_cleanup_exceptions
 from .web import PERIODS
 
 
@@ -128,7 +128,7 @@ def uptime_window(now: int, bar_seconds: int, bars: int, utc_offset: int) -> int
 def public_uptime(
     settings: Settings, database: Database, name: str, now: int, utc_offset: int
 ) -> dict[str, Any]:
-    bar_seconds, bars = UPTIME_BARS[name]
+    bar_seconds, bars = all_time_steps(database.all_time_seconds(now)) if name == "all" else UPTIME_BARS[name]
     start = uptime_window(now, bar_seconds, bars, utc_offset)
     return {
         "generated_at": now,
@@ -213,7 +213,9 @@ def build_files(
             database.accounts(settings.hosts),
         )
     }
-    for name, _ in LIVE_PERIODS if live_only else PERIODS:
+    # Every period the page offers, with all time (from the first hour on record).
+    periods = LIVE_PERIODS if live_only else (*PERIODS, ("all", database.all_time_seconds(now)))
+    for name, _ in periods:
         files[f"uptime-{name}"] = public_uptime(settings, database, name, now, utc_offset)
     if not live_only:
         for host in settings.hosts:
@@ -233,13 +235,10 @@ def build_files(
                 "bakers": bakers,
                 # What each user's bakery cat has eaten, also lab-wide.
                 "cats": cats,
-                "periods": database.period_summaries(PERIODS, now=now, host=host),
-                "users": {
-                    name: database.user_summary(now - seconds, now, host)
-                    for name, seconds in PERIODS
-                },
+                "periods": database.period_summaries(periods, now=now, host=host),
+                "users": {name: database.user_summary(now - seconds, now, host) for name, seconds in periods},
             }
-        for name, seconds in LIVE_PERIODS if live_only else PERIODS:
+        for name, seconds in periods:
             start = now - seconds
             files[f"history-{key}-{name}"] = {
                 "generated_at": now,
