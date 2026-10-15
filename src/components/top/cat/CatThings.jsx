@@ -722,6 +722,8 @@ function Bed({ variant = 'basket', layer = 'back' }) {
 }
 // How high a cat lies in (or on) each bed, from the edge.
 export const BED_LIFT = { basket: 2, banneton: 2, donut: 8, sack: 17, croissant: 21, towel: 0 };
+// And how far each reaches either side of its middle.
+export const BED_HALF = { basket: 37, banneton: 34, donut: 44, sack: 40, croissant: 46, towel: 0 };
 
 // A dream, in a cloud over a sleeping cat's head: a fish-shaped cookie. The
 // little bubbles leading up to it start at (0, 0).

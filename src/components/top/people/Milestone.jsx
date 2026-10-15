@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Cake, Croissant, Crown, Orbit, Wheat } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { BAKERY_SGD, CLOUD_SGD_PER_GPU_HOUR, MILESTONES, PASTRIES } from '../shared/config';
+import { BAKERY_SGD, CLOUD_SGD_PER_GPU_HOUR, MILESTONES, PASTRIES, PASTRIES_SHOWN } from '../shared/config';
 import { ENERGY_MEASURE_COUNT, energyMeasure, milestoneLine, pastryPilePhrase } from '../shared/easterEggs';
 import { formatDate, formatSgd } from '../shared/format';
 
@@ -159,6 +159,44 @@ function PastryMountain({ reached }) {
 // without it the forecast keeps to the last month's pace.
 // How much electricity the ovens have drawn, and one everyday measure of it,
 // dealt afresh each time the box opens.
+// A few of the basket's treats, picked at random, none of the last few shown
+// (while there are enough others), so each opening names a different few.
+let lastBasket = [];
+function pickBasket() {
+  const fresh = PASTRIES.filter((pastry) => !lastBasket.includes(pastry));
+  const pool = fresh.length >= PASTRIES_SHOWN ? fresh : PASTRIES;
+  const shuffled = [...pool];
+  for (let index = shuffled.length - 1; index > 0; index--) {
+    const other = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[other]] = [shuffled[other], shuffled[index]];
+  }
+  return shuffled.slice(0, PASTRIES_SHOWN);
+}
+
+// What it would have cost in the cloud, and how many of a few of the
+// basket's treats that is (a fresh few each time the box opens).
+function CloudLine({ value }) {
+  const [basket] = useState(pickBasket);
+  // (Kept once shown: a picking alone may be thrown away.)
+  useEffect(() => {
+    lastBasket = basket;
+  }, [basket]);
+  return (
+    <p className="mt-3 text-xs leading-relaxed text-data-grey">
+      In the cloud, that would be <span className="font-medium text-inkwell">≈ {formatSgd(value)}</span>. That is
+      about{' '}
+      {basket.map((pastry, index) => (
+        <span key={pastry.name}>
+          {index === basket.length - 1 ? 'or ' : ''}
+          <span className="font-medium text-inkwell">{Math.round(value / pastry.sgd).toLocaleString('en-US')}</span>{' '}
+          {pastry.name}
+          {index < basket.length - 1 ? ', ' : '.'}
+        </span>
+      ))}
+    </p>
+  );
+}
+
 function EnergyLine({ kwh, since }) {
   const [turn] = useState(() => Math.floor(Math.random() * ENERGY_MEASURE_COUNT));
   const [before, figure, after] = energyMeasure(kwh, turn);
@@ -239,20 +277,7 @@ export default function MilestoneBadge({ lifetime, pace = null }) {
             </ul>
           )}
 
-          <p className="mt-3 text-xs leading-relaxed text-data-grey">
-            In the cloud, that would be <span className="font-medium text-inkwell">≈ {formatSgd(value)}</span>. That is
-            about{' '}
-            {PASTRIES.map((pastry, index) => (
-              <span key={pastry.name}>
-                {index === PASTRIES.length - 1 ? 'or ' : ''}
-                <span className="font-medium text-inkwell">
-                  {Math.round(value / pastry.sgd).toLocaleString('en-US')}
-                </span>{' '}
-                {pastry.name}
-                {index < PASTRIES.length - 1 ? ', ' : '.'}
-              </span>
-            ))}
-          </p>
+          <CloudLine value={value} />
           {/* The electricity the GPUs have drawn (counted since energy_since), put in everyday terms. */}
           {lifetime.energy_kwh > 0 && (
             <EnergyLine

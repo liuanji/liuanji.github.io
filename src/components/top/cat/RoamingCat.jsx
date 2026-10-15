@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { MORPH_MS, ROAM_POSES, SETTLES, moodOf } from './BakeryCat';
 import { JOY_EVENT, JOY_FADE, changeJoy, joyLevel, readJoy } from './joy';
 import { keepMoment } from './scrapbook';
-import { BAG_HEIGHT, BED_LIFT, CONFETTI_S, CatThing, LOSS, WISHES, ToyIcon } from './CatThings';
+import { BAG_HEIGHT, BED_HALF, BED_LIFT, CONFETTI_S, CatThing, LOSS, WISHES, ToyIcon } from './CatThings';
 import { RING_SERIES } from '../shared/DetailBoxes';
 
 // The bakery cat let out to roam the page. It lives on the edges of the panels
@@ -229,17 +229,6 @@ const MORPHS = new Set(['sit', 'rest', 'sleep', 'peek', 'emerge', 'lurk']);
 // The face each of those wears whatever its mood.
 const MORPH_FACE = { sleep: 'asleep', peek: 'content', emerge: 'content', lurk: 'content' };
 
-// Poses it swaps between too quickly to blend: batting at the pointer.
-const SWIPE = new Set(['sit', 'reach']);
-// And the moves of a dance, which change crisply on the beat.
-const DANCE = new Set(['cheer', 'wave', 'walk', 'sit']);
-// And the strides of a gallop, a flight or a creep.
-const GALLOP = new Set(['run', 'run2', 'skid', 'flee', 'flee2', 'creep', 'creep2', 'paddle', 'paddle2']);
-// And the claps of applause, and the bounds of a pronk.
-const CLAPS = new Set(['clap', 'clap2']);
-const PRONKS = new Set(['pronk', 'crouch']);
-// And the moves of the newer dances (disco, robot, hula), on the beat.
-const MOVES = new Set(['disco', 'disco2', 'robot', 'robot2', 'hula', 'hula2', 'cheer']);
 
 const random = (from, to) => from + Math.random() * (to - from);
 const page = (rect) => ({
@@ -728,31 +717,19 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       const step = shown.pose && pose !== shown.pose && (BETWEEN[`${shown.pose}>${pose}`] ?? BETWEEN[`${shown.pose}>`]);
       const next = step ? step[0] : pose;
       if (step) between = { until: time + step[1] };
-      // Blended, turning round included, unless it is a quick swipe of a paw or
-      // the last change was only a moment ago (then it just changes).
+      // Otherwise it just changes, at once: a crossfade leaves a see-through
+      // double (or, turning round, a mirrored ghost beside it) for a moment.
       const changed = next !== shown.pose || flip !== shown.flip;
-      const quick =
-        // (Mid-roll, the turn hides the change.)
-        state.spin != null ||
-        (SWIPE.has(next) && SWIPE.has(shown.pose)) ||
-        (GALLOP.has(next) && GALLOP.has(shown.pose)) ||
-        (CLAPS.has(next) && CLAPS.has(shown.pose)) ||
-        (PRONKS.has(next) && PRONKS.has(shown.pose)) ||
-        (MOVES.has(next) && MOVES.has(shown.pose)) ||
-        (DANCE.has(next) &&
-          DANCE.has(shown.pose) &&
-          (next === 'cheer' || next === 'wave' || shown.pose === 'cheer' || shown.pose === 'wave'));
-      const blend = changed && time - (shown.since ?? 0) > 300 && !quick;
       setLook((current) => ({
         pose: next,
         flip,
         mood,
         side,
-        previous: blend ? current.pose : null,
+        previous: null,
         previousMorph: current.morph,
         previousFlip: current.flip,
         previousMood: current.mood,
-        change: current.change + (blend ? 1 : 0),
+        change: current.change,
       }));
       shown = { pose: next, flip, mood, side, since: changed ? time : shown.since };
     };
@@ -1439,10 +1416,11 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     // A GPU's tile it has set wobbling or tipped: let go (springing back if
     // tipped) as it leaves, however it leaves.
     // A pretend reading over an idle GPU's ring while it runs: compute and
-    // memory arcs (in the ring's own sizes and colours) and the percentage,
-    // over a disc of the tile's colour hiding its "0%".
+    // memory arcs (in the ring's own sizes and colours) and the percentage, in
+    // place of its own "0%" (hidden meanwhile: a disc of the tile's colour
+    // would not hide it on a tinted, see-through tile, a reserved one's).
     const SVG = 'http://www.w3.org/2000/svg';
-    const pretendRing = (ring, face) => {
+    const pretendRing = (ring) => {
       const holder = ring.parentElement;
       const size = Number(ring.getAttribute('width')) || 64;
       const middle = size / 2;
@@ -1461,19 +1439,20 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         arc.setAttribute('transform', `rotate(-90 ${middle} ${middle})`);
         return arc;
       });
-      const disc = document.createElementNS(SVG, 'circle');
-      disc.setAttribute('cx', middle);
-      disc.setAttribute('cy', middle);
-      disc.setAttribute('r', Math.max(4, Number(tracks[1]?.getAttribute('r') ?? 21) - 2.5));
-      disc.setAttribute('fill', getComputedStyle(face).backgroundColor || '#F6F7F9');
+      const own = holder.querySelector('span');
       const label = document.createElementNS(SVG, 'text');
-      const font = getComputedStyle(holder.querySelector('span') ?? holder);
+      const font = getComputedStyle(own ?? holder);
       label.setAttribute('x', middle);
       label.setAttribute('y', middle + 4.5);
       label.setAttribute('text-anchor', 'middle');
       label.style.cssText = `font: ${font.fontWeight} ${font.fontSize} ${font.fontFamily}; fill: ${font.color}; font-variant-numeric: tabular-nums`;
-      svg.append(...arcs, disc, label);
+      svg.append(...arcs, label);
       holder.appendChild(svg);
+      if (own) own.style.visibility = 'hidden';
+      const gone = () => {
+        svg.remove();
+        if (own) own.style.visibility = '';
+      };
       let shares = [0, 0];
       const set = (compute, memory) => {
         shares = [compute, memory];
@@ -1496,11 +1475,11 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
             const k = Math.min(1, (now - from) / ms);
             set(compute * (1 - k) ** 2, memory * (1 - k) ** 2);
             if (k < 1) requestAnimationFrame(step);
-            else svg.remove();
+            else gone();
           };
           requestAnimationFrame(step);
         },
-        remove: () => svg.remove(),
+        remove: gone,
       };
     };
     // An idle tile it got running: stopped (sputtering out, or at once).
@@ -1665,7 +1644,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
               state.oilRun = {
                 face,
                 ring,
-                pretend: ring ? pretendRing(ring, face) : null,
+                pretend: ring ? pretendRing(ring) : null,
                 hum: [
                   !quietRef.current &&
                     tile.animate(
@@ -4795,7 +4774,9 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         ];
         return [
           { pose: 'sit', mood: 'drowsy', ms: 900, start: () => ((state.facing = dir), putThing(bed()), say('!')) },
-          { to: at - dir * 36 },
+          // Up to it, just clear of its rim (which is drawn over her), her nose
+          // (some 26 px ahead of her middle) at its edge.
+          { to: at - dir * (BED_HALF[kind] + 20) },
           { pose: 'sniff', ms: 900, start: () => say('sniff') },
           hop(at, 24, lift),
           // Round it turns, twice, and (a moment later, so it lies down

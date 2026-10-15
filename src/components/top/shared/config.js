@@ -135,14 +135,41 @@ export const LEVEL_SERIES = {
 export const CLOUD_SGD_PER_GPU_HOUR = 2.3;
 export const CROISSANT_SGD = 3;
 
-// The milestone box's bakery basket, one treat per server: rough Singapore
-// prices in 2026 for a butter croissant, a German-style brezel (S$3-5 at
-// bakeries) and a kaya toast (about S$2 at kopitiam chains).
+// The milestone box's bakery basket: what the cloud bill would buy, three
+// treats at a time, a different three each time the box opens. Rough
+// Singapore prices in 2026, each (or a slice, or a whole small loaf, as
+// named), from neighbourhood bakeries and kopitiams to cafés.
 export const PASTRIES = [
   { name: 'croissants', sgd: CROISSANT_SGD },
   { name: 'brezels', sgd: 4 },
   { name: 'kaya toasts', sgd: 2 },
+  { name: 'egg tarts', sgd: 2 },
+  { name: 'curry puffs', sgd: 2 },
+  { name: 'pineapple tarts', sgd: 1 },
+  { name: 'kouign-amanns', sgd: 4.5 },
+  { name: 'pains au chocolat', sgd: 4 },
+  { name: 'cinnamon rolls', sgd: 5 },
+  { name: 'bagels', sgd: 3.5 },
+  { name: 'sourdough loaves', sgd: 9 },
+  { name: 'baguettes', sgd: 4 },
+  { name: 'macarons', sgd: 3 },
+  { name: 'cream puffs', sgd: 2.5 },
+  { name: 'red bean buns', sgd: 1.8 },
+  { name: 'coconut buns', sgd: 1.8 },
+  { name: 'pork floss buns', sgd: 2.2 },
+  { name: 'polo buns', sgd: 2 },
+  { name: 'slices of kueh lapis', sgd: 2.5 },
+  { name: 'slices of cheesecake', sgd: 7 },
+  { name: 'slices of banana bread', sgd: 4 },
+  { name: 'muffins', sgd: 4 },
+  { name: 'doughnuts', sgd: 2.5 },
+  { name: 'madeleines', sgd: 1.5 },
+  { name: 'scones', sgd: 3.5 },
+  { name: 'pandan chiffon cakes', sgd: 15 },
+  { name: 'ondeh-ondeh', sgd: 1 },
 ];
+// How many of them the box names at once.
+export const PASTRIES_SHOWN = 3;
 
 // Availability bars: soft fills, since every bar also has a text description.
 // A bar is partly down when some of its checked time failed but at least
