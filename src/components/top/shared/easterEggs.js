@@ -527,7 +527,8 @@ const PRESSURE = {
       ],
     },
   ],
-  // A scratch disk is the bakery's flour store; bands follow DISK_LEVELS.
+  // A scratch disk is the bakery's flour store; bands follow DISK_LEVELS
+  // (config.js: 80% and 90%).
   disk: [
     {
       from: 0,
@@ -551,7 +552,7 @@ const PRESSURE = {
       ],
     },
     {
-      from: 0.85,
+      from: 0.8,
       lines: [
         'The flour sacks are piling up',
         'Getting snug in the storeroom',
@@ -561,7 +562,7 @@ const PRESSURE = {
       ],
     },
     {
-      from: 0.95,
+      from: 0.9,
       lines: [
         'The storeroom door won’t close',
         'Not a crumb of space left',

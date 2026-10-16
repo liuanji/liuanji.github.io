@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { HardDrive } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { LEVEL_SERIES, READING_STYLES, SERIES, SMALL_USER_BYTES } from '../shared/config';
+import { DISK_LEVELS, LEVEL_SERIES, READING_STYLES, SERIES, SMALL_USER_BYTES } from '../shared/config';
 import { Banner, BannerLink, ScrollList, Segmented } from '../shared/controls';
 import { BoxFooter, DetailsPopover, GLYPH, Metric, QUIET } from '../shared/DetailBoxes';
 import { pressurePhrase } from '../shared/easterEggs';
@@ -73,11 +73,12 @@ function othersLabel(count) {
   return count === 1 ? '1 other user' : `${count} others`;
 }
 
-// The used part's colour by how full the disk is: the disks' blue, amber from
-// 80% (where its cleanup note joins the top of the page) and red from 95%.
+// The used part's colour by how full the disk is (DISK_LEVELS): the disks'
+// blue, amber from 80% (where its cleanup note joins the top of the page) and
+// red from 90%.
 export function fullnessColor(share) {
-  if (share >= 0.95) return LEVEL_SERIES.hot.color;
-  if (share >= 0.8) return '#D08C1F';
+  if (share >= DISK_LEVELS.hot) return LEVEL_SERIES.hot.color;
+  if (share >= DISK_LEVELS.warm) return '#D08C1F';
   return SERIES.disk.color;
 }
 
@@ -616,8 +617,8 @@ export default function DiskCard({ host, now, stacked, range }) {
 // The notice at the top of the page while the viewer holds more than the
 // cleanup allowance on some disk (see CLEANUP): which disks, how much they
 // hold there and the allowance. It grows more urgent with the fullest disk's
-// level: the disks' quiet hue and a gentle ask below 85% full, amber and
-// "soon" from there, red and "now" from 95%. Each disk's name opens its
+// level (DISK_LEVELS): the disks' quiet hue and a gentle ask below 80% full,
+// amber and "soon" from there, red and "now" from 90%. Each disk's name opens its
 // server's storage.
 const URGENCY = {
   calm: { color: SERIES.disk.color, role: 'status' },
@@ -631,7 +632,7 @@ function cleanupUrgency(reminders) {
 
 // Whether a disk the viewer is asked to tidy is more than URGENT_SHARE full,
 // the one notice urgent enough to stay at the top of the page as well.
-const URGENT_SHARE = 0.8;
+const URGENT_SHARE = DISK_LEVELS.warm;
 export function cleanupIsUrgent(reminders) {
   return reminders.some(({ disk }) => diskShare(disk) > URGENT_SHARE);
 }

@@ -105,8 +105,11 @@ export const POWER_ICON_FULL_SHARE = 0.4;
 
 // A server's RAM as a share of its total; jobs get killed when it runs out.
 export const RAM_LEVELS = { warm: 0.8, hot: 0.9 };
-// A disk's used share, as df counts it: used / (used + available).
-export const DISK_LEVELS = { warm: 0.85, hot: 0.95 };
+// A disk's used share, as df counts it: used / (used + available). Amber
+// from 80% (where a cleanup note also joins the top of the page), red from
+// 90%: on these 15 TB scratch disks that leaves about 1.5 TB, which a training
+// run's checkpoints can fill within a day.
+export const DISK_LEVELS = { warm: 0.8, hot: 0.9 };
 // Users holding less than this on a disk are summed as "others".
 export const SMALL_USER_BYTES = 100 * 1024 ** 3;
 // Cleanup reminders. Below CLEANUP.from full, nobody is asked; from there,
