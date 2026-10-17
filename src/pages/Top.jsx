@@ -51,7 +51,14 @@ import {
   formatPercent,
   formatPower,
 } from '../components/top/shared/format';
-import { IdleBanner, SharedBanner, myHeldIdle, mySharedGpus } from '../components/top/servers/Insights';
+import {
+  IdleBanner,
+  MostlyIdleBanner,
+  SharedBanner,
+  myHeldIdle,
+  myMostlyIdle,
+  mySharedGpus,
+} from '../components/top/servers/Insights';
 import { OverheatBanner, myOverheated } from '../components/top/alerts/Overheat';
 import { ClashBanner, myClashes } from '../components/top/alerts/Reservations';
 import { useReservations } from '../components/top/hooks/useReservations';
@@ -325,6 +332,8 @@ export default function Top() {
   // And any disk the viewer has been filling fast.
   const growths = growthReminders(disks.data?.hosts ?? [], user);
   const heldIdle = myHeldIdle(currentHosts, user);
+  // And those mostly waiting, working only in short bursts.
+  const mostlyIdle = myMostlyIdle(currentHosts, user);
   // GPUs the viewer shares in earnest with someone: low priority, so last.
   const shared = mySharedGpus(currentHosts, user);
   // GPUs of the viewer's running over OVERHEAT_C: urgent, so on top and in the pill.
@@ -345,6 +354,7 @@ export default function Top() {
     },
     clashes.length && { key: 'clash', color: RESERVATION_CLASH.color, label: 'On a GPU someone reserved' },
     heldIdle.length && { key: 'idle', color: SERIES.compute.color, label: 'A GPU of yours is resting' },
+    mostlyIdle.length && { key: 'waiting', color: SERIES.compute.color, label: 'A GPU of yours is mostly waiting' },
     cleanups.length && {
       key: 'cleanup',
       color: cleanupColor(cleanups),
@@ -446,6 +456,7 @@ export default function Top() {
                 <OverheatBanner items={overheated} onOpen={hosts.length > 1 ? showHost : undefined} />
                 <ClashBanner clashes={clashes} onOpen={hosts.length > 1 ? showHost : undefined} />
                 <IdleBanner items={heldIdle} onOpen={hosts.length > 1 ? showHost : undefined} />
+                <MostlyIdleBanner items={mostlyIdle} onOpen={hosts.length > 1 ? showHost : undefined} />
                 <CleanupBanner reminders={cleanups} onOpen={showStorage} />
                 <GrowthBanner reminders={growths} onOpen={showStorage} />
                 <SharedBanner items={shared} onOpen={hosts.length > 1 ? showHost : undefined} />

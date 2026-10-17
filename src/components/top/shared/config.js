@@ -206,6 +206,13 @@ export const RESERVATION_MARKS = { mine: '#8478D6', others: '#8593AA' };
 export const HELD_IDLE_FLAG_SECONDS = 3600;
 // Its owner gets a kind note at the top of their own page sooner, after this long.
 export const HELD_IDLE_REMIND_SECONDS = 30 * 60;
+// A GPU held throughout the last two hours (the backend's IDLE_SHARE_WINDOW)
+// but idle for at least this share of it, working in short bursts between long
+// waits (which the unbroken held-idle run above never sees): its owner gets a
+// note too. Over 48 hours of the lab's GPUs in October 2026, 75% caught only
+// clear waste (2-3 minutes' work every half hour), not jobs computing about
+// half the time between evaluations.
+export const MOSTLY_IDLE_SHARE = 0.75;
 // Two or more people each holding at least this share of a GPU's memory, both
 // for SHARED_GPU_AFTER_SECONDS or more (their jobs there running that long),
 // are sharing it in earnest: each gets a quiet, low-priority note suggesting

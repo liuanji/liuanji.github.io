@@ -18,6 +18,12 @@ BUSY_MEMORY_THRESHOLD_MB = 100
 # A GPU is "held but idle" while it stays busy (a process or memory held) with
 # average compute under this percent, minute after minute.
 IDLE_UTILIZATION_PERCENT = 5
+# And how much of the last IDLE_SHARE_WINDOW a GPU held throughout (busy in
+# at least IDLE_SHARE_HELD of its minutes) spent idle: work in short bursts
+# between long waits, which the unbroken held-idle run never sees. The page
+# nudges its owner from 75% (MOSTLY_IDLE in config.js).
+IDLE_SHARE_WINDOW = 2 * 3600
+IDLE_SHARE_HELD = 0.95
 # nvidia-smi clock-event bits worth flagging; the others (idle, application
 # clocks, the software power cap under load, sync boost) are routine.
 CLOCK_EVENT_PROBLEMS = (
@@ -1633,6 +1639,30 @@ class Database:
             idle[gpu] = latest + 60 - earliest
         return idle
 
+    @staticmethod
+    def _idle_shares(connection: sqlite3.Connection, host: str, now: int) -> dict[int, float]:
+        """For each GPU of the host held throughout the last IDLE_SHARE_WINDOW,
+        the share of its held minutes there that were idle (see
+        IDLE_UTILIZATION_PERCENT); GPUs not held throughout are left out."""
+        minutes = IDLE_SHARE_WINDOW // 60
+        rows = connection.execute(
+            """
+            SELECT gpu_index,
+                   SUM(busy_sample_count * 2 >= sample_count) AS held,
+                   SUM(busy_sample_count * 2 >= sample_count
+                       AND utilization_sum < ? * sample_count) AS idle
+            FROM gpu_minute
+            WHERE host = ? AND bucket > ? AND bucket <= ? AND sample_count > 0
+            GROUP BY gpu_index
+            """,
+            (IDLE_UTILIZATION_PERCENT, host, now - IDLE_SHARE_WINDOW, now),
+        ).fetchall()
+        return {
+            row["gpu_index"]: round(row["idle"] / row["held"], 3)
+            for row in rows
+            if row["held"] >= minutes * IDLE_SHARE_HELD
+        }
+
     def _observation_bounds(
         self,
         connection: sqlite3.Connection,
@@ -1693,6 +1723,7 @@ class Database:
                     }
                 )
             idle = self._held_idle_seconds(connection, host, now)
+            idle_shares = self._idle_shares(connection, host, now)
             gpu_items: list[dict[str, Any]] = []
             for gpu in sorted(snapshot.get("gpus", []), key=lambda item: item["index"]):
                 processes = processes_by_gpu[gpu["uuid"]]
@@ -1732,6 +1763,9 @@ class Database:
                         ],
                         "problems": gpu_problems(gpu),
                         "held_idle_seconds": idle.get(gpu["index"], 0),
+                        # Held throughout the last IDLE_SHARE_WINDOW: how much
+                        # of it was idle (None if not held throughout).
+                        "idle_share": idle_shares.get(gpu["index"]),
                         "processes": processes,
                     }
                 )

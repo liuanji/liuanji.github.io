@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Hourglass, Users } from 'lucide-react';
+import { Hourglass, Timer, Users } from 'lucide-react';
 import {
   HELD_IDLE_FLAG_SECONDS,
   HELD_IDLE_REMIND_SECONDS,
+  MOSTLY_IDLE_SHARE,
   READING_STYLES,
   SERIES,
   SHARED_GPU_AFTER_SECONDS,
@@ -355,6 +356,63 @@ export function IdleBanner({ items, onOpen }) {
         Just a friendly nudge: if you have finished with {items.length === 1 ? 'it' : 'them'}, freeing{' '}
         {items.length === 1 ? 'the GPU' : 'the GPUs'} would make room for others’ bakes. No worries if it is still
         needed.
+      </p>
+    </Banner>
+  );
+}
+
+// The viewer's GPUs held throughout the last two hours but mostly idle
+// (MOSTLY_IDLE_SHARE), less those the note above already covers.
+export function myMostlyIdle(hosts, me) {
+  return hosts.flatMap((host) =>
+    host.gpus
+      .filter(
+        (gpu) =>
+          (gpu.idle_share ?? 0) >= MOSTLY_IDLE_SHARE &&
+          (gpu.held_idle_seconds ?? 0) < HELD_IDLE_REMIND_SECONDS &&
+          gpu.users.some((user) => user.username === me),
+      )
+      .map((gpu) => ({ host: host.name, gpu, memory: gpu.users.find((user) => user.username === me).used_memory_mb })),
+  );
+}
+
+// A kind note to whoever holds GPUs that mostly wait, working in short bursts:
+// how idle, and what usually causes it.
+export function MostlyIdleBanner({ items, onOpen }) {
+  if (!items.length) return null;
+  const color = SERIES.compute.color;
+  const gpuName = ({ host, gpu }) => (
+    <BannerLink color={color} onClick={onOpen && (() => onOpen(host))}>
+      {host} · GPU {gpu.index}
+    </BannerLink>
+  );
+  const idle = ({ gpu }) => `${Math.round(gpu.idle_share * 100)}%`;
+  const [first] = items;
+  return (
+    <Banner icon={Timer} color={color}>
+      <p className="text-inkwell">
+        {items.length === 1 ? (
+          <>
+            Your dough on {gpuName(first)} has been waiting {idle(first)} of the last 2 hours, holding{' '}
+            {formatMemory(first.memory)} between short bursts of work.
+          </>
+        ) : (
+          <>
+            {items.length} of your GPUs have mostly been waiting over the last 2 hours, between short bursts of work:{' '}
+            {items.map((item, index) => (
+              <span key={`${item.host}/${item.gpu.index}`}>
+                {index > 0 && ', '}
+                {gpuName(item)} <span className="whitespace-nowrap text-data-grey">({idle(item)} idle)</span>
+              </span>
+            ))}
+            .
+          </>
+        )}
+      </p>
+      <p className="text-data-grey">
+        If the gaps are data loading, evaluation or saving checkpoints, more dataloader workers, evaluating less often
+        or saving in the background could keep {items.length === 1 ? 'it' : 'them'} busy. No worries if the job needs
+        to wait.
       </p>
     </Banner>
   );

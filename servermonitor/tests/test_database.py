@@ -344,6 +344,29 @@ class DatabaseTest(unittest.TestCase):
         self.assertEqual(gpu["held_idle_seconds"], 300)
         self.assertEqual(gpu["users"], [{"username": "alice", "used_memory_mb": 40000, "jobs": 1, "running_seconds": 7200}])
 
+    def test_idle_share_sees_short_bursts_between_long_waits(self) -> None:
+        def held(timestamp: int, utilization: float) -> CollectionResult:
+            return CollectionResult(
+                host="brezel",
+                sampled_at=timestamp,
+                duration_ms=100,
+                success=True,
+                gpus=(GPUStat(0, "GPU-a", "Test GPU", utilization, 40000, 97000, 30, 60),),
+                processes=(ProcessStat("GPU-a", 10, "alice", "python", 40000, elapsed_seconds=7200),),
+            )
+
+        start = 1_700_000_040
+        # Two hours of 2 minutes' work then 8 waiting: 80% idle, though no
+        # unbroken idle run is longer than 8 minutes.
+        for minute in range(120):
+            self.database.save(held(start + minute * 60, 90 if minute % 10 < 2 else 0))
+        gpu = self.database.overview(("brezel",), stale_after_seconds=180, now=start + 119 * 60)["hosts"][0]["gpus"][0]
+        self.assertEqual(gpu["idle_share"], 0.8)
+        self.assertEqual(gpu["held_idle_seconds"], 480)
+        # Held for only part of the last two hours: no share.
+        later = self.database.overview(("brezel",), stale_after_seconds=10**6, now=start + 150 * 60)["hosts"][0]["gpus"][0]
+        self.assertIsNone(later["idle_share"])
+
     def test_gpu_problems_name_only_real_trouble(self) -> None:
         from servermonitor.database import gpu_problems
 
