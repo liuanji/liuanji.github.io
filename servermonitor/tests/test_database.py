@@ -240,6 +240,44 @@ class DatabaseTest(unittest.TestCase):
         self.assertEqual(asked()[0]["quota_bytes"], 167)
         self.assertEqual(asked()[0]["since"], 1_700_014_400)
 
+    def test_growth_reminders_ask_who_filled_a_full_disk_fastest_in_a_day(self) -> None:
+        gib = 1024**3
+        disk_size = 1000 * gib
+
+        def check(checked_at: int, used: int, alice: int, bob: int, grants: list | None = None) -> dict:
+            usage = {
+                "checked_at": checked_at,
+                "mounts": {"/scratch2": [{"owner": "alice", "bytes": alice}, {"owner": "bob", "bytes": bob}]},
+            }
+            disks = (DiskStat("/scratch2", disk_size, used, disk_size - used),)
+            self.database.save_disks(DiskResult("brezel", checked_at, True, disks, accounts=("alice", "bob"), usage=usage))
+            return self.database.growth_reminders(("brezel",), grants or [])["brezel"].get("/scratch2", [])
+
+        start = 1_700_000_000
+        # No summary a day back yet: nobody is asked, however fast they grow.
+        self.assertEqual(check(start, 600 * gib, 100 * gib, 300 * gib), [])
+        self.assertEqual(check(start + 12 * 3600, 700 * gib, 150 * gib, 300 * gib), [])
+        # A day on, 80% full with 200 GiB free: over 50 GiB (a quarter of that)
+        # in the day asks; alice added 200 GiB, bob 10 GiB.
+        self.assertEqual(
+            check(start + 24 * 3600, 800 * gib, 300 * gib, 310 * gib),
+            [{"user": "alice", "bytes": 200 * gib, "since": start}],
+        )
+        # The same summary read again changes nothing.
+        self.assertEqual(len(check(start + 24 * 3600, 800 * gib, 300 * gib, 310 * gib)), 1)
+        # Her quota granted and her under it: left be.
+        grant = [{"host": "brezel", "mount": None, "user": "alice", "quota_bytes": 400 * gib}]
+        self.assertEqual(check(start + 24 * 3600, 800 * gib, 300 * gib, 310 * gib, grant), [])
+        # A day and a half in, the disk emptied to 35%: under 70% full,
+        # nobody is asked.
+        self.assertEqual(check(start + 36 * 3600, 350 * gib, 300 * gib, 10 * gib), [])
+        # Busy again, 90% full (100 GiB free): bob adds 60 GiB, over 50 GiB and
+        # a quarter of what is free; alice, steady, is not asked.
+        self.assertEqual(
+            [item["user"] for item in check(start + 60 * 3600, 900 * gib, 300 * gib, 70 * gib)],
+            ["bob"],
+        )
+
     def test_cleanup_exceptions_are_read_from_their_file(self) -> None:
         self.assertEqual([parse_quota(text) for text in ("8T", "500 G", "1.5TB", "2TiB", "123", "lots")], [
             8 * 1024**4, 500 * 1024**3, int(1.5 * 1024**4), 2 * 1024**4, 123, None,

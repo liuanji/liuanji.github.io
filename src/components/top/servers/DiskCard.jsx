@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { HardDrive } from 'lucide-react';
+import { HardDrive, TrendingUp } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DISK_LEVELS, LEVEL_SERIES, READING_STYLES, SERIES, SMALL_USER_BYTES } from '../shared/config';
 import { Banner, BannerLink, ScrollList, Segmented } from '../shared/controls';
@@ -705,6 +705,64 @@ export function CleanupBanner({ reminders, onOpen }) {
             ? `Please clean up soon, deleting old checkpoints and data you no longer need${under}.`
             : `Please clear out what you no longer need, such as old checkpoints${single && !first.kept && !first.granted ? `; at this fullness each person is asked to stay under ${formatBytes(first.allowance)}` : ''}.`}
         {kept}
+      </p>
+    </Banner>
+  );
+}
+
+// The notice while the viewer has been filling some disk fast (the backend's
+// growth reminders: on a disk 70% full or more, more than a quarter of its
+// free space added in about a day). Gentler than the cleanup notice: it asks
+// them to check what is writing so much, with no amount to get under, and it
+// clears by itself once their day's growth drops. Coloured by the fullest
+// disk's level; urgent (also at the top of the page) on a disk past
+// DISK_LEVELS.hot.
+export function growthIsUrgent(reminders) {
+  return reminders.some(({ disk }) => diskShare(disk) >= DISK_LEVELS.hot);
+}
+export function growthColor(reminders) {
+  return URGENCY[cleanupUrgency(reminders)].color;
+}
+
+export function GrowthBanner({ reminders, onOpen }) {
+  if (!reminders.length) return null;
+  const urgency = cleanupUrgency(reminders);
+  const { color, role } = URGENCY[urgency];
+  const diskName = ({ host, disk }) => (
+    <BannerLink color={color} onClick={onOpen && (() => onOpen(host))}>
+      {host} · {disk.mount}
+    </BannerLink>
+  );
+  const percent = ({ disk }) => `${Math.round(diskShare(disk) * 100)}%`;
+  const [first] = reminders;
+  return (
+    <Banner icon={TrendingUp} color={color} role={role} tinted={urgency === 'hot'}>
+      <p className={`text-inkwell ${urgency === 'hot' ? 'font-medium' : ''}`}>
+        {reminders.length === 1 ? (
+          <>
+            You added {formatBytes(first.bytes)} to {diskName(first)} in the last day, and it is now {percent(first)}{' '}
+            full.
+          </>
+        ) : (
+          <>
+            You added a lot to disks that are filling up:{' '}
+            {reminders.map((reminder, index) => (
+              <span key={`${reminder.host}${reminder.disk.mount}`}>
+                {index > 0 && ', '}
+                {diskName(reminder)}{' '}
+                <span className="whitespace-nowrap font-normal text-data-grey">
+                  (+{formatBytes(reminder.bytes)} in a day, {percent(reminder)} full)
+                </span>
+              </span>
+            ))}
+            .
+          </>
+        )}
+      </p>
+      <p className={urgency === 'hot' ? 'text-inkwell/75' : 'text-data-grey'}>
+        {urgency === 'hot'
+          ? `At this rate ${reminders.length === 1 ? 'it' : 'they'} could fill up soon, and jobs writing to ${reminders.length === 1 ? 'it' : 'them'} would fail. Please check what is writing so much: checkpoints saved too often, logs left running, or a copy that went astray.`
+          : 'Worth a quick check for a job writing more than expected: checkpoints saved too often, logs left running, or a copy that went astray.'}
       </p>
     </Banner>
   );

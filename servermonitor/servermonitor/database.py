@@ -284,6 +284,17 @@ CREATE TABLE IF NOT EXISTS cleanup_flags (
     PRIMARY KEY (host, mount, username)
 ) WITHOUT ROWID;
 
+-- Each user's total on each disk at every scratch-usage summary (about every
+-- 2 hours), kept USAGE_HISTORY_SECONDS, for how fast each is filling a disk.
+CREATE TABLE IF NOT EXISTS usage_history (
+    host TEXT NOT NULL,
+    mount TEXT NOT NULL,
+    username TEXT NOT NULL,
+    checked_at INTEGER NOT NULL,
+    bytes INTEGER NOT NULL,
+    PRIMARY KEY (host, mount, username, checked_at)
+) WITHOUT ROWID;
+
 CREATE TABLE IF NOT EXISTS app_metadata (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -389,6 +400,19 @@ LOGGER = logging.getLogger(__name__)
 CLEANUP_FROM = 0.7
 CLEANUP_SHARE = 0.3
 CLEANUP_FLOOR = 0.1
+
+# Growth reminders, beside the cleanup ones: on a disk at least GROWTH_FROM
+# full, anyone who added more than GROWTH_SHARE of its free space in the last
+# GROWTH_WINDOW (and at least GROWTH_MIN_BYTES) is asked to check what is
+# writing so much. Measured against the scratch-usage summary closest to
+# GROWTH_WINDOW before the latest, no older than GROWTH_WINDOW + GROWTH_SLACK;
+# none without one. Not sticky: it clears once their day's growth is under.
+GROWTH_FROM = 0.7
+GROWTH_SHARE = 0.25
+GROWTH_MIN_BYTES = 50 * 1024**3
+GROWTH_WINDOW = 24 * 3600
+GROWTH_SLACK = 6 * 3600
+USAGE_HISTORY_SECONDS = 8 * 86400
 
 
 def cleanup_allowance(used_bytes: int, available_bytes: int) -> float | None:
@@ -840,6 +864,7 @@ class Database:
                     """,
                     (result.host, json.dumps(result.usage)),
                 )
+                self._add_usage_history(connection, result.host, result.usage)
         if not result.success:
             return
         with self.connect() as connection:
@@ -873,6 +898,84 @@ class Database:
                 ],
             )
             self._update_cleanup_flags(connection, result.host, result.checked_at, list(exceptions))
+
+    def _add_usage_history(self, connection: sqlite3.Connection, host: str, usage: dict[str, Any]) -> None:
+        """Each user's total on each disk in a scratch-usage summary (once per
+        summary, however often it is read), and anything older than
+        USAGE_HISTORY_SECONDS dropped."""
+        checked_at = usage.get("checked_at")
+        if not isinstance(checked_at, int):
+            return
+        row = connection.execute("SELECT accounts FROM account_state WHERE host = ?", (host,)).fetchone()
+        accounts = set(json.loads(row["accounts"])) if row else set()
+        connection.executemany(
+            """
+            INSERT OR IGNORE INTO usage_history (host, mount, username, checked_at, bytes)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            [
+                (host, mount, item["user"], checked_at, item["bytes"])
+                for mount, folders in usage.get("mounts", {}).items()
+                for item in disk_users(folders, accounts)
+            ],
+        )
+        connection.execute(
+            "DELETE FROM usage_history WHERE host = ? AND checked_at < ?",
+            (host, checked_at - USAGE_HISTORY_SECONDS),
+        )
+
+    def growth_reminders(
+        self, hosts: Iterable[str], grants: Iterable[dict[str, Any]] = ()
+    ) -> dict[str, dict[str, list[dict[str, Any]]]]:
+        """Who each host's disks ask to check what is filling them, by host and
+        mount, fastest first: each with how much they added (bytes) since when
+        (since, the summary it is measured from). See GROWTH_FROM. Someone with
+        an exception granted is left be while under their granted quota."""
+        grants = list(grants)
+        found: dict[str, dict[str, list[dict[str, Any]]]] = {host: {} for host in hosts}
+        with self.connect() as connection:
+            for disk in connection.execute("SELECT host, mount, used_bytes, available_bytes FROM disk_state"):
+                host, mount = disk["host"], disk["mount"]
+                usable = disk["used_bytes"] + disk["available_bytes"]
+                if host not in found or not usable or disk["used_bytes"] / usable < GROWTH_FROM:
+                    continue
+                latest = connection.execute(
+                    "SELECT MAX(checked_at) FROM usage_history WHERE host = ? AND mount = ?", (host, mount)
+                ).fetchone()[0]
+                if latest is None:
+                    continue
+                base = connection.execute(
+                    """
+                    SELECT MAX(checked_at) FROM usage_history
+                    WHERE host = ? AND mount = ? AND checked_at <= ? AND checked_at >= ?
+                    """,
+                    (host, mount, latest - GROWTH_WINDOW, latest - GROWTH_WINDOW - GROWTH_SLACK),
+                ).fetchone()[0]
+                if base is None:
+                    continue
+                held = {
+                    row["username"]: (row["now"], row["before"])
+                    for row in connection.execute(
+                        """
+                        SELECT username,
+                               SUM(CASE WHEN checked_at = ? THEN bytes ELSE 0 END) AS now,
+                               SUM(CASE WHEN checked_at = ? THEN bytes ELSE 0 END) AS before
+                        FROM usage_history
+                        WHERE host = ? AND mount = ? AND checked_at IN (?, ?)
+                        GROUP BY username
+                        """,
+                        (latest, base, host, mount, latest, base),
+                    )
+                }
+                limit = max(GROWTH_MIN_BYTES, GROWTH_SHARE * disk["available_bytes"])
+                asked = []
+                for user, (now, before) in held.items():
+                    quota = granted_quota(grants, host, mount, user)
+                    if now - before > limit and (quota is None or now > quota):
+                        asked.append({"user": user, "bytes": now - before, "since": base})
+                if asked:
+                    found[host][mount] = sorted(asked, key=lambda item: (-item["bytes"], item["user"]))
+        return found
 
     def _update_cleanup_flags(
         self, connection: sqlite3.Connection, host: str, now: int, exceptions: list[dict[str, Any]]

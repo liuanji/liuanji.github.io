@@ -10,7 +10,14 @@ import RoamingCat from '../components/top/cat/RoamingCat';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ClosedBanner } from '../components/top/bakery/ClosedBakery';
 import { DetailsPopover } from '../components/top/shared/DetailBoxes';
-import DiskCard, { CleanupBanner, cleanupColor, cleanupIsUrgent } from '../components/top/servers/DiskCard';
+import DiskCard, {
+  CleanupBanner,
+  GrowthBanner,
+  cleanupColor,
+  cleanupIsUrgent,
+  growthColor,
+  growthIsUrgent,
+} from '../components/top/servers/DiskCard';
 import HostCard from '../components/top/servers/HostCard';
 import LoginCard from '../components/top/account/LoginCard';
 import LiveTiles from '../components/top/overview/LiveBreakdown';
@@ -36,6 +43,7 @@ import {
 import { LiveDot, Notice, SectionLabel, SegmentedControl, Switch } from '../components/top/shared/controls';
 import {
   cleanupReminders,
+  growthReminders,
   currentStatus,
   hasCurrentData,
   formatAgo,
@@ -314,6 +322,8 @@ export default function Top() {
   const clashes = reservations ? myClashes(currentHosts, reservations, user, now) : [];
   // Like clashes, checked on every server's disks.
   const cleanups = cleanupReminders(disks.data?.hosts ?? [], user);
+  // And any disk the viewer has been filling fast.
+  const growths = growthReminders(disks.data?.hosts ?? [], user);
   const heldIdle = myHeldIdle(currentHosts, user);
   // GPUs the viewer shares in earnest with someone: low priority, so last.
   const shared = mySharedGpus(currentHosts, user);
@@ -340,6 +350,12 @@ export default function Top() {
       color: cleanupColor(cleanups),
       label: 'Scratch space to tidy',
       urgent: cleanupIsUrgent(cleanups),
+    },
+    growths.length && {
+      key: 'growth',
+      color: growthColor(growths),
+      label: 'A disk you are filling fast',
+      urgent: growthIsUrgent(growths),
     },
     shared.length && { key: 'shared', color: SHARED_GPU_COLOR, label: 'Sharing a GPU with someone' },
   ].filter(Boolean);
@@ -402,7 +418,7 @@ export default function Top() {
               transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
             >
               {/* Notices live in the pill in the corner; only urgent ones (the bakery closed, a GPU running hot, a nearly full disk) also get a banner here. */}
-              {(closed || overheated.length > 0 || cleanupIsUrgent(cleanups)) && (
+              {(closed || overheated.length > 0 || cleanupIsUrgent(cleanups) || growthIsUrgent(growths)) && (
                 <div className="mb-10 space-y-3">
                   {/* While the bakery is closed its note has the top to itself; the
                       others wait in the pill. */}
@@ -412,6 +428,7 @@ export default function Top() {
                     <>
                       <OverheatBanner items={overheated} onOpen={hosts.length > 1 ? showHost : undefined} />
                       {cleanupIsUrgent(cleanups) && <CleanupBanner reminders={cleanups} onOpen={showStorage} />}
+                      {growthIsUrgent(growths) && <GrowthBanner reminders={growths} onOpen={showStorage} />}
                     </>
                   )}
                 </div>
@@ -430,6 +447,7 @@ export default function Top() {
                 <ClashBanner clashes={clashes} onOpen={hosts.length > 1 ? showHost : undefined} />
                 <IdleBanner items={heldIdle} onOpen={hosts.length > 1 ? showHost : undefined} />
                 <CleanupBanner reminders={cleanups} onOpen={showStorage} />
+                <GrowthBanner reminders={growths} onOpen={showStorage} />
                 <SharedBanner items={shared} onOpen={hosts.length > 1 ? showHost : undefined} />
               </NotesPill>
               {hosts.length > 1 && (

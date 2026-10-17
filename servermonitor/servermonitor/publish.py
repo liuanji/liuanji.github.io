@@ -150,7 +150,8 @@ def public_uptime(
 def public_disks(settings: Settings, database: Database, now: int | None = None) -> dict[str, Any]:
     """Each host's disks, each with its share in use over every period and who
     it has asked to clean up (cleanup: each with the quota they were asked to
-    get under and since when, till they do); with a scratch-usage summary,
+    get under and since when, till they do) or to check what is filling it so
+    fast (growth: each with how much they added since when); with a scratch-usage summary,
     every disk also lists its users and the host says when they were measured
     (usage_checked_at). Each disk also lists the exceptions granted on it
     (exceptions: who may hold how much)."""
@@ -159,6 +160,7 @@ def public_disks(settings: Settings, database: Database, now: int | None = None)
     usage = database.usage(settings.hosts)
     flags = database.cleanup_flags(settings.hosts)
     grants = load_cleanup_exceptions(settings.cleanup_exceptions_path)
+    growth = database.growth_reminders(settings.hosts, grants)
     moment = int(time.time()) if now is None else now
     history = database.disk_history(moment, time.localtime(moment).tm_gmtoff)
     for host in hosts:
@@ -168,6 +170,7 @@ def public_disks(settings: Settings, database: Database, now: int | None = None)
             folders = summary["mounts"].get(disk["mount"]) if summary else None
             disk["users"] = None if folders is None else disk_users(folders, set(accounts[host["name"]]))
             disk["cleanup"] = flags[host["name"]].get(disk["mount"], [])
+            disk["growth"] = growth[host["name"]].get(disk["mount"], [])
             disk["exceptions"] = [
                 {"user": user, "quota_bytes": quota}
                 for user in sorted({grant["user"] for grant in grants if grant["host"] == host["name"]})

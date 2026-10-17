@@ -181,6 +181,17 @@ export function cleanupReminders(hosts, user) {
   );
 }
 
+// The disks, across every server, that ask user to check what is filling
+// them so fast (the backend's growth reminders): how much they added since when.
+export function growthReminders(hosts, user) {
+  return hosts.flatMap((host) =>
+    host.disks.flatMap((disk) => {
+      const mine = disk.growth?.find((item) => item.user === user);
+      return mine ? [{ host: host.name, disk, bytes: mine.bytes, since: mine.since }] : [];
+    }),
+  );
+}
+
 // Binary units, as df -h counts them: "9.4 TB", "604 GB"; a sliver is "< 1 GB".
 export function formatBytes(bytes) {
   const gb = (Number(bytes) || 0) / 1024 ** 3;
