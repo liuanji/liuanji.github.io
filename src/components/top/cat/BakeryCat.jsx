@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 // The bakery cat: a small ginger tabby each user keeps on /top. It eats one
 // fish-shaped cookie per GPU-hour their jobs hold (the GPU hours on the
@@ -50,9 +50,99 @@ export const MOODS = {
   loaf: { label: 'a happy loaf', title: (name) => `${name} is a happy loaf` },
 };
 
+// What the roaming cat (or a scrapbook page) is dressed in for the season, if
+// anything: 'halloween', 'christmas' or 'lunarnewyear' (see seasonOutfit).
+export const OutfitContext = createContext(null);
+
+// The seasons it dresses up for, by the viewer's own date: a witch's hat the
+// week before Halloween, a scarf around Christmas, and a red bow round the
+// Lunar New Year (its dates looked up, a few days before to a week after).
+const LUNAR_NEW_YEARS = ['2027-02-06', '2028-01-26', '2029-02-13', '2030-02-03', '2031-01-23', '2032-02-11'];
+export function seasonOutfit(date = new Date()) {
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  if ((month === 10 && day >= 24) || (month === 11 && day === 1)) return 'halloween';
+  if (month === 12 && day >= 18 && day <= 27) return 'christmas';
+  const today = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  for (const iso of LUNAR_NEW_YEARS) {
+    const [year, m, d] = iso.split('-').map(Number);
+    const away = (today - new Date(year, m - 1, d).getTime()) / 86400000;
+    if (away >= -3 && away <= 7) return 'lunarnewyear';
+  }
+  return null;
+}
+
+// Its eyes look towards the pointer (the roaming cat sets --cat-look-x and
+// --cat-look-y, in its drawing's units, while awake), and its head tilts now
+// and then (--cat-tilt) when something on the page changes.
+const LOOK = {
+  transform: 'translate(var(--cat-look-x, 0px), var(--cat-look-y, 0px))',
+  transition: 'transform 0.25s ease-out',
+};
+const TILT = {
+  transform: 'rotate(var(--cat-tilt, 0deg))',
+  transformBox: 'view-box',
+  transformOrigin: '60px 50px',
+  transition: 'transform 0.35s ease-in-out',
+};
+// Little signs of life: an ear flicking now and then (each on its own
+// clock), and its whiskers twitching.
+const EAR_FLICK = (side) => ({
+  className: side === 'left' ? 'motion-safe:animate-cat-ear-flick' : 'motion-safe:animate-cat-ear-flick-right',
+  style: { transformBox: 'view-box', transformOrigin: side === 'left' ? '47px 41px' : '73px 41px' },
+});
+
+// What it wears for the season, over its head (and round its neck).
+function Outfit({ kind }) {
+  if (kind === 'halloween') {
+    return (
+      <g>
+        <path
+          d="M50.5 30Q56 18 61 9q3-3.4 7.4-1.4-4 1.8-3.8 6.4Q66 22 69.6 30z"
+          fill="#6E5A86"
+          stroke="#54446A"
+          strokeWidth="1.3"
+          strokeLinejoin="round"
+        />
+        <path d="M51.6 27.2q8.4 1.8 16.8 0l.6 2.4q-9 2-18 0z" fill="#E39A55" />
+        <ellipse cx="60" cy="30.6" rx="15" ry="3" fill="#6E5A86" stroke="#54446A" strokeWidth="1.3" />
+        <path d="M61.6 17.4l.7 1.5 1.6.2-1.2 1.1.3 1.6-1.4-.8-1.4.8.3-1.6-1.2-1.1 1.6-.2z" fill="#F2D37A" />
+      </g>
+    );
+  }
+  if (kind === 'christmas') {
+    return (
+      <g>
+        <path d="M45.4 61.2l-3.4 11.6 5.4 1.2 2.6-11z" fill="#D9675F" stroke="#B5524B" strokeWidth="1.1" strokeLinejoin="round" />
+        <path d="M42.6 70.6l5 1.1" stroke="white" strokeWidth="1.2" opacity="0.85" />
+        <path
+          d="M40.6 58.6q19.4 9.6 38.8 0l.8 4.6q-20.2 10.4-40.4 0z"
+          fill="#D9675F"
+          stroke="#B5524B"
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
+        <path d="M46 62.4l1.6 2M54 65l1 2.2M62 65.4l.4 2.2M70 63.6l-.8 2.2" stroke="white" strokeWidth="1.2" strokeLinecap="round" opacity="0.85" />
+      </g>
+    );
+  }
+  if (kind === 'lunarnewyear') {
+    return (
+      <g>
+        <path d="M44 33l-6.4-4.6q-1.6 4.6 1 7.6zM44 33l2.6-7.4q3.6 2.6 2.2 6.8z" fill="#D9534F" stroke="#B23F3C" strokeWidth="1" strokeLinejoin="round" />
+        <circle cx="44" cy="33" r="1.8" fill="#E3B655" stroke="#C9973D" strokeWidth="0.8" />
+        <path d="M44 34.8v5.4" stroke="#E3B655" strokeWidth="1" strokeLinecap="round" />
+        <path d="M43 40.2h2l.4 3.4h-2.8z" fill="#D9534F" />
+      </g>
+    );
+  }
+  return null;
+}
+
 // The head: ears (down when hungry), face, eyes for the mood, and a chef's hat
-// for a head baker cat.
+// for a head baker cat (or what it wears for the season).
 function Head({ mood, hat }) {
+  const outfit = useContext(OutfitContext);
   const hungry = mood === 'hungry';
   const happy = mood === 'purring';
   const asleep = mood === 'asleep';
@@ -91,11 +181,15 @@ function Head({ mood, hat }) {
       ? ['M42 44 36 30 50 37z', 'M78 44 84 30 70 37z', 'M43 41 40 33 47 37z', 'M77 41 80 33 73 37z']
       : ['M43 42 41 25 53 34z', 'M77 42 79 25 67 34z', 'M45 39 44 30 50 35z', 'M75 39 76 30 70 35z'];
   return (
-    <>
-      <path d={ears[0]} fill={FUR} stroke={EDGE} strokeWidth="1.6" strokeLinejoin="round" />
-      <path d={ears[1]} fill={FUR} stroke={EDGE} strokeWidth="1.6" strokeLinejoin="round" />
-      <path d={ears[2]} fill={PINK} opacity="0.8" />
-      <path d={ears[3]} fill={PINK} opacity="0.8" />
+    <g style={TILT}>
+      <g {...EAR_FLICK('left')}>
+        <path d={ears[0]} fill={FUR} stroke={EDGE} strokeWidth="1.6" strokeLinejoin="round" />
+        <path d={ears[2]} fill={PINK} opacity="0.8" />
+      </g>
+      <g {...EAR_FLICK('right')}>
+        <path d={ears[1]} fill={FUR} stroke={EDGE} strokeWidth="1.6" strokeLinejoin="round" />
+        <path d={ears[3]} fill={PINK} opacity="0.8" />
+      </g>
       {puffed && (
         // Cheeks full, bulging out either side of its face.
         <>
@@ -106,6 +200,7 @@ function Head({ mood, hat }) {
       <ellipse cx="60" cy="46" rx="20.5" ry="17" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
       <path d="M56 30.5v4.5M60 30v5.5M64 30.5v4.5" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
       <ellipse cx="60" cy="52" rx="8" ry="5.6" fill={BELLY} />
+      <g style={LOOK}>
       {dizzy ? (
         // Spiralling round.
         <path
@@ -229,6 +324,7 @@ function Head({ mood, hat }) {
           <circle cx="67.9" cy="44.5" r="0.9" fill="white" />
         </>
       )}
+      </g>
       <path d="M58.4 50h3.2l-1.6 1.8z" fill={PINK} stroke={EDGE} strokeWidth="0.6" strokeLinejoin="round" />
       {tongue ? (
         // A little pink tongue poking out under its mouth.
@@ -291,8 +387,10 @@ function Head({ mood, hat }) {
         strokeWidth="0.8"
         strokeLinecap="round"
         opacity="0.7"
+        className="motion-safe:animate-cat-whisker"
+        style={{ transformBox: 'view-box', transformOrigin: '60px 51px' }}
       />
-      {hat && (
+      {outfit ? <Outfit kind={outfit} /> : hat && (
         <>
           <path
             d="M47 32c-5-1-6-8-1-10 1-5 7-7 11-4 3-4 10-3 11 2 5 0 8 6 3 9z"
@@ -304,7 +402,7 @@ function Head({ mood, hat }) {
           <rect x="47" y="29.5" width="26" height="5" rx="1.6" fill="white" stroke="#CBD5E1" strokeWidth="1.4" />
         </>
       )}
-    </>
+    </g>
   );
 }
 
@@ -312,8 +410,11 @@ function Head({ mood, hat }) {
 function Sitting({ mood, stage, raised = false, holding = false }) {
   return (
     <g transform={`translate(60 88) scale(${stage.scale}) translate(-60 -88)`}>
-      <path d="M76 84c14 1 20-8 15-17-2-4-6-4-7 0" fill="none" stroke={EDGE} strokeWidth="7.4" strokeLinecap="round" />
-      <path d="M76 84c14 1 20-8 15-17-2-4-6-4-7 0" fill="none" stroke={FUR} strokeWidth="5" strokeLinecap="round" />
+      {/* Its tail, the tip swishing slowly. */}
+      <g className="motion-safe:animate-cat-tail-swish" style={{ transformBox: 'view-box', transformOrigin: '76px 84px' }}>
+        <path d="M76 84c14 1 20-8 15-17-2-4-6-4-7 0" fill="none" stroke={EDGE} strokeWidth="7.4" strokeLinecap="round" />
+        <path d="M76 84c14 1 20-8 15-17-2-4-6-4-7 0" fill="none" stroke={FUR} strokeWidth="5" strokeLinecap="round" />
+      </g>
       <path
         d="M44 89c-6 0-9-6-7.5-14C38.5 62 45 55 60 55s21.5 7 23.5 20c1.5 8-1.5 14-7.5 14z"
         fill={FUR}

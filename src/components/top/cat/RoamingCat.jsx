@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MORPH_MS, ROAM_POSES, SETTLES, moodOf } from './BakeryCat';
+import { MORPH_MS, OutfitContext, ROAM_POSES, SETTLES, moodOf, seasonOutfit } from './BakeryCat';
 import { JOY_EVENT, JOY_FADE, changeJoy, joyLevel, readJoy } from './joy';
 import { keepMoment } from './scrapbook';
-import { BAG_HEIGHT, BED_HALF, BED_LIFT, CONFETTI_S, CatThing, LOSS, WISHES, ToyIcon } from './CatThings';
+import { BAG_HEIGHT, BED_HALF, BED_LIFT, CONFETTI_S, CatThing, GIFTS, Gift, LOSS, WISHES, ToyIcon } from './CatThings';
 import { RING_SERIES } from '../shared/DetailBoxes';
 
 // The bakery cat let out to roam the page. It lives on the edges of the panels
@@ -460,6 +460,31 @@ function sceneOf(card) {
 }
 // How long after one earned cookie before the next is handed out.
 const COOKIE_REST_MS = 3 * 60 * 1000;
+// Presents it leaves by the notes pill: no sooner than GIFT_EVERY_MS after the
+// last, at a GIFT_CHANCE of its stirs, while none is waiting to be picked up
+// (kept in this browser, the one waiting and when the last came).
+const GIFT_KEY = 'gpu-status-cat-gift';
+const GIFT_LAST_KEY = 'gpu-status-cat-gift-last';
+const GIFT_EVERY_MS = 3 * 3600 * 1000;
+const GIFT_CHANCE = 0.05;
+// The day it last said hello (in this browser), for its first hello each day.
+const HELLO_KEY = 'gpu-status-cat-hello';
+const stored = (key) => {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+const store = (key, value) => {
+  try {
+    if (value == null) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, value);
+  } catch {
+    // Storage blocked.
+  }
+};
+const dayKey = () => new Date().toLocaleDateString('en-CA');
 
 // The pop-up card in a wrapper Radix put in the page: a dialog (not a menu or
 // a tooltip), and not the cat's own card.
@@ -554,6 +579,9 @@ const JOY = {
   pet: 5,
   treat: 10,
   cookie: 6,
+  blink: 2,
+  gift: 6,
+  hello: 4,
   toy: 10,
   game: 8,
   played: 6,
@@ -611,6 +639,22 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
   if (meal && cookies.current.seen !== null && today > cookies.current.seen) cookies.current.due = true;
   if (meal) cookies.current.seen = today;
   const layer = useRef(null);
+  const mealRef = useRef(meal);
+  mealRef.current = meal;
+  // A present it left by the notes pill, waiting to be picked up.
+  const [gift, setGift] = useState(() => {
+    try {
+      return JSON.parse(stored(GIFT_KEY) ?? 'null');
+    } catch {
+      return null;
+    }
+  });
+  const giftRef = useRef(gift);
+  giftRef.current = gift;
+  // What it wears for the season, if anything (a witch's hat, a scarf, a red bow).
+  const [outfit, setOutfit] = useState(() => seasonOutfit());
+  const outfitRef = useRef(outfit);
+  outfitRef.current = outfit;
   const [menu, setMenu] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [look, setLook] = useState({
@@ -748,6 +792,24 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           const [l, t, r, b] = [edge.left - left, edge.top - top, edge.right - left, edge.bottom - top];
           box.current.style.clipPath = `polygon(${l}px ${t}px, ${r}px ${t}px, ${r}px ${b}px, ${l}px ${b}px)`;
         } else if (box.current.style.clipPath) box.current.style.clipPath = '';
+      }
+      // Its eyes on the pointer while it is awake (in its drawing's units,
+      // mirrored as it is drawn), and its head tilted a moment now and then.
+      if (box.current) {
+        const now = performance.now();
+        const awake = state.mode !== 'sleep' && shown.mood !== 'asleep' && !['sleep', 'snooze'].includes(shown.pose);
+        let [lookX, lookY] = [0, 0];
+        if (awake && state.pointer.cx != null) {
+          const dx = state.pointer.cx + window.scrollX - state.x;
+          const dy = state.pointer.cy + window.scrollY - (state.y - 36 - lift);
+          const far = Math.hypot(dx, dy) || 1;
+          const reach = Math.min(1, far / 80);
+          lookX = (dx / far) * 1.4 * reach * (shown.flip < 0 ? -1 : 1);
+          lookY = (dy / far) * reach;
+        }
+        box.current.style.setProperty('--cat-look-x', `${lookX.toFixed(2)}px`);
+        box.current.style.setProperty('--cat-look-y', `${lookY.toFixed(2)}px`);
+        box.current.style.setProperty('--cat-tilt', `${now < (state.tiltUntil ?? 0) ? state.tiltSign * 11 : 0}deg`);
       }
       // Up on the bakery's oven, or on her way up there, down off it or away,
       // she is drawn over its card (pop-ups are z-50).
@@ -1084,6 +1146,27 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     // thing (its mood's plan), and within that one thing (see FEELS).
     const decide = (time) => {
       state.manual = false;
+      // Dressed up for the season: a page for it.
+      if (outfitRef.current) saw(`season:${outfitRef.current}`);
+      // Its first stir of the day: hello.
+      if (helloDue && !onSide()) {
+        helloDue = false;
+        store(HELLO_KEY, dayKey());
+        play(hello(), time);
+        return;
+      }
+      // Now and then, a present for the notes pill.
+      const pill = notesIn('pill', 'clear', 'quiet');
+      if (
+        !giftRef.current &&
+        pill &&
+        !onSide() &&
+        Date.now() - Number(stored(GIFT_LAST_KEY) ?? 0) > GIFT_EVERY_MS &&
+        Math.random() < GIFT_CHANCE
+      ) {
+        play(bringGift(pill), time);
+        return;
+      }
       // A cookie her owner has earned: out of a little oven, first thing.
       if (cookies.current.due && time > (state.cookieRest ?? 0)) {
         cookies.current.due = false;
@@ -5951,6 +6034,16 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       else if (group === 'gpu' && !visitGpu(name)) say('?');
     };
     window.addEventListener('bakery-cat-do', onDo);
+    // Something on the page changed (fresh readings, another range): now and
+    // then, if it is about, a tilt of its head.
+    const tiltHead = () => {
+      state.tiltUntil = performance.now() + 1100;
+      state.tiltSign = Math.random() < 0.5 ? -1 : 1;
+    };
+    const onPageChanged = () => {
+      if (Math.random() < 0.4 && ['rest', 'sit', 'walk'].includes(state.mode)) tiltHead();
+    };
+    window.addEventListener('bakery-page-changed', onPageChanged);
 
     const onPointerMove = (event) => {
       const time = performance.now();
@@ -5960,7 +6053,15 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         const speed = (Math.hypot(event.pageX - state.pointer.x, event.pageY - state.pointer.y) / gap) * 1000;
         state.pointerSpeed = 0.6 * (state.pointerSpeed ?? 0) + 0.4 * speed;
       } else state.pointerSpeed = 0;
-      state.pointer = { x: event.pageX, y: event.pageY, cx: event.clientX, cy: event.clientY, at: time };
+      state.pointer = {
+        x: event.pageX,
+        y: event.pageY,
+        cx: event.clientX,
+        cy: event.clientY,
+        at: time,
+        // Over a chart (its hover dot, for the cat to stalk).
+        chart: event.target.closest?.('.recharts-wrapper') ?? null,
+      };
       // Asleep, only the pointer coming near wakes her.
       if (state.mode === 'sleep' && Math.hypot(event.pageX - state.x, event.pageY - (state.y - 18)) < feel().notice) {
         sit(time, 'content', 1500);
@@ -6220,8 +6321,319 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
     const onKey = (event) => {
       if (event.key === 'Escape' && state.menu) closeMenu();
     };
+
+    // Called by name ("mochi" typed anywhere but into a field) or to a spot (a
+    // double-click on the page, not on anything that does something): ears
+    // up, eyes wide ("!"), it comes, along its panel or leaping to the panel
+    // there, and sits looking up ("mrrp?"), rubbing against the pointer if it
+    // is close ("prr").
+    const CALLABLE = new Set(['rest', 'sit', 'walk', 'act', 'sleep']);
+    const perchAt = (x, y) => {
+      const panels = visiblePerches()
+        .map((element) => ({ element, edge: page(element.getBoundingClientRect()) }))
+        .filter(({ edge }) => x > edge.left + 20 && x < edge.right - 20);
+      const above = panels.filter(({ edge }) => edge.top <= y + 30).sort((a, b) => b.edge.top - a.edge.top)[0];
+      const below = panels.filter(({ edge }) => edge.top > y + 30).sort((a, b) => a.edge.top - b.edge.top)[0];
+      return (above ?? below)?.element ?? null;
+    };
+    const pointerClose = () =>
+      performance.now() - state.pointer.at < 8000 &&
+      Math.hypot(state.pointer.x - state.x, state.pointer.y - (state.y - 18)) < 120;
+    const answerCall = () => [
+      { pose: 'sit', mood: 'chatter', ms: 700, start: () => say('mrrp?') },
+      {
+        pose: 'lean',
+        mood: 'purring',
+        ms: 1400,
+        start: (step) => {
+          if (!pointerClose()) step.pose = 'sit';
+          say('prr');
+        },
+      },
+      { pose: 'sit', mood: 'purring', ms: 700, start: () => say('heart') },
+    ];
+    const comeTo = (x, y, id) => {
+      const time = performance.now();
+      if (!state.perch || state.inside || !CALLABLE.has(state.mode)) return false;
+      const target = perchAt(x, y) ?? state.perch;
+      const perk = {
+        pose: 'sit',
+        mood: 'chatter',
+        ms: 650,
+        start: () => {
+          state.facing = x < state.x ? -1 : 1;
+          tiltHead();
+          say('!');
+          saw(id);
+        },
+      };
+      if (target === state.perch && !onSide()) play([perk, { to: x }, ...answerCall()], time);
+      else {
+        play(
+          [
+            perk,
+            {
+              pose: 'crouch',
+              ms: 250,
+              start: () => {
+                state.resume = { steps: answerCall };
+                leapTo(target, x);
+              },
+            },
+          ],
+          time,
+        );
+      }
+      return true;
+    };
+    let typed = '';
+    const onTyped = (event) => {
+      if (event.key?.length !== 1 || event.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+      typed = (typed + event.key.toLowerCase()).slice(-5);
+      if (typed !== 'mochi') return;
+      typed = '';
+      if (state.pointer.cx != null) comeTo(state.pointer.cx + window.scrollX, state.pointer.cy + window.scrollY, 'call:name');
+      else if (CALLABLE.has(state.mode) && state.perch) {
+        play([{ pose: 'sit', mood: 'chatter', ms: 700, start: () => (tiltHead(), say('!'), saw('call:name')) }, ...answerCall()], performance.now());
+      }
+    };
+    const onDoubleClick = (event) => {
+      if (
+        event.target.closest?.(
+          'button, a, input, textarea, select, label, [role="tab"], [role="dialog"], [role="menu"], [data-cat-layer], [data-radix-popper-content-wrapper]',
+        )
+      )
+        return;
+      // (The word a double-click selects is not something to pounce on.)
+      window.getSelection()?.removeAllRanges();
+      state.selectRest = performance.now() + 1500;
+      comeTo(event.pageX, event.pageY, 'call:here');
+    };
+
+    // Playing with the page itself, when it is about on a panel's top: it
+    // dashes after the highlight of a tab you pick and swats at it; stalks a
+    // chart's hover dot along its panel and pounces when it stops; pounces on
+    // text you select on its panel (or looks round at it, nearby); and,
+    // scrolled hard, hangs on by its front paws and scrambles back up.
+    const playful = () => state.perch && !state.inside && !onSide() && ['rest', 'sit', 'walk'].includes(state.mode);
+    const onTabClick = (event) => {
+      const tab = event.target.closest?.('[role="tab"]');
+      const time = performance.now();
+      if (!tab || !playful() || time < (state.tabRest ?? 0)) return;
+      const rect = tab.getBoundingClientRect();
+      if (Math.abs(rect.top + rect.height / 2 - (state.y - window.scrollY)) > 450) return;
+      state.tabRest = time + 5000;
+      const x = onEdge(rect.left + rect.width / 2 + window.scrollX);
+      const dir = x < state.x ? -1 : 1;
+      play(
+        [
+          { pose: 'sit', ms: 250, start: () => ((state.facing = dir), say('!'), saw('page:tabs')) },
+          {
+            pose: strides('run', 'run2', 110),
+            start: (step) => {
+              step.from = state.x;
+              step.to = Math.abs(x - state.x) > 30 ? x - dir * 24 : state.x;
+              step.ms = Math.max(200, (Math.abs(step.to - step.from) / (CHASE * 1.4)) * 1000);
+            },
+            frame: (step, now, k) => (state.x = step.from + (step.to - step.from) * k),
+          },
+          { pose: 'reach', ms: 320 },
+          { pose: 'sit', mood: 'purring', ms: 800, start: () => say(Math.random() < 0.5 ? '?' : 'heart') },
+        ],
+        time,
+      );
+    };
+    const onSelection = () => {
+      clearTimeout(state.selectTimer);
+      state.selectTimer = setTimeout(() => {
+        const time = performance.now();
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed || !selection.rangeCount || !playful()) return;
+        if (time < (state.selectRest ?? 0)) return;
+        const text = selection.toString().trim();
+        if (text.length < 2 || text.length > 300) return;
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        if (!rect.width || rect.bottom < 0 || rect.top > window.innerHeight) return;
+        const x = rect.left + rect.width / 2 + window.scrollX;
+        const mine = state.perch.contains(range.commonAncestorContainer);
+        if (!mine && Math.hypot(x - state.x, rect.top + window.scrollY - state.y) > 400) return;
+        state.selectRest = time + 6000;
+        const dir = x < state.x ? -1 : 1;
+        play(
+          mine
+            ? [
+                {
+                  pose: 'crouch',
+                  ms: 600,
+                  rock: { amp: 3.5, freq: 5.5, decay: 0 },
+                  start: () => ((state.facing = dir), saw('page:select')),
+                },
+                hop(onEdge(x), 26),
+                { pose: 'reach', ms: 320, start: () => say('!') },
+                { pose: 'sit', mood: 'purring', ms: 800, start: () => say('?') },
+              ]
+            : [{ pose: 'sit', mood: 'chatter', ms: 1100, start: () => ((state.facing = dir), say('?'), saw('page:select')) }],
+          time,
+        );
+      }, 350);
+    };
+    const onScrollHard = () => {
+      const time = performance.now();
+      const last = state.scrollSample;
+      state.scrollSample = { y: window.scrollY, time };
+      if (!last || time - last.time > 200 || time < (state.clingRest ?? 0) || !playful()) return;
+      if (Math.abs(window.scrollY - last.y) / Math.max(1, time - last.time) < 4) return;
+      const rect = state.perch.getBoundingClientRect();
+      if (rect.top < topClear() || rect.top > window.innerHeight - 40) return;
+      state.clingRest = time + 8000;
+      play(
+        [
+          { pose: 'hang', mood: 'hungry', ms: 900, start: () => (say('!'), saw('page:scroll')) },
+          { pose: 'scramble', ms: 500 },
+          { pose: 'sit', mood: 'hungry', ms: 700, start: () => say('…') },
+        ],
+        time,
+      );
+    };
+    // A chart's hover dot, stalked along its panel till it stops (or the
+    // pointer leaves the chart), then pounced on.
+    const stalkChart = () => [
+      { pose: 'crouch', ms: 400, start: () => (say('!'), saw('page:chart')) },
+      {
+        pose: strides('creep', 'creep2', 220),
+        ms: 9000,
+        start: (step, time) => (step.last = time),
+        frame: (step, time) => {
+          const dt = Math.min(0.05, (time - step.last) / 1000);
+          step.last = time;
+          if (!state.pointer.chart || time - state.pointer.at > 1800) {
+            step.done = true;
+            return;
+          }
+          const gap = onEdge(state.pointer.cx + window.scrollX) - state.x;
+          if (Math.abs(gap) > 3) {
+            state.x += Math.sign(gap) * Math.min(Math.abs(gap), 110 * dt);
+            state.facing = gap < 0 ? -1 : 1;
+          }
+        },
+      },
+      { pose: 'crouch', ms: 450, rock: { amp: 3.5, freq: 5.5, decay: 0 } },
+      hop(() => onEdge(state.x + state.facing * 22), 22),
+      { pose: 'reach', ms: 320, start: () => say('!') },
+      { pose: 'sit', mood: 'purring', ms: 800 },
+    ];
+
+    // Its first stir each day (in this browser): a wave hello ("hi!"), how
+    // many cookies you baked it yesterday, and over to rub against the pointer.
+    let helloDue = stored(HELLO_KEY) !== dayKey();
+    const hello = () => {
+      const yesterday = mealRef.current?.yesterday;
+      const count = Math.round(yesterday ?? 0);
+      const near = state.pointer.cx != null && performance.now() - state.pointer.at < 20000;
+      const to = near ? onEdge(state.pointer.cx + window.scrollX) : null;
+      return [
+        { pose: 'hello', ms: 1500, start: () => (say('hi!'), saw('hello:day'), cheerUp(JOY.hello)) },
+        ...(yesterday == null
+          ? []
+          : [
+              {
+                pose: 'sit',
+                mood: 'purring',
+                ms: 1900,
+                start: () => say(count > 0 ? `${count} cookie${count === 1 ? '' : 's'} yesterday!` : 'missed you!'),
+              },
+            ]),
+        ...(to != null && Math.abs(to - state.x) > 20 ? [{ to }] : []),
+        ...(near ? [{ pose: 'lean', mood: 'purring', ms: 1400, start: () => say('prr') }] : []),
+        { pose: 'sit', mood: 'purring', ms: 700, start: () => say('heart') },
+      ];
+    };
+
+    // A present: it finds something by its feet ("?"), sniffs it, picks it up
+    // ("!"), takes it over to the notes pill and drops it there beside it
+    // ("mrrp"), a heart; it stays there till picked up (a click).
+    const placeGift = (kind, notes) => {
+      const rect = notes.getBoundingClientRect();
+      const item = {
+        kind,
+        right: Math.round(window.innerWidth - rect.left + 6),
+        bottom: Math.round(window.innerHeight - rect.bottom + 2),
+      };
+      store(GIFT_KEY, JSON.stringify(item));
+      store(GIFT_LAST_KEY, String(Date.now()));
+      setGift(item);
+    };
+    const bringGift = (notes) => {
+      const kinds = Object.keys(GIFTS);
+      const kind = kinds[Math.floor(Math.random() * kinds.length)];
+      const drop = () => {
+        const spot = () => {
+          const rect = notes.getBoundingClientRect();
+          return { x: rect.left + window.scrollX - 12, y: rect.bottom + window.scrollY - 2 };
+        };
+        return [
+          { pose: 'sit', ms: 500, start: () => ((state.facing = -1), say('mrrp')) },
+          {
+            pose: 'reach',
+            ms: 450,
+            frame: (step, time, k) => {
+              const to = spot();
+              putThing({
+                kind: 'gift',
+                variant: kind,
+                x: state.x + (to.x - state.x) * k,
+                y: state.y - 20 + (to.y - state.y + 20) * k - 18 * Math.sin(Math.PI * k),
+              });
+            },
+          },
+          {
+            pose: 'sit',
+            mood: 'purring',
+            ms: 900,
+            start: () => {
+              putThing(null);
+              if (notes.isConnected) placeGift(kind, notes);
+              say('heart');
+            },
+          },
+        ];
+      };
+      return [
+        {
+          pose: 'sit',
+          ms: 700,
+          start: () => {
+            putThing({ kind: 'gift', variant: kind, x: onEdge(state.x + state.facing * 24), y: state.y });
+            say('?');
+          },
+        },
+        { pose: 'sniff', ms: 800, start: () => say('sniff') },
+        { pose: 'crouch', ms: 400, start: () => (putThing(null), say('!')) },
+        {
+          pose: 'sit',
+          ms: 200,
+          start: () => {
+            state.resume = { steps: drop };
+            const rect = notes.getBoundingClientRect();
+            leapTo(notes, rect.left + window.scrollX + rect.width * 0.6);
+          },
+        },
+      ];
+    };
+    // Picked up (a click on it): a little cheer from it.
+    const onGiftTaken = () => {
+      cheerUp(JOY.gift);
+      if (CALLABLE.has(state.mode)) say('heart');
+    };
     window.addEventListener('pointerdown', onPressAway);
     window.addEventListener('keydown', onKey);
+    window.addEventListener('keydown', onTyped);
+    document.addEventListener('dblclick', onDoubleClick);
+    document.addEventListener('click', onTabClick, true);
+    document.addEventListener('selectionchange', onSelection);
+    window.addEventListener('scroll', onScrollHard, { passive: true });
+    window.addEventListener('bakery-cat-gift-taken', onGiftTaken);
     state.takeWish = () => {
       const toy = state.wish;
       if (!toy) return;
@@ -6306,6 +6718,15 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       window.mochi = (name) => {
         // (Not for her scrapbook either; book:<id> keeps a page, to try it.)
         if (name.startsWith('book:')) return keepMoment(name.slice(5));
+        // outfit:<halloween|christmas|lunarnewyear> (or outfit: for none) to try one on.
+        if (name.startsWith('outfit:')) {
+          setOutfit(name.slice(7) || null);
+          return true;
+        }
+        if (name === 'tilt') {
+          tiltHead();
+          return true;
+        }
         state.manual = true;
         // joy:<0-100> sets her spirits.
         if (name.startsWith('joy:')) {
@@ -7205,6 +7626,48 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           show(state.restPose, state.restPose === 'rest' ? feel().restFace : feel().face);
           // On the notes pill with nothing more to do there: back to a panel.
           if (state.perch?.hasAttribute('data-cat-notes') && !state.menu && offNotes(state.perch)) break;
+          // The pointer over a chart on its own panel: it stalks the hover dot.
+          if (
+            state.pointer.chart &&
+            !onSide() &&
+            state.perch?.contains?.(state.pointer.chart) &&
+            time - state.pointer.at < 600 &&
+            time > (state.chartRest ?? 0)
+          ) {
+            state.chartRest = time + 12000;
+            play(stalkChart(), time);
+            break;
+          }
+          // The pointer resting still near it a couple of seconds: a slow blink
+          // (a cat's "I trust you"), eyes drooping shut and opening again; again
+          // a while later if it stays.
+          {
+            const still = time - state.pointer.at;
+            const close = Math.hypot(state.pointer.x - state.x, state.pointer.y - (state.y - 18)) < feel().notice;
+            if (!state.menu && close && still > 1800 && still < 60000 && time > (state.blinkAt ?? 0)) {
+              state.blinkAt = time + 7000;
+              const pose = state.restPose;
+              play(
+                [
+                  { pose, mood: 'drowsy', ms: 450 },
+                  { pose, mood: 'asleep', ms: 700 },
+                  { pose, mood: 'drowsy', ms: 300 },
+                  {
+                    pose,
+                    mood: 'purring',
+                    ms: 900,
+                    start: () => {
+                      cheerUp(JOY.blink);
+                      saw('pet:blink');
+                      if (Math.random() < 0.4) say('heart');
+                    },
+                  },
+                ],
+                time,
+              );
+              break;
+            }
+          }
           // The pointer still a long while: it dozes off (one roll for each
           // still spell; full, it hardly ever does).
           if (time - state.pointer.at > feel().doze && !onSide()) {
@@ -7787,10 +8250,18 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       window.removeEventListener('bakery-cat-treat', onTreat);
       window.removeEventListener('bakery-cat-toy', onToy);
       window.removeEventListener('bakery-cat-do', onDo);
+      window.removeEventListener('bakery-page-changed', onPageChanged);
       popupWatch.disconnect();
       window.removeEventListener(JOY_EVENT, onJoy);
       window.removeEventListener('pointerdown', onPressAway);
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keydown', onTyped);
+      document.removeEventListener('dblclick', onDoubleClick);
+      document.removeEventListener('click', onTabClick, true);
+      document.removeEventListener('selectionchange', onSelection);
+      window.removeEventListener('scroll', onScrollHard);
+      window.removeEventListener('bakery-cat-gift-taken', onGiftTaken);
+      clearTimeout(state.selectTimer);
     };
   }, []);
 
@@ -7838,6 +8309,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         >
           {/* Tilted along a leap; rolling over or breathing; the last pose
               fading as the new one (or the same, turned round) comes in. */}
+          <OutfitContext.Provider value={outfit}>
           <g ref={tilt} style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
             <g
               className={motion}
@@ -7861,6 +8333,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
               </g>
             </g>
           </g>
+          </OutfitContext.Provider>
         </svg>
         {/* A toy it wishes for, in a thought bubble: clicked, the game is on.
             Left unclicked a few seconds, it gives a wiggle now and then. */}
@@ -8009,6 +8482,26 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
       </div>
       {/* A helicopter bringing back a GPU's tile it stole. */}
       {heli && <CatThing {...heli} />}
+      {/* A present it left by the notes pill, till picked up. */}
+      {gift && (
+        <button
+          type="button"
+          aria-label={`A present from your cat: ${GIFTS[gift.kind] ?? 'something'}. Pick it up.`}
+          title={`A present: ${GIFTS[gift.kind] ?? 'something'}`}
+          className="pointer-events-auto fixed rounded-md transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkwell/20 motion-safe:animate-cat-pose-in"
+          style={{ right: gift.right, bottom: gift.bottom, width: 30, height: 22 }}
+          onClick={() => {
+            keepMoment(`gift:${gift.kind}`);
+            store(GIFT_KEY, null);
+            setGift(null);
+            window.dispatchEvent(new CustomEvent('bakery-cat-gift-taken'));
+          }}
+        >
+          <svg viewBox="-11 -14 22 15" width="30" height="22" aria-hidden="true">
+            <Gift variant={gift.kind} />
+          </svg>
+        </button>
+      )}
       {/* Things in front of it: cracks and shards of the glass it is trapped behind. */}
       {things
         .filter((item) => item.front)

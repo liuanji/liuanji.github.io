@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import { ROAM_POSES } from './BakeryCat';
+import { OutfitContext, ROAM_POSES } from './BakeryCat';
 import { CatThing } from './CatThings';
 import { SCRAPBOOK, SCRAPBOOK_SIZE, markViewed, replayOf, useScrapbook } from './scrapbook';
 
@@ -244,7 +244,9 @@ export function Vignette({ moment, ghost = false }) {
           <g transform={tilt ? `rotate(${tilt} 60 88)` : undefined}>
             {/* Drawn facing left; mirrored about its feet to face right. */}
             <g transform={facing > 0 ? 'translate(120 0) scale(-1 1)' : undefined}>
-              <Pose mood={mood} />
+              <OutfitContext.Provider value={moment.outfit ?? null}>
+                <Pose mood={mood} />
+              </OutfitContext.Provider>
             </g>
           </g>
         </svg>

@@ -1410,7 +1410,8 @@ class Database:
     def cat_meals(self, now: int, utc_offset: int) -> dict[str, dict[str, Any]]:
         """What each user's bakery cat has eaten: one cookie per GPU-hour their
         jobs held (the GPU hours on the leaderboard, not weighted by load),
-        today (since midnight in the servers' local time), over the last three
+        today (since midnight in the servers' local time), yesterday (for its
+        daily hello on the page), over the last three
         days (its mood) and the last week, by server; and their GPU hours ever,
         which it grows with."""
         midnight = now - (now + utc_offset) % 86400
@@ -1429,7 +1430,8 @@ class Database:
         meals: dict[str, dict[str, Any]] = {}
         for row in rows:
             meal = meals.setdefault(
-                row["username"], {"today": 0.0, "recent": 0.0, "week": 0.0, "hosts": defaultdict(float)}
+                row["username"],
+                {"today": 0.0, "yesterday": 0.0, "recent": 0.0, "week": 0.0, "hosts": defaultdict(float)},
             )
             seconds = float(row["seconds"])
             meal["week"] += seconds
@@ -1438,10 +1440,13 @@ class Database:
                 meal["recent"] += seconds
             if row["bucket"] >= midnight:
                 meal["today"] += seconds
+            elif row["bucket"] >= midnight - 86400:
+                meal["yesterday"] += seconds
         cookies = lambda seconds: round(seconds / 3600, 2)  # noqa: E731
         return {
             user: {
                 "today": cookies(meal["today"]) if meal else 0.0,
+                "yesterday": cookies(meal["yesterday"]) if meal else 0.0,
                 "recent": cookies(meal["recent"]) if meal else 0.0,
                 "week": cookies(meal["week"]) if meal else 0.0,
                 "hosts": sorted(

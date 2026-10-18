@@ -241,6 +241,50 @@ export const SCRAPBOOK = [
         at: 66,
         things: [{ kind: 'balloon', dx: 0, dy: 0 }],
       },
+      { id: 'pet:blink', label: 'A slow blink', pose: 'sit', mood: 'drowsy', say: 'heart', cursor: { dx: -40, dy: -50 } },
+      { id: 'call:name', label: 'Coming when called', pose: 'sit', mood: 'chatter', say: 'mrrp?' },
+      { id: 'call:here', label: 'Over here!', pose: 'lean', mood: 'purring', say: 'prr', cursor: { dx: -26, dy: -44 } },
+      { id: 'hello:day', label: 'Hello for the day', pose: 'hello', mood: 'purring', say: 'hi!' },
+    ],
+  },
+  {
+    key: 'page',
+    title: 'Playing with the page',
+    moments: [
+      { id: 'page:tabs', label: 'Chasing the tabs', pose: 'run', say: '!' },
+      { id: 'page:chart', label: 'Stalking a chart dot', pose: 'creep', cursor: { dx: -44, dy: -14 } },
+      { id: 'page:select', label: 'Pouncing on your words', pose: 'reach', lift: 10, say: '!' },
+      { id: 'page:scroll', label: 'Holding on tight', pose: 'hang', say: '!' },
+    ],
+  },
+  {
+    key: 'season',
+    title: 'Dressed up',
+    moments: [
+      { id: 'season:halloween', label: 'Halloween', pose: 'sit', mood: 'purring', outfit: 'halloween' },
+      { id: 'season:christmas', label: 'Christmas', pose: 'sit', mood: 'purring', outfit: 'christmas' },
+      { id: 'season:lunarnewyear', label: 'Lunar New Year', pose: 'sit', mood: 'purring', outfit: 'lunarnewyear' },
+    ],
+  },
+  {
+    key: 'gift',
+    title: 'Presents for you',
+    moments: [
+      ...[
+        ['cap', 'A bottle cap'],
+        ['screw', 'A tiny screw'],
+        ['leaf', 'A leaf'],
+        ['button', 'A button'],
+        ['ribbon', 'A bit of ribbon'],
+        ['heart', 'A heart-shaped pebble'],
+      ].map(([variant, label]) => ({
+        id: `gift:${variant}`,
+        label,
+        pose: 'sit',
+        mood: 'purring',
+        say: 'heart',
+        things: [{ kind: 'gift', variant, dx: -34, dy: 0, scale: 1.5 }],
+      })),
     ],
   },
   {

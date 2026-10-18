@@ -503,9 +503,11 @@ class DatabaseTest(unittest.TestCase):
         self.assertEqual((alice["today"], alice["recent"]), (alice["week"], alice["week"]))
         self.assertEqual([host["name"] for host in alice["hosts"]], ["brezel"])
         self.assertEqual(alice["lifetime_gpu_hours"], 1.0)
-        # A day later the cookies are no longer today's, but still the week's.
+        self.assertEqual(alice["yesterday"], 0.0)
+        # A day later the cookies are no longer today's, but yesterday's, and
+        # still the week's.
         later = self.database.cat_meals(now=start + 86400 + 3600, utc_offset=0)["alice"]
-        self.assertEqual((later["today"], later["week"]), (0.0, alice["week"]))
+        self.assertEqual((later["today"], later["yesterday"], later["week"]), (0.0, alice["week"], alice["week"]))
         # Someone who only baked long ago has a cat that has not eaten lately.
         with self.database.connect() as connection:
             connection.execute("INSERT INTO lifetime_user_time VALUES ('carol', 7200, 1600000000)")

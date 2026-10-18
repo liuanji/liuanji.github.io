@@ -251,6 +251,27 @@ module.exports = {
   				'0%, 100%': { transform: 'rotate(0deg)' },
   				'50%': { transform: 'rotate(22deg)' }
   			},
+  			'cat-ear-flick': {
+  				'0%, 88%, 100%': { transform: 'rotate(0deg)' },
+  				'91%': { transform: 'rotate(-14deg)' },
+  				'94%': { transform: 'rotate(5deg)' },
+  				'97%': { transform: 'rotate(-2deg)' }
+  			},
+  			'cat-ear-flick-right': {
+  				'0%, 88%, 100%': { transform: 'rotate(0deg)' },
+  				'91%': { transform: 'rotate(14deg)' },
+  				'94%': { transform: 'rotate(-5deg)' },
+  				'97%': { transform: 'rotate(2deg)' }
+  			},
+  			'cat-whisker': {
+  				'0%, 92%, 100%': { transform: 'rotate(0deg)' },
+  				'94%': { transform: 'translateY(-0.6px) rotate(-3deg)' },
+  				'96%': { transform: 'translateY(0.3px) rotate(2deg)' }
+  			},
+  			'cat-tail-swish': {
+  				'0%, 100%': { transform: 'rotate(-3deg)' },
+  				'50%': { transform: 'rotate(5deg)' }
+  			},
   			'cat-nudge': {
   				'0%, 24%, 100%': { transform: 'rotate(0deg)' },
   				'4%': { transform: 'rotate(-9deg)' },
@@ -356,6 +377,10 @@ module.exports = {
   			'cat-emerge': 'cat-emerge 1.6s ease-out both',
   			'cat-look': 'cat-look 4.5s ease-in-out 1.6s infinite',
   			'cat-wave': 'cat-wave 0.45s ease-in-out infinite',
+  			'cat-ear-flick': 'cat-ear-flick 7.3s ease-in-out infinite',
+  			'cat-ear-flick-right': 'cat-ear-flick-right 9.1s ease-in-out 2.4s infinite',
+  			'cat-whisker': 'cat-whisker 5.7s ease-in-out 1.1s infinite',
+  			'cat-tail-swish': 'cat-tail-swish 3.4s ease-in-out infinite',
   			'cat-nudge': 'cat-nudge 3s ease-in-out 4s infinite',
   			'cat-tumble': 'cat-tumble 0.45s linear infinite',
   			'cat-dizzy': 'cat-dizzy 1.4s linear infinite',

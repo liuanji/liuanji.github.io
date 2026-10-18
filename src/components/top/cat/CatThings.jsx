@@ -343,6 +343,76 @@ function SpinningTop({ count: turns = 0 }) {
   );
 }
 
+// Little presents the cat leaves by the notes pill now and then, each its
+// base at (0, 0), about 12 px across: what they are, and what to call them.
+export const GIFTS = {
+  cap: 'a bottle cap',
+  screw: 'a tiny screw',
+  leaf: 'a leaf',
+  button: 'a button',
+  ribbon: 'a bit of ribbon',
+  heart: 'a heart-shaped pebble',
+};
+export function Gift({ variant = 'cap' }) {
+  if (variant === 'screw') {
+    return (
+      <g transform="rotate(-25 0 -5)">
+        <path d="M-1.4-7.6v7l1.4 1.8 1.4-1.8v-7z" fill="#C3CAD5" stroke="#8E98A8" strokeWidth="0.8" strokeLinejoin="round" />
+        <path d="M-1.4-6l2.8-1M-1.4-4l2.8-1M-1.4-2l2.8-1" stroke="#8E98A8" strokeWidth="0.6" />
+        <ellipse cx="0" cy="-8.6" rx="3.4" ry="1.6" fill="#D5DBE4" stroke="#8E98A8" strokeWidth="0.8" />
+        <path d="M-1.6-8.6h3.2" stroke="#8E98A8" strokeWidth="0.7" strokeLinecap="round" />
+      </g>
+    );
+  }
+  if (variant === 'leaf') {
+    return (
+      <g transform="rotate(-20 0 -4)">
+        <path d="M-6-3c2-6 9-6 12-3-2 5-9 6-12 3z" fill="#A9C98F" stroke="#7FA368" strokeWidth="0.9" strokeLinejoin="round" />
+        <path d="M-6-3c4-.8 8-1.4 12-3M-1-3.6l1.6-2M2-4.4l1.2-1.8" fill="none" stroke="#7FA368" strokeWidth="0.7" strokeLinecap="round" />
+      </g>
+    );
+  }
+  if (variant === 'button') {
+    return (
+      <g>
+        <ellipse cx="0" cy="-3.6" rx="5" ry="3.4" fill="#9FB4E8" stroke="#7E95CF" strokeWidth="0.9" />
+        <circle cx="-1.3" cy="-4.2" r="0.6" fill="#5F76B5" />
+        <circle cx="1.3" cy="-4.2" r="0.6" fill="#5F76B5" />
+        <circle cx="-1.3" cy="-2.8" r="0.6" fill="#5F76B5" />
+        <circle cx="1.3" cy="-2.8" r="0.6" fill="#5F76B5" />
+      </g>
+    );
+  }
+  if (variant === 'ribbon') {
+    return (
+      <g>
+        <path d="M0-4l-5.6-3.2q-1 3.4.4 5.6zM0-4l5.6-3.2q1 3.4-.4 5.6z" fill="#F2B8C2" stroke="#D98E9C" strokeWidth="0.8" strokeLinejoin="round" />
+        <path d="M-.6-3.6l-2.4 3.6M.6-3.6l2.4 3.6" stroke="#D98E9C" strokeWidth="1.1" strokeLinecap="round" />
+        <circle cx="0" cy="-4" r="1.3" fill="#E79AA8" />
+      </g>
+    );
+  }
+  if (variant === 'heart') {
+    return (
+      <path
+        d="M0-.6c-3.4-2-5.4-4-5.4-5.8 0-1.6 1.2-2.6 2.6-2.6 1.2 0 2.2.7 2.8 1.6.6-.9 1.6-1.6 2.8-1.6 1.4 0 2.6 1 2.6 2.6 0 1.8-2 3.8-5.4 5.8z"
+        fill="#CDBFC9"
+        stroke="#A5939F"
+        strokeWidth="0.9"
+        strokeLinejoin="round"
+      />
+    );
+  }
+  return (
+    <g>
+      <ellipse cx="0" cy="-2.6" rx="5.2" ry="2.6" fill="#D9675F" stroke="#B5524B" strokeWidth="0.9" />
+      <path d="M-5.2-2.6v-1.2a5.2 2.6 0 0 1 10.4 0v1.2" fill="#E07B73" stroke="#B5524B" strokeWidth="0.9" />
+      <path d="M-4.4-4.4l.6 1.4M-2.4-5l.4 1.4M0-5.2v1.4M2.4-5l-.4 1.4M4.4-4.4l-.6 1.4" stroke="#B5524B" strokeWidth="0.6" />
+      <ellipse cx="0" cy="-4.4" rx="3.2" ry="1.2" fill="#F3B1AA" />
+    </g>
+  );
+}
+
 // A big croissant flying along with her riding on it (her feet at (0, 0), on
 // its top), speed lines trailing behind (it faces left; flip for right).
 function FlyingCroissant() {
@@ -1910,6 +1980,7 @@ const THINGS = {
   bowl: TreatBowl,
   lobbed: Lobbed,
   cone: Cone,
+  gift: Gift,
   noodles: Noodles,
   mochicake: MochiCake,
   durian: Durian,
@@ -1980,6 +2051,7 @@ const REACH = {
   bowl: 20,
   lobbed: 10,
   cone: 14,
+  gift: 10,
   noodles: 30,
   mochicake: 14,
   durian: 14,

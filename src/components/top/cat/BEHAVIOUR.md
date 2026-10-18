@@ -241,6 +241,80 @@ Then she ignores the pointer for 3 s. Other reactions:
   stretch, unless the pointer comes near her first; the pointer moving
   elsewhere on the page leaves her be.
 
+## Little signs of life
+
+- **Her eyes** follow the pointer wherever it is on the page (a few pixels,
+  more the farther it is, out to 80 px), whenever she is awake.
+- **Twitches**, always going on in the background: an ear flick now and then
+  (each ear on its own clock), her whiskers, and her tail swishing as she sits.
+  Left out when the system asks for reduced motion.
+- **A head tilt:** when the page changes (new data, or another range), 40% she
+  tilts her head at it, if she is resting, sitting or walking.
+- **A slow blink:** the pointer resting still near her (moved 1.8 s to a
+  minute ago) while she rests: her eyes droop, close, open, and she purrs (40%
+  a heart). Not again for 7 s.
+
+## Calling her
+
+- **By name:** type "mochi" anywhere but into a field. Ears up, "!", and she
+  comes to the pointer: along her panel if it is above her own, else leaping
+  to the panel there. She sits looking up ("mrrp?"), rubs against the pointer
+  if it is close ("prr"), and a heart.
+- **To a spot:** double-click anywhere on the page that is not a button, link,
+  field, tab, dialog or her. She comes there the same way (and the word the
+  double-click selected is unselected).
+
+Only while she is resting, sitting, walking, busy with something of her own, or
+asleep (it wakes her), and on a panel's top edge or side.
+
+## Playing with the page
+
+While she is on a panel's top edge, resting, sitting or walking:
+
+- **The tabs:** pick a range tab within 450 px of her and she dashes after it
+  along her edge ("!"), swats at it, and sits (a "?" or a heart). Not again for
+  5 s.
+- **A chart's hover dot:** the pointer over a chart on her own panel while she
+  rests: she crouches ("!"), creeps after the dot along her edge, and when it
+  stops (or the pointer leaves the chart) wiggles and pounces. Not again for
+  12 s.
+- **Selected text:** select a few words (2 to 300 characters) on her panel and
+  she wiggles, hops onto them and reaches ("!"); selected elsewhere within
+  400 px, she looks round at it ("?"). Not again for 6 s.
+- **Scrolling hard** (faster than 4 px a millisecond): she hangs on by her
+  front paws ("!"), scrambles back up, and sits ("…"). Not again for 8 s.
+
+## Her hello
+
+Her first stir each day (in this browser) is a hello: she waves ("hi!"), tells
+you how many cookies you baked her yesterday ("12 cookies yesterday!", or
+"missed you!" if none), walks over under the pointer if it has moved in the
+last 20 s, rubs against it ("prr"), and a heart. It cheers her up a little.
+
+## Presents
+
+Now and then she brings you a present: 5% of her stirs on a panel's top edge,
+no sooner than 3 hours after the last, while the notes pill is in view and no
+present is waiting. She finds something by her feet ("?"), sniffs it, picks it
+up ("!"), leaps over to the notes pill with it ("mrrp"), and drops it beside
+the pill (a heart). It stays there, across visits in this browser, till you
+click it: then it goes into her scrapbook, and she is pleased. One of six, an
+equal pick: a bottle cap, a tiny screw, a leaf, a button, a bit of ribbon, a
+heart-shaped pebble.
+
+## Dressed for the season
+
+She wears something for three seasons (`seasonOutfit` in `BakeryCat.jsx`), in
+place of her chef's hat:
+
+| Season | Dates | Outfit |
+|---|---|---|
+| Halloween | 24 October to 1 November | A plum witch's hat with an orange band and a star |
+| Christmas | 18 to 27 December | A red scarf |
+| Lunar New Year | 3 days before to 7 days after (dates to 2032) | A red bow with a gold knot on her ear |
+
+Each one keeps a page in her scrapbook the first time she stirs in it.
+
 ## Clicks and drags
 
 - **One click:** she purrs, and a small dot appears. The dot opens her menu
@@ -642,7 +716,7 @@ are new since you last looked; a click opens it.
 
 ## Her scrapbook
 
-The first time she does each of 166 things, she keeps a page for it, and a
+The first time she does each of 183 things, she keeps a page for it, and a
 little open book rises off her. It is kept in this browser (`scrapbook.js`),
 and opens over the page from her card: each kind with how many of it she has
 done, then a card for each, drawn in her pose there (with what she had with
@@ -669,7 +743,10 @@ are not buttons.
 | By herself | 25: butterfly, box, croissant, tail chase, sneeze, crumb, bird watching, scratching, dough, backflip, grooming, kneading, belly-up, begging, zoomies, batting something off the screen, the four things thrown at you, and the five at certain levels |
 | Naps | 12: the six beds, sunbeam, nodding off, flopping over, dreaming, curling up, a yawn |
 | Dances | 7: happy paws, shuffle, twirl, moonwalk, disco, the robot, the hula |
-| With you | 20: batting at the pointer, keep-away, caught, petting, a rub against your hand, a pounce on the pointer, belly rub, brushing, photo shoot, the five games, and the six ways of following you |
+| With you | 24: batting at the pointer, keep-away, caught, petting, a rub against your hand, a pounce on the pointer, belly rub, brushing, photo shoot, the five games, the six ways of following you, a slow blink, coming when called, coming to a double-click, her hello for the day |
+| Playing with the page | 4: the tabs, a chart's dot, selected words, holding on through a hard scroll |
+| Dressed up | 3: Halloween, Christmas, Lunar New Year |
+| Presents for you | 6: each present, kept when you pick it up |
 | Treats | 13: each treat moment |
 | Toys | 11: each tossed toy |
 | GPU cards | 9: each visit |

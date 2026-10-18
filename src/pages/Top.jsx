@@ -215,6 +215,10 @@ export default function Top() {
       ? requestedHost
       : 'all';
   const range = RANGES.find((item) => item.value === (params.get('range') ?? savedRange)) ?? DEFAULT_RANGE;
+  // Fresh readings, or another range picked: the roaming cat may tilt its head.
+  useEffect(() => {
+    if (overview.dataUpdatedAt) window.dispatchEvent(new CustomEvent('bakery-page-changed'));
+  }, [overview.dataUpdatedAt, range.value]);
 
   const stats = useStatusFile(`stats-${host}`, HISTORY_REFRESH_MS, token);
   // With all servers selected, the trend can still show just one of them.
