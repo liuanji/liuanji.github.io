@@ -72,13 +72,66 @@ export function seasonOutfit(date = new Date()) {
   return null;
 }
 
-// Its eyes look towards the pointer (the roaming cat sets --cat-look-x and
-// --cat-look-y, in its drawing's units, while awake), and its head tilts now
-// and then (--cat-tilt) when something on the page changes.
-const LOOK = {
-  transform: 'translate(var(--cat-look-x, 0px), var(--cat-look-y, 0px))',
-  transition: 'transform 0.25s ease-out',
+// Where it looks (the roaming cat sets these while it is awake, in its
+// drawing's units): its eyes dart to the pointer (--cat-iris-x, -y), the eye
+// on the side it looks to narrowing a little (--cat-eye-l, -r), and its face
+// turns after them, more slowly (--cat-face-x, -y): eyes, nose and mouth most,
+// muzzle, cheeks and whiskers less, the stripes on its brow least, its head's
+// outline and ears not at all. The catchlights hang back, as a reflection
+// would. A blink is drawn in three frames: lids half down over its eyes
+// (--cat-half), shut (--cat-shut, closed arcs), and half down again. Its head tilts
+// now and then (--cat-tilt) when something on the page changes.
+const SACCADE = 'transform 0.1s cubic-bezier(0.3, 0.7, 0.4, 1)';
+const FACE = (share) => ({
+  transform: `translate(calc(var(--cat-face-x, 0px) * ${share}), calc(var(--cat-face-y, 0px) * ${share}))`,
+  transition: 'transform 0.38s cubic-bezier(0.45, 0, 0.3, 1)',
+});
+const GLINT = {
+  transform: 'translate(calc(var(--cat-iris-x, 0px) * -0.55), calc(var(--cat-iris-y, 0px) * -0.55))',
+  transition: SACCADE,
 };
+// An open eye, cx, cy, r, with its catchlights ([dx, dy, r] from its middle);
+// its lid, half down, and shut.
+function Iris({ cx, cy, r, side, glints }) {
+  const lid = r + 0.5;
+  return (
+    <g
+      style={{
+        transform: `translate(var(--cat-iris-x, 0px), var(--cat-iris-y, 0px)) scale(var(--cat-eye-${side}, 1), 1)`,
+        transformBox: 'view-box',
+        transformOrigin: `${cx}px ${cy}px`,
+        transition: SACCADE,
+      }}
+    >
+      <g style={{ opacity: 'calc(1 - var(--cat-shut, 0))' }}>
+        <circle cx={cx} cy={cy} r={r} fill={EYE} />
+        <g style={GLINT}>
+          {glints.map(([dx, dy, size]) => (
+            <circle key={`${dx} ${dy}`} cx={cx + dx} cy={cy + dy} r={size} fill="white" />
+          ))}
+        </g>
+        <g style={{ opacity: 'var(--cat-half, 0)' }}>
+          <path d={`M${cx - lid} ${cy + 0.3}a${lid} ${lid} 0 0 1 ${2 * lid} 0z`} fill={FUR} />
+          <path
+            d={`M${cx - r - 0.3} ${cy + 0.3}q${r + 0.3} 1 ${2 * r + 0.6} 0`}
+            fill="none"
+            stroke={EYE}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </g>
+      </g>
+      <path
+        d={`M${cx - r - 0.2} ${cy}q${r + 0.2} ${r * 0.95} ${2 * r + 0.4} 0`}
+        fill="none"
+        stroke={EYE}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        style={{ opacity: 'var(--cat-shut, 0)' }}
+      />
+    </g>
+  );
+}
 const TILT = {
   transform: 'rotate(var(--cat-tilt, 0deg))',
   transformBox: 'view-box',
@@ -198,9 +251,15 @@ function Head({ mood, hat }) {
         </>
       )}
       <ellipse cx="60" cy="46" rx="20.5" ry="17" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
-      <path d="M56 30.5v4.5M60 30v5.5M64 30.5v4.5" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
-      <ellipse cx="60" cy="52" rx="8" ry="5.6" fill={BELLY} />
-      <g style={LOOK}>
+      <path
+        d="M56 30.5v4.5M60 30v5.5M64 30.5v4.5"
+        stroke={STRIPE}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        style={FACE(0.3)}
+      />
+      <ellipse cx="60" cy="52" rx="8" ry="5.6" fill={BELLY} style={FACE(0.6)} />
+      <g style={FACE(1)}>
       {dizzy ? (
         // Spiralling round.
         <path
@@ -223,12 +282,19 @@ function Head({ mood, hat }) {
       ) : fright ? (
         // Big, glossy and wide, under little worried brows.
         <>
-          <circle cx="53" cy="45.8" r="4" fill={EYE} />
-          <circle cx="67" cy="45.8" r="4" fill={EYE} />
-          <circle cx="54.4" cy="44.2" r="1.6" fill="white" />
-          <circle cx="68.4" cy="44.2" r="1.6" fill="white" />
-          <circle cx="51.6" cy="47.6" r="0.8" fill="white" />
-          <circle cx="65.6" cy="47.6" r="0.8" fill="white" />
+          {[53, 67].map((cx, n) => (
+            <Iris
+              key={cx}
+              cx={cx}
+              cy={45.8}
+              r={4}
+              side={n ? 'r' : 'l'}
+              glints={[
+                [1.4, -1.6, 1.6],
+                [-1.4, 1.8, 0.8],
+              ]}
+            />
+          ))}
           <path
             d="M49.4 39.6q3-1.8 6-.4M70.6 39.6q-3-1.8-6-.4"
             fill="none"
@@ -239,10 +305,8 @@ function Head({ mood, hat }) {
         </>
       ) : sad ? (
         <>
-          <circle cx="53" cy="46.6" r="2.9" fill={EYE} />
-          <circle cx="67" cy="46.6" r="2.9" fill={EYE} />
-          <circle cx="52.2" cy="47.6" r="0.9" fill="white" />
-          <circle cx="66.2" cy="47.6" r="0.9" fill="white" />
+          <Iris cx={53} cy={46.6} r={2.9} side="l" glints={[[-0.8, 1, 0.9]]} />
+          <Iris cx={67} cy={46.6} r={2.9} side="r" glints={[[-0.8, 1, 0.9]]} />
           <path
             d="M49.6 41.8l5.8-1.8M70.4 41.8l-5.8-1.8"
             fill="none"
@@ -286,15 +350,12 @@ function Head({ mood, hat }) {
       ) : winking ? (
         <>
           <path d="M50 46q3-3.5 6 0" fill="none" stroke={EYE} strokeWidth="1.8" strokeLinecap="round" />
-          <circle cx="67" cy="45.5" r="2.9" fill={EYE} />
-          <circle cx="68" cy="44.4" r="1" fill="white" />
+          <Iris cx={67} cy={45.5} r={2.9} side="r" glints={[[1, -1.1, 1]]} />
         </>
       ) : chattering ? (
         <>
-          <circle cx="53" cy="45.5" r="3.4" fill={EYE} />
-          <circle cx="67" cy="45.5" r="3.4" fill={EYE} />
-          <circle cx="54.1" cy="44.3" r="1.2" fill="white" />
-          <circle cx="68.1" cy="44.3" r="1.2" fill="white" />
+          <Iris cx={53} cy={45.5} r={3.4} side="l" glints={[[1.1, -1.2, 1.2]]} />
+          <Iris cx={67} cy={45.5} r={3.4} side="r" glints={[[1.1, -1.2, 1.2]]} />
         </>
       ) : asleep || yawning ? (
         <path d="M50 45q3 3 6 0M64 45q3 3 6 0" fill="none" stroke={EYE} strokeWidth="1.8" strokeLinecap="round" />
@@ -311,20 +372,17 @@ function Head({ mood, hat }) {
         <path d="M50 46q3-3.5 6 0M64 46q3-3.5 6 0" fill="none" stroke={EYE} strokeWidth="1.8" strokeLinecap="round" />
       ) : hungry ? (
         <>
-          <circle cx="53" cy="45.5" r="3.6" fill={EYE} />
-          <circle cx="67" cy="45.5" r="3.6" fill={EYE} />
-          <circle cx="54.2" cy="44.2" r="1.3" fill="white" />
-          <circle cx="68.2" cy="44.2" r="1.3" fill="white" />
+          <Iris cx={53} cy={45.5} r={3.6} side="l" glints={[[1.2, -1.3, 1.3]]} />
+          <Iris cx={67} cy={45.5} r={3.6} side="r" glints={[[1.2, -1.3, 1.3]]} />
         </>
       ) : (
         <>
-          <circle cx="53" cy="45.5" r="2.7" fill={EYE} />
-          <circle cx="67" cy="45.5" r="2.7" fill={EYE} />
-          <circle cx="53.9" cy="44.5" r="0.9" fill="white" />
-          <circle cx="67.9" cy="44.5" r="0.9" fill="white" />
+          <Iris cx={53} cy={45.5} r={2.7} side="l" glints={[[0.9, -1, 0.9]]} />
+          <Iris cx={67} cy={45.5} r={2.7} side="r" glints={[[0.9, -1, 0.9]]} />
         </>
       )}
       </g>
+      <g style={FACE(0.85)}>
       <path d="M58.4 50h3.2l-1.6 1.8z" fill={PINK} stroke={EDGE} strokeWidth="0.6" strokeLinejoin="round" />
       {tongue ? (
         // A little pink tongue poking out under its mouth.
@@ -379,8 +437,12 @@ function Head({ mood, hat }) {
       ) : (
         <path d="M57 52.6q1.5 2 3 0q1.5 2 3 0" fill="none" stroke={EYE} strokeWidth="1.1" strokeLinecap="round" />
       )}
-      <ellipse cx="47.5" cy="51" rx="3.4" ry="2" fill={PINK} opacity={happy ? 0.75 : 0.45} />
-      <ellipse cx="72.5" cy="51" rx="3.4" ry="2" fill={PINK} opacity={happy ? 0.75 : 0.45} />
+      </g>
+      <g style={FACE(0.6)}>
+        <ellipse cx="47.5" cy="51" rx="3.4" ry="2" fill={PINK} opacity={happy ? 0.75 : 0.45} />
+        <ellipse cx="72.5" cy="51" rx="3.4" ry="2" fill={PINK} opacity={happy ? 0.75 : 0.45} />
+      </g>
+      <g style={FACE(0.7)}>
       <path
         d="M44 50h-8M44 53l-7.5 2M76 50h8M76 53l7.5 2"
         stroke={EDGE}
@@ -390,6 +452,7 @@ function Head({ mood, hat }) {
         className="motion-safe:animate-cat-whisker"
         style={{ transformBox: 'view-box', transformOrigin: '60px 51px' }}
       />
+      </g>
       {outfit ? <Outfit kind={outfit} /> : hat && (
         <>
           <path

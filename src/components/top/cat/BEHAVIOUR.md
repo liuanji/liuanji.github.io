@@ -243,8 +243,17 @@ Then she ignores the pointer for 3 s. Other reactions:
 
 ## Little signs of life
 
-- **Her eyes** follow the pointer wherever it is on the page (a few pixels,
-  more the farther it is, out to 80 px), whenever she is awake.
+- **Her eyes** follow the pointer while it moves and she is about her own
+  business (resting, sitting, walking, chasing or playing with you, petted or
+  carried), looking further round the further off it is (never all the way).
+  They dart there in one quick jump (0.1 s) once it has moved far enough, and
+  her face turns after them more slowly (0.4 s): eyes, nose and mouth most,
+  muzzle, cheeks and whiskers less, the stripes on her brow least, her head's
+  outline and ears not at all. The eye on the side she looks to narrows a
+  little, and the catchlights in her eyes hang back like a reflection. Once
+  the pointer has been still for 2.2 s, she looks back out at you.
+- **Blinks:** every 2.5 to 7 s while she is awake, and 40% of the time with a
+  big glance: lids half down, shut, half down again (0.18 s in all).
 - **Twitches**, always going on in the background: an ear flick now and then
   (each ear on its own clock), her whiskers, and her tail swishing as she sits.
   Left out when the system asks for reduced motion.

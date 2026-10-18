@@ -793,22 +793,58 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           box.current.style.clipPath = `polygon(${l}px ${t}px, ${r}px ${t}px, ${r}px ${b}px, ${l}px ${b}px)`;
         } else if (box.current.style.clipPath) box.current.style.clipPath = '';
       }
-      // Its eyes on the pointer while it is awake (in its drawing's units,
-      // mirrored as it is drawn), and its head tilted a moment now and then.
+      // Where it looks, while it is awake and about its own business (resting,
+      // sitting, walking, chasing or playing with you, petted or carried): at the pointer while
+      // it moves, back out at you once it has been still a couple of seconds.
+      // Its eyes dart there in one quick jump (a saccade) when the pointer has
+      // moved far enough off where they rest, or settle after a while if it
+      // is only a little; its face turns after them (BakeryCat.jsx, Iris and
+      // FACE). It blinks every 2.5 to 7 s, and now and then with a big glance.
+      // All in its drawing's units, mirrored as it is drawn.
       if (box.current) {
         const now = performance.now();
         const awake = state.mode !== 'sleep' && shown.mood !== 'asleep' && !['sleep', 'snooze'].includes(shown.pose);
-        let [lookX, lookY] = [0, 0];
-        if (awake && state.pointer.cx != null) {
+        const gaze = state.gaze ?? (state.gaze = { x: 0, y: 0, at: 0, blinkAt: now + 3000, blinkFrom: -1e9, set: '' });
+        let [wantX, wantY] = [0, 0];
+        if (
+          awake &&
+          ['rest', 'sit', 'walk', 'chase', 'tease', 'game', 'pet', 'held'].includes(state.mode) &&
+          state.pointer.cx != null &&
+          now - state.pointer.at < 2200
+        ) {
           const dx = state.pointer.cx + window.scrollX - state.x;
-          const dy = state.pointer.cy + window.scrollY - (state.y - 36 - lift);
+          const dy = state.pointer.cy + window.scrollY - (state.y - 40 - lift);
           const far = Math.hypot(dx, dy) || 1;
-          const reach = Math.min(1, far / 80);
-          lookX = (dx / far) * 1.4 * reach * (shown.flip < 0 ? -1 : 1);
-          lookY = (dy / far) * reach;
+          // Further off, it looks further round, never all the way.
+          const reach = 1 - Math.exp(-far / 170);
+          wantX = (dx / far) * reach * (shown.flip < 0 ? -1 : 1);
+          wantY = (dy / far) * reach;
         }
-        box.current.style.setProperty('--cat-look-x', `${lookX.toFixed(2)}px`);
-        box.current.style.setProperty('--cat-look-y', `${lookY.toFixed(2)}px`);
+        const jump = Math.hypot(wantX - gaze.x, wantY - gaze.y);
+        if (jump > 0.25 || (jump > 0.05 && now - gaze.at > 900)) {
+          if (awake && jump > 0.9 && now - gaze.blinkFrom > 1500 && Math.random() < 0.4) gaze.blinkFrom = now;
+          [gaze.x, gaze.y, gaze.at] = [wantX, wantY, now];
+        }
+        if (awake && now > gaze.blinkAt) {
+          gaze.blinkFrom = now;
+          gaze.blinkAt = now + 2500 + Math.random() * 4500;
+        }
+        // Its blink's frames: half shut, shut, half shut.
+        const blink = now - gaze.blinkFrom;
+        const [half, shut] = blink < 45 || (blink >= 125 && blink < 175) ? [1, 0] : blink < 125 ? [0, 1] : [0, 0];
+        const set = `${gaze.x.toFixed(2)} ${gaze.y.toFixed(2)} ${half}${shut}`;
+        if (set !== gaze.set) {
+          gaze.set = set;
+          const style = box.current.style;
+          style.setProperty('--cat-iris-x', `${(gaze.x * 0.85).toFixed(2)}px`);
+          style.setProperty('--cat-iris-y', `${(gaze.y * 0.65).toFixed(2)}px`);
+          style.setProperty('--cat-face-x', `${(gaze.x * 1.2).toFixed(2)}px`);
+          style.setProperty('--cat-face-y', `${(gaze.y * 0.6).toFixed(2)}px`);
+          style.setProperty('--cat-eye-l', (1 - 0.16 * Math.max(0, -gaze.x)).toFixed(3));
+          style.setProperty('--cat-eye-r', (1 - 0.16 * Math.max(0, gaze.x)).toFixed(3));
+          style.setProperty('--cat-half', half);
+          style.setProperty('--cat-shut', shut);
+        }
         box.current.style.setProperty('--cat-tilt', `${now < (state.tiltUntil ?? 0) ? state.tiltSign * 11 : 0}deg`);
       }
       // Up on the bakery's oven, or on her way up there, down off it or away,
