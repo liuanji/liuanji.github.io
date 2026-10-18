@@ -4126,6 +4126,180 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           { pose: 'sit', mood: 'purring', ms: 900, start: () => (draw({ opacity: 0 }), say('heart')) },
         ];
       },
+      // A fish-shaped kicker toy: it wiggles, pounces on it, rolls onto its
+      // back hugging it, and bunny-kicks it with its hind feet ("mrrp!"),
+      // over and over; then lies there with it, purring.
+      kicker: () => {
+        const dir = roomy();
+        const at = onEdge(state.x + dir * 80);
+        // Its head towards the cat.
+        const toy = (extra = {}) => putThing({ kind: 'kicker', x: at, y: state.y, flip: dir > 0 ? 1 : -1, ...extra });
+        return [
+          {
+            pose: 'sit',
+            ms: 600,
+            start: () => (state.facing = dir),
+            frame: (step, time, k) => toy({ y: state.y - 120 * (1 - k) ** 2, rotate: 160 * (1 - k) }),
+          },
+          { pose: 'crouch', ms: 800, rock: { amp: 3.5, freq: 5.5, decay: 0 }, start: () => say('!') },
+          { ...hop(at, 26), start: (step) => hop(at, 26).start(step) },
+          {
+            pose: strides('bunnykick', 'bunnykick2', 170),
+            ms: 2600,
+            start: () => (putThing(null), say('mrrp!')),
+            frame: (step, time, k) => {
+              if (k > 0.5 && !step.again) {
+                step.again = true;
+                say('!');
+              }
+            },
+          },
+          { pose: 'belly', mood: 'purring', ms: 1400, start: () => say('prr') },
+          { pose: 'sit', mood: 'purring', ms: 900, start: () => (toy({ x: state.x + dir * 30 }), say('heart')) },
+          { pose: 'sit', mood: 'purring', ms: 400, start: () => toy({ x: state.x + dir * 30, opacity: 0 }) },
+        ];
+      },
+      // A crinkle tunnel along its edge: it peers into it, wiggles, and dashes
+      // in; out of sight, the tunnel rustles and shivers as it runs through,
+      // and out it bursts at the far end, skidding to a stop, pleased.
+      tunnel: () => {
+        const dir = roomy();
+        // The whole run (34 px before it, the tube, and 40 px out beyond it)
+        // kept to where it can stand on its edge, which ends short of the
+        // panel's ends (else, coming out, it would snap back over the tube);
+        // on a narrow panel, a shorter tube.
+        const [low, high] = [onEdge(-Infinity), onEdge(Infinity)];
+        const length = Math.max(48, Math.min(96, high - low - 34 - 40));
+        const [before, after] = [34 + length / 2, 40 + length / 2];
+        const wanted = state.x + dir * (40 + length / 2);
+        const middle =
+          dir > 0
+            ? Math.max(low + before, Math.min(high - after, wanted))
+            : Math.min(high - before, Math.max(low + after, wanted));
+        const near = middle - (dir * length) / 2;
+        const far = middle + (dir * length) / 2;
+        const tube = (t = 0, extra = {}) => putThing({ kind: 'tunnel', x: middle, y: state.y, rope: length, t, ...extra });
+        const dash = (to, ms) => ({
+          pose: strides('run', 'run2', 110),
+          ms,
+          start: (step) => ((step.from = state.x), (state.facing = dir)),
+          frame: (step, time, k) => (state.x = step.from + (to - step.from) * k),
+        });
+        return [
+          {
+            pose: 'sit',
+            ms: 600,
+            start: () => (state.facing = dir),
+            frame: (step, time, k) => tube(0, { y: state.y - 100 * (1 - k) ** 2 }),
+          },
+          { pose: 'sit', ms: 400, start: () => say('?') },
+          { to: near - dir * 34 },
+          { pose: 'sniff', ms: 800, start: () => ((state.facing = dir), say('sniff')) },
+          { pose: 'crouch', ms: 700, rock: { amp: 3.5, freq: 5.5, decay: 0 } },
+          // In as its nose reaches the opening (half of it is some 36 px), and
+          // out once clear of the far one, so it is never drawn over the tube.
+          dash(near - dir * 30, 300),
+          {
+            ...dash(far + dir * 30, 1600),
+            start: (step) => {
+              step.from = state.x;
+              state.hidden = true;
+              say('rustle');
+            },
+            frame: (step, time, k) => {
+              // Through it, with a stop halfway for a rustle about.
+              const along = k < 0.4 ? k / 0.8 : k < 0.6 ? 0.5 : 0.5 + (k - 0.6) / 0.8;
+              state.x = step.from + (far + dir * 30 - step.from) * along;
+              tube(k);
+              if (k > 0.45 && !step.middle) {
+                step.middle = true;
+                say('rustle');
+              }
+            },
+          },
+          {
+            ...dash(onEdge(far + dir * 40), 300),
+            start: (step) => {
+              step.from = state.x;
+              state.hidden = false;
+              say('!');
+            },
+          },
+          { pose: 'skid', ms: 380 },
+          { pose: 'sit', mood: 'purring', ms: 1000, start: () => ((state.facing = -dir), say('heart')) },
+          { pose: 'sit', mood: 'purring', ms: 400, start: () => tube(0, { opacity: 0 }) },
+        ];
+      },
+      // A spinning top lands, whirring, and wanders along its edge; it
+      // watches, bats it, and it skitters off; it chases round and round
+      // after it till the top topples, and sits there dizzy, eyes spinning.
+      top: () => {
+        const dir = roomy();
+        const home = onEdge(state.x + dir * 60);
+        let x = home;
+        let turns = 0;
+        const top = (extra = {}) => putThing({ kind: 'top', x, y: state.y, count: turns, ...extra });
+        return [
+          {
+            pose: 'sit',
+            ms: 600,
+            start: () => (state.facing = dir),
+            frame: (step, time, k) => {
+              turns = time / 140;
+              top({ y: state.y - 100 * (1 - k) ** 2 });
+            },
+          },
+          {
+            pose: 'sit',
+            mood: 'chatter',
+            ms: 1800,
+            start: () => say('!'),
+            frame: (step, time, k) => {
+              turns = time / 140;
+              x = home - dir * 22 * Math.sin(Math.PI * k);
+              top({ rotate: Math.sin(time / 90) * 4 });
+            },
+          },
+          {
+            pose: 'reach',
+            ms: 320,
+            start: () => say('!'),
+            frame: (step, time) => {
+              turns = time / 140;
+              top({ rotate: Math.sin(time / 90) * 4 });
+            },
+          },
+          {
+            pose: strides('run', 'run2', 110),
+            ms: 1400,
+            start: (step) => (step.from = state.x),
+            frame: (step, time, k) => {
+              turns = time / 120;
+              x = onEdge(home + dir * 90 * Math.sin((Math.PI / 2) * k));
+              top({ rotate: dir * 8 * Math.sin(time / 70) });
+              // Round and round after it.
+              state.facing = Math.floor(time / 160) % 2 ? dir : -dir;
+              state.x = step.from + (x - dir * 30 - step.from) * Math.min(1, k * 1.2);
+            },
+          },
+          {
+            pose: 'sit',
+            ms: 500,
+            frame: (step, time, k) => {
+              turns += 0.01;
+              top({ rotate: dir * 85 * k, y: state.y - 3 * k });
+            },
+          },
+          {
+            pose: 'dizzy',
+            ms: 2200,
+            rock: { amp: 7, freq: 1.4, decay: 0 },
+            start: () => say('?'),
+          },
+          { pose: 'sit', mood: 'purring', ms: 800, start: () => say('heart') },
+          { pose: 'sit', mood: 'purring', ms: 400, start: () => top({ rotate: dir * 85, opacity: 0 }) },
+        ];
+      },
     });
     const treats = noted('treat', {
       // Tossed from the pointer (or from above): it races to where it will
@@ -4455,6 +4629,198 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           { pose: 'crouch', ms: 900, start: () => (putThing(null), say('nom')) },
           { pose: 'sit', mood: 'purring', ms: 900, start: () => say('crunch') },
           { pose: 'groom', ms: 1300, start: () => say('heart') },
+        ];
+      },
+      // An ice cream cone drops into its paws: it holds it up and licks it
+      // ("lick"), a lick at a time, till the cold gets to it, a brain freeze:
+      // the cone set down, both paws to its head ("!!"), shivering. Then on
+      // with it, more slowly, scoop and cone and all ("crunch").
+      icecream: () => {
+        // Its paws, held up before its chest (BakeryCat's Holding).
+        const paws = () => ({ x: state.x, y: state.y - (88 - 68.6) * UNIT });
+        let left = 1;
+        const held = (extra = {}) => putThing({ kind: 'cone', variant: 'held', count: left, front: true, ...paws(), ...extra });
+        const licks = (times, pace) =>
+          Array.from({ length: times }, () => [
+            {
+              pose: 'lick',
+              ms: pace,
+              start: () => {
+                left = Math.max(0, left - 0.13);
+                say('lick');
+              },
+              frame: () => held(),
+            },
+            { pose: 'hold', mood: 'purring', ms: pace * 0.9, frame: () => held() },
+          ]).flat();
+        return [
+          {
+            pose: 'hold',
+            ms: 600,
+            start: () => say('!'),
+            frame: (step, time, k) => held({ y: paws().y - 110 * (1 - k) ** 2 }),
+          },
+          { pose: 'hold', mood: 'purring', ms: 700, start: () => say('♪'), frame: () => held() },
+          ...licks(3, 400),
+          {
+            pose: 'freeze',
+            ms: 1700,
+            rock: { amp: 2.5, freq: 7, decay: 0 },
+            start: () => say('!!'),
+            frame: () =>
+              putThing({
+                kind: 'cone',
+                count: left,
+                // Set down just in front of it.
+                x: state.x + state.facing * 24,
+                y: state.y - 4,
+                rotate: state.facing * 70,
+              }),
+          },
+          { pose: 'sit', mood: 'drowsy', ms: 700, start: () => say('…') },
+          ...licks(3, 560),
+          { pose: 'hold', mood: 'purring', ms: 600, start: () => ((left = 0), say('nom')), frame: () => held() },
+          {
+            pose: 'hold',
+            mood: 'purring',
+            ms: 700,
+            start: () => say('crunch'),
+            frame: (step, time, k) => held({ scale: 1 - 0.6 * k, opacity: k > 0.7 ? 0 : 1 }),
+          },
+          { pose: 'groom', ms: 1300, start: () => (putThing(null), say('heart')) },
+        ];
+      },
+      // A bowl of noodles lands beside it, steaming: it sniffs, then slurps a
+      // long strand up into its mouth ("slurp~"), cheeks puffed full, and
+      // another; a lick of its lips.
+      noodles: () => {
+        const dir = roomy();
+        const at = onEdge(state.x + dir * 34);
+        const mouth = () => ({ x: state.x, y: state.y - (88 - 54.4) * UNIT });
+        const bowl = (extra = {}) => putThing({ kind: 'noodles', x: at, y: state.y, front: true, ...extra });
+        const strand = (t) => {
+          const lips = mouth();
+          bowl({ t, tx: lips.x - at, ty: lips.y - state.y });
+        };
+        return [
+          {
+            pose: 'sit',
+            ms: 600,
+            start: () => (state.facing = dir),
+            frame: (step, time, k) => bowl({ y: state.y - 110 * (1 - k) ** 2 }),
+          },
+          { pose: 'sit', ms: 400, start: () => say('!') },
+          { to: at - dir * 32 },
+          { pose: 'sniff', ms: 800, start: () => say('sniff') },
+          ...[0, 1].flatMap(() => [
+            { pose: 'slurp', ms: 1200, start: () => say('slurp~'), frame: (step, time, k) => strand(k) },
+            { pose: 'sit', mood: 'purring', ms: 600, start: () => (bowl(), say('mm')) },
+          ]),
+          { pose: 'groom', ms: 1300, start: () => (bowl({ opacity: 0 }), say('heart')) },
+        ];
+      },
+      // A mochi for Mochi: a soft round rice cake on a little dish. It bites
+      // and pulls, leaning back ("mmf"), and the mochi stretches and stretches,
+      // till it lets go of the dish and springs into its mouth ("boing"); it
+      // chews, cheeks full, and purrs.
+      mochi: () => {
+        const dir = roomy();
+        const at = onEdge(state.x + dir * 34);
+        const cake = (extra = {}) => putThing({ kind: 'mochicake', x: at, y: state.y, front: true, ...extra });
+        // Its mouth, leaning back as it pulls (BakeryCat's Tugging).
+        const mouth = () => ({ x: state.x - state.facing * (65.8 - 60) * UNIT, y: state.y - (88 - 55) * UNIT });
+        const pull = (t) => {
+          const lips = mouth();
+          cake({ t, tx: lips.x - at, ty: lips.y - state.y });
+        };
+        return [
+          {
+            pose: 'sit',
+            ms: 600,
+            start: () => (state.facing = dir),
+            frame: (step, time, k) => cake({ y: state.y - 110 * (1 - k) ** 2 }),
+          },
+          { pose: 'sit', ms: 400, start: () => say('!') },
+          { to: at - dir * 34 },
+          { pose: 'sniff', ms: 700, start: () => say('sniff') },
+          {
+            pose: 'tug',
+            ms: 1600,
+            rock: { amp: 1.5, freq: 4, decay: 0 },
+            start: () => say('mmf'),
+            frame: (step, time, k) => pull(0.2 + 0.7 * k),
+          },
+          {
+            pose: 'tug',
+            ms: 600,
+            start: () => say('mmmf!'),
+            frame: (step, time) => pull(0.9 + 0.08 * Math.sin(time / 60)),
+          },
+          {
+            pose: 'startle',
+            ms: 450,
+            start: () => (cake({ variant: 'empty' }), say('boing')),
+            frame: (step, time, k) => (state.lift = 12 * Math.sin(Math.PI * k)),
+          },
+          { pose: 'slurp', ms: 1200, start: () => say('nom') },
+          { pose: 'sit', mood: 'purring', ms: 900, start: () => say('heart') },
+          { pose: 'sit', mood: 'purring', ms: 400, start: () => cake({ variant: 'empty', opacity: 0 }) },
+        ];
+      },
+      // A durian: it trots over, sniffs, and recoils, eyes screwed shut,
+      // tongue out ("yuck!"), the smell rising off it; then it pushes the
+      // thing away along its edge ("hmph"), and off it rolls.
+      durian: () => {
+        const dir = roomy();
+        let at = onEdge(state.x + dir * 50);
+        const fruit = (extra = {}) => putThing({ kind: 'durian', x: at, y: state.y, ...extra });
+        return [
+          {
+            pose: 'sit',
+            ms: 600,
+            start: () => (state.facing = dir),
+            frame: (step, time, k) => fruit({ y: state.y - 110 * (1 - k) ** 2 }),
+          },
+          { pose: 'sit', ms: 500, start: () => say('?') },
+          { to: at - dir * 30 },
+          { pose: 'sniff', ms: 900, start: () => (say('sniff'), fruit({ count: 0.5 })) },
+          {
+            pose: 'yuck',
+            ms: 1500,
+            rock: { amp: 2.5, freq: 5, decay: 2 },
+            start: () => ((state.facing = dir), say('yuck!'), fruit({ count: 1 })),
+          },
+          {
+            pose: 'push',
+            ms: 1300,
+            start: (step) => ((step.from = at), say('hmph')),
+            frame: (step, time, k) => {
+              at = onEdge(step.from + dir * 50 * k);
+              state.x = at - dir * 24;
+              // Rolling, its smell still rising straight up off it.
+              putThing([
+                { kind: 'durian', x: at, y: state.y, rotate: dir * 160 * k },
+                { kind: 'durian', variant: 'smell', x: at, y: state.y, count: 1 },
+              ]);
+            },
+          },
+          {
+            pose: 'sit',
+            ms: 900,
+            start: (step) => (step.from = at),
+            frame: (step, time, k) =>
+              putThing([
+                {
+                  kind: 'durian',
+                  x: step.from + dir * 90 * k,
+                  y: state.y,
+                  rotate: dir * (160 + 400 * k),
+                  opacity: k > 0.6 ? 0 : 1,
+                },
+                { kind: 'durian', variant: 'smell', x: step.from + dir * 90 * k, y: state.y, count: 1 - k },
+              ]),
+          },
+          { pose: 'groom', ms: 1300, start: () => (putThing(null), say('…')) },
         ];
       },
     });

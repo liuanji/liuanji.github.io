@@ -309,6 +309,19 @@ picked up, she stops following.
   ("converged!").
 - **Fishing:** with a little rod she casts over her edge; the float bobs a
   while, a tug ("!"), and she reels in a fish-shaped cookie.
+- **An ice cream cone:** it drops into her paws; she holds it up and licks it
+  ("lick"), three times, till the cold gets her: a brain freeze, the cone set
+  down, both paws to her head ("!!"), shivering, ice crystals about her. Then
+  on with it, more slowly, scoop and cone and all ("crunch").
+- **A bowl of noodles:** steaming, chopsticks across it; she sniffs, then
+  slurps a long strand up into her mouth ("slurp~"), cheeks puffed full, and
+  another.
+- **A mochi for Mochi:** a soft round rice cake on a little dish. She bites and
+  pulls, leaning back ("mmf", "mmmf!"), and it stretches and stretches till it
+  lets go and springs into her mouth ("boing"); she chews, cheeks full.
+- **A durian:** she sniffs it and recoils, eyes screwed shut, tongue out
+  ("yuck!"), its smell rising; she pushes it away along her edge ("hmph") and
+  off it rolls.
 - **A robot vacuum ride:** a robot vacuum trundles up ("whirr"); she hops on and
   rides it, sitting proud, to the end of its run ("bonk") and back, loafing;
   then hops off and it trundles away.
@@ -321,6 +334,16 @@ picked up, she stops following.
 - **A kite:** she runs along her edge with the string, the kite climbing behind;
   sits and watches it dance in the wind ("♪"); the wind drops, the kite drifts
   down, and she pounces on it.
+- **A fish kicker:** a long fish-shaped plush. She wiggles, pounces on it,
+  rolls onto her back hugging it, and bunny-kicks it with her hind feet
+  ("mrrp!"), over and over; then lies there with it, purring.
+- **A crinkle tunnel:** it lies along her edge (shorter on a narrow panel). She
+  sniffs the near end, wiggles, and dashes in; out of sight, the tunnel rustles
+  and shivers as she runs through, and out she bursts at the far end, skidding
+  to a stop.
+- **A spinning top:** it lands whirring and wanders a little; she bats it and
+  it skitters off; she chases round and round after it till it topples, and
+  sits there dizzy, eyes spiralling, stars circling her head.
 
 ## Her spirits (Mood)
 
@@ -609,8 +632,8 @@ cookie and a visit to a packing counter), her naps (each of the six beds, the su
 nodding off, flopping over, dreaming, curling up, a yawn), the GPU card visits
 (greyed out unless a running GPU's card, or for "add oil" an idle one, is fully
 in view when the list opens), the things to do with you (belly rub, brushing,
-photo shoot, the five toy games), the four treat moments and the three tossed
-toys. Picked, she does it at once (hopping
+photo shoot, the five toy games), the thirteen ways of having a treat and
+the eleven tossed toys. Picked, she does it at once (hopping
 up first off a side or a GPU card). Trips, slips and being trapped are not in
 the list.
 
@@ -619,7 +642,7 @@ are new since you last looked; a click opens it.
 
 ## Her scrapbook
 
-The first time she does each of 159 things, she keeps a page for it, and a
+The first time she does each of 166 things, she keeps a page for it, and a
 little open book rises off her. It is kept in this browser (`scrapbook.js`),
 and opens over the page from her card: each kind with how many of it she has
 done, then a card for each, drawn in her pose there (with what she had with
@@ -647,8 +670,8 @@ are not buttons.
 | Naps | 12: the six beds, sunbeam, nodding off, flopping over, dreaming, curling up, a yawn |
 | Dances | 7: happy paws, shuffle, twirl, moonwalk, disco, the robot, the hula |
 | With you | 20: batting at the pointer, keep-away, caught, petting, a rub against your hand, a pounce on the pointer, belly rub, brushing, photo shoot, the five games, and the six ways of following you |
-| Treats | 9: each treat moment |
-| Toys | 8: each tossed toy |
+| Treats | 13: each treat moment |
+| Toys | 11: each tossed toy |
 | GPU cards | 9: each visit |
 | Your notes | 8: the five ways of calling you, "you noticed!", applause, a thumbs up |
 | Pop-up cards | 15: the six things on top, startled, scared off, and seven ways over |

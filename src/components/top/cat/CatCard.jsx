@@ -159,6 +159,10 @@ const ACTIONS = [
       ['treat:sushi', 'Sushi on a conveyor belt'],
       ['treat:descent', 'Gradient descent'],
       ['treat:fishing', 'Go fishing'],
+      ['treat:icecream', 'An ice cream cone'],
+      ['treat:noodles', 'A bowl of noodles'],
+      ['treat:mochi', 'A mochi for Mochi'],
+      ['treat:durian', 'A durian'],
     ],
   ],
   [
@@ -172,6 +176,9 @@ const ACTIONS = [
       ['toss:bag', 'A paper bag'],
       ['toss:wrap', 'Bubble wrap'],
       ['toss:kite', 'Fly a kite'],
+      ['toss:kicker', 'A fish kicker'],
+      ['toss:tunnel', 'A crinkle tunnel'],
+      ['toss:top', 'A spinning top'],
     ],
   ],
 ];

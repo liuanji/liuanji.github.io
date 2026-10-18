@@ -73,6 +73,18 @@ function Head({ mood, hat }) {
   const sulking = mood === 'sulk';
   const low = sad || crying || sulking;
   const fright = mood === 'fright' || hissing;
+  // Treats and toys: licking (eyes shut happily, tongue out); brain freeze
+  // (eyes screwed shut, a wobbly mouth); cheeks puffed full, slurping; biting
+  // hard on something, eyes screwed shut; yuck (eyes screwed shut, tongue
+  // out); dizzy (spiralling eyes, a wobbly mouth).
+  const licking = mood === 'lick';
+  const freezing = mood === 'freeze';
+  const puffed = mood === 'puff';
+  const biting = mood === 'bite';
+  const yuck = mood === 'yuck';
+  const dizzy = mood === 'dizzy';
+  const screwed = freezing || biting || yuck;
+  const tongue = licking || yuck;
   const ears = fright
     ? ['M42 45 28 37 48 37.5z', 'M78 45 92 37 72 37.5z', 'M42.5 43 32 38.4 46 38.6z', 'M77.5 43 88 38.4 74 38.6z']
     : hungry || low
@@ -84,10 +96,26 @@ function Head({ mood, hat }) {
       <path d={ears[1]} fill={FUR} stroke={EDGE} strokeWidth="1.6" strokeLinejoin="round" />
       <path d={ears[2]} fill={PINK} opacity="0.8" />
       <path d={ears[3]} fill={PINK} opacity="0.8" />
+      {puffed && (
+        // Cheeks full, bulging out either side of its face.
+        <>
+          <ellipse cx="42.6" cy="51.4" rx="6" ry="5.4" fill={FUR} stroke={EDGE} strokeWidth="1.5" />
+          <ellipse cx="77.4" cy="51.4" rx="6" ry="5.4" fill={FUR} stroke={EDGE} strokeWidth="1.5" />
+        </>
+      )}
       <ellipse cx="60" cy="46" rx="20.5" ry="17" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
       <path d="M56 30.5v4.5M60 30v5.5M64 30.5v4.5" stroke={STRIPE} strokeWidth="1.8" strokeLinecap="round" />
       <ellipse cx="60" cy="52" rx="8" ry="5.6" fill={BELLY} />
-      {hissing ? (
+      {dizzy ? (
+        // Spiralling round.
+        <path
+          d="M53 45.5m-.9 0a.9 .9 0 1 1 1.8 0a1.8 1.8 0 1 1-3.6 0a2.7 2.7 0 1 1 5.4 0M67 45.5m-.9 0a.9 .9 0 1 1 1.8 0a1.8 1.8 0 1 1-3.6 0a2.7 2.7 0 1 1 5.4 0"
+          fill="none"
+          stroke={EYE}
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        />
+      ) : hissing || screwed ? (
         // Screwed tight shut, > <.
         <path
           d="M49.6 43l5.8 2.6-5.8 2.6M70.4 43l-5.8 2.6 5.8 2.6"
@@ -184,7 +212,7 @@ function Head({ mood, hat }) {
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-      ) : happy ? (
+      ) : happy || licking || puffed ? (
         <path d="M50 46q3-3.5 6 0M64 46q3-3.5 6 0" fill="none" stroke={EYE} strokeWidth="1.8" strokeLinecap="round" />
       ) : hungry ? (
         <>
@@ -202,7 +230,24 @@ function Head({ mood, hat }) {
         </>
       )}
       <path d="M58.4 50h3.2l-1.6 1.8z" fill={PINK} stroke={EDGE} strokeWidth="0.6" strokeLinejoin="round" />
-      {crying ? (
+      {tongue ? (
+        // A little pink tongue poking out under its mouth.
+        <>
+          <path d="M57 52.6q1.5 2 3 0q1.5 2 3 0" fill="none" stroke={EYE} strokeWidth="1.1" strokeLinecap="round" />
+          <path
+            d="M58 53.6h4v2.4a2 2 0 0 1-4 0z"
+            fill="#EE8E96"
+            stroke={EDGE}
+            strokeWidth="0.7"
+            strokeLinejoin="round"
+          />
+          <path d="M60 54v2" stroke="#D66F7A" strokeWidth="0.6" strokeLinecap="round" />
+        </>
+      ) : puffed ? (
+        <ellipse cx="60" cy="54.4" rx="1.3" ry="1.1" fill={EYE} />
+      ) : biting ? (
+        <path d="M57 54h6" stroke={EYE} strokeWidth="1.3" strokeLinecap="round" />
+      ) : crying || freezing || dizzy ? (
         <path
           d="M56.4 55.6q1.2-1.4 2.4 0t2.4 0 2.4 0"
           fill="none"
@@ -583,6 +628,18 @@ export const ROAM_POSES = {
   thumbs: ({ mood = 'wink' }) => <ThumbsUp mood={mood} />,
   // Throwing something at whoever is watching: winding up, the follow-through,
   // and "oops", paws over its mouth.
+  // Treats and toys: holding an ice cream up (licking it, or a brain
+  // freeze), slurping noodles (cheeks puffed), tugging at a stretchy mochi,
+  // a yuck at a durian, bunny kicks at a fish kicker (in turn), and dizzy.
+  hold: ({ mood = 'purring' }) => <Holding mood={mood} />,
+  lick: () => <Holding mood="lick" />,
+  freeze: () => <Freezing />,
+  slurp: () => <Sitting mood="puff" stage={STAGES[2]} />,
+  tug: () => <Tugging />,
+  yuck: () => <Yuck />,
+  bunnykick: () => <BunnyKick />,
+  bunnykick2: () => <BunnyKick kicked />,
+  dizzy: () => <Dizzy />,
   windup: () => <WindingUp />,
   lob: () => <Lobbing />,
   oops: () => <Oops />,
@@ -2533,6 +2590,146 @@ function ThumbsUp({ mood }) {
       <path d="M35 49.6Q35.8 45.4 34.4 42.6" fill="none" stroke={BELLY} strokeWidth="3.4" strokeLinecap="round" />
       <rect x="27.6" y="47.2" width="10.4" height="9.4" rx="4.4" fill={BELLY} stroke={EDGE} strokeWidth="1.4" />
       <path d="M28.4 50.4h4.4M28.4 53.4h4.4" stroke={EDGE} strokeWidth="1" strokeLinecap="round" opacity="0.8" />
+    </g>
+  );
+}
+
+// Treats and toys. Holding something up before its chest in both front
+// paws (an ice cream to lick): its forearms reach in from its elbows; the
+// thing held (CatThings' cone) draws the paws, over itself.
+const forearm = (d) => (
+  <>
+    <path d={d} fill="none" stroke={EDGE} strokeWidth="6.6" strokeLinecap="round" />
+    <path d={d} fill="none" stroke={FUR} strokeWidth="4.2" strokeLinecap="round" />
+  </>
+);
+function Holding({ mood }) {
+  return (
+    <g>
+      <Sitting mood={mood} stage={STAGES[2]} holding />
+      {forearm('M44.8 80Q46 73 54.4 68.6')}
+      {forearm('M75.2 80Q74 73 65.6 68.6')}
+    </g>
+  );
+}
+// Brain freeze: both front paws clapped to the top of its head, eyes screwed
+// shut, little ice crystals about it.
+const crystal = (x, y, size) =>
+  `M${x} ${y - size}v${2 * size}M${x - size * 0.87} ${y - size / 2}l${size * 1.74} ${size}M${x - size * 0.87} ${y + size / 2}l${size * 1.74} ${-size}`;
+function Freezing() {
+  return (
+    <g>
+      <Sitting mood="freeze" stage={STAGES[2]} holding />
+      {forearm('M44.8 80Q35 64 43.6 36.6')}
+      {forearm('M75.2 80Q85 64 76.4 36.6')}
+      <ellipse cx="44.6" cy="34.6" rx="3.6" ry="4" fill={BELLY} stroke={EDGE} strokeWidth="1.3" transform="rotate(-30 44.6 34.6)" />
+      <ellipse cx="75.4" cy="34.6" rx="3.6" ry="4" fill={BELLY} stroke={EDGE} strokeWidth="1.3" transform="rotate(30 75.4 34.6)" />
+      <path
+        d={`${crystal(33, 24, 2.6)}${crystal(88, 27, 2.2)}${crystal(60, 18, 2)}`}
+        stroke="#9DBCEB"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+    </g>
+  );
+}
+// Biting hard on something and pulling (a stretchy mochi): leaning back on
+// its haunches, front paws braced on the ground, eyes screwed shut.
+function Tugging() {
+  return (
+    <g transform="rotate(10 60 88)">
+      <Sitting mood="bite" stage={STAGES[2]} />
+    </g>
+  );
+}
+// Yuck: recoiling from a smell, eyes screwed shut, tongue out, a paw up
+// before its nose.
+function Yuck() {
+  return (
+    <g transform="rotate(7 60 88)">
+      <Sitting mood="yuck" stage={STAGES[2]} raised />
+      {forearm('M46 73Q37 66 40.6 56.8')}
+      <ellipse cx="41" cy="54.4" rx="4.2" ry="3.6" fill={BELLY} stroke={EDGE} strokeWidth="1.3" transform="rotate(-25 41 54.4)" />
+    </g>
+  );
+}
+// Dizzy: sitting a little lopsided, eyes spiralling, stars circling its head.
+function Dizzy() {
+  return (
+    <g>
+      <g transform="rotate(-5 60 88)">
+        <Sitting mood="dizzy" stage={STAGES[2]} />
+      </g>
+      <g
+        className="motion-safe:animate-spin"
+        style={{ transformBox: 'view-box', transformOrigin: '58px 27px', animationDuration: '1.6s' }}
+      >
+        {[
+          [44, 27],
+          [66, 21],
+          [70, 32],
+        ].map(([x, y]) => (
+          <path
+            key={`${x}-${y}`}
+            d={`M${x} ${y - 2.6}l.8 1.8 1.8.8-1.8.8-.8 1.8-.8-1.8-1.8-.8 1.8-.8z`}
+            fill="#E3B655"
+          />
+        ))}
+      </g>
+    </g>
+  );
+}
+// Bunny kicks: on its back, a fish-shaped kicker toy hugged in its front
+// paws across its chest, its hind legs kicking at the toy's tail, pulled in
+// and then thrust out (kicked).
+const KICKER = { body: '#9FB4E8', edge: '#7E95CF', stripe: '#C9D6F4' };
+function BunnyKick({ kicked = false }) {
+  const legs = kicked
+    ? [
+        ['M74 76l10-9', 85.6, 64.6, 40],
+        ['M78 79l12-5', 92, 72.6, 70],
+      ]
+    : [
+        ['M73 76l4-7', 77.8, 66.8, 20],
+        ['M77 78l6-4', 84, 72.8, 50],
+      ];
+  return (
+    <g>
+      <path d="M83 85c6 1 10-1 12-4" fill="none" stroke={EDGE} strokeWidth="5.4" strokeLinecap="round" />
+      <path d="M83 85c6 1 10-1 12-4" fill="none" stroke={FUR} strokeWidth="3.4" strokeLinecap="round" />
+      <ellipse cx="62" cy="80" rx="22" ry="8.6" fill={FUR} stroke={EDGE} strokeWidth="1.6" />
+      <ellipse cx="63" cy="77.2" rx="15" ry="5" fill={BELLY} />
+      <g transform="translate(39 76) rotate(-22) scale(0.66) translate(-60 -46)">
+        <Head mood="chatter" />
+      </g>
+      {/* The kicker across its chest, its tail towards the hind feet. */}
+      <g transform={`rotate(${kicked ? -14 : -8} 64 66)`}>
+        <path
+          d="M46 66c0-4 6-6.4 14-6.4s16 1.6 22 4.6l7-4.4-1.6 6.2 1.6 6.2-7-4.4c-6 3-14 4.6-22 4.6s-14-2.4-14-6.4z"
+          fill={KICKER.body}
+          stroke={KICKER.edge}
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
+        <path d="M58 60.4v11.2M66 61v10M74 62.2v7.6" stroke={KICKER.stripe} strokeWidth="1.6" strokeLinecap="round" />
+        <circle cx="51" cy="64.6" r="1.1" fill={EYE} />
+      </g>
+      {legs.map(([d, x, y, turn]) => (
+        <g key={d}>
+          <path d={d} fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+          <path d={d} fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+          <ellipse cx={x} cy={y} rx="3.5" ry="2.4" fill={BELLY} stroke={EDGE} strokeWidth="1.2" transform={`rotate(${turn} ${x} ${y})`} />
+        </g>
+      ))}
+      {/* Front paws hugging it. */}
+      {['M50 75q-2-5 1-9.4', 'M56 74q0-5 3-9'].map((d) => (
+        <g key={d}>
+          <path d={d} fill="none" stroke={EDGE} strokeWidth="6.2" strokeLinecap="round" />
+          <path d={d} fill="none" stroke={FUR} strokeWidth="3.9" strokeLinecap="round" />
+        </g>
+      ))}
+      <ellipse cx="51.6" cy="63.6" rx="3.5" ry="2.6" fill={BELLY} stroke={EDGE} strokeWidth="1.2" transform="rotate(-20 51.6 63.6)" />
+      <ellipse cx="59.4" cy="63" rx="3.5" ry="2.6" fill={BELLY} stroke={EDGE} strokeWidth="1.2" transform="rotate(-10 59.4 63)" />
     </g>
   );
 }

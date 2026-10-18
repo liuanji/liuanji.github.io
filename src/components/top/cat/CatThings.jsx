@@ -123,6 +123,226 @@ function KitchenTimer() {
   );
 }
 
+// Treats and toys, drawn at the page's size (as the cat is, 0.86 px a unit).
+const PAW = { fill: '#FCEBD6', edge: '#C98A50' };
+// An ice cream cone, a strawberry scoop on it (count: how much is left, 0 to
+// 1). Held (variant 'held'): its middle at the cat's paws, which it draws
+// over itself, either side; otherwise lying where it was put down.
+function Cone({ variant, count: left = 1 }) {
+  const held = variant === 'held';
+  const scoop = Math.max(0, Math.min(1, left));
+  return (
+    <g>
+      <path d="M-5.2-1h10.4L0 12z" fill="#E6B877" stroke="#C9973D" strokeWidth="1" strokeLinejoin="round" />
+      <path d="M-3.2 1.4l5.8 5.6M-.6-.6l4 4M3.2 1.4l-5.8 5.6M.6-.6l-4 4" stroke="#C9973D" strokeWidth="0.6" opacity="0.7" />
+      {scoop > 0 && (
+        <g transform={`translate(0 -1) scale(${0.45 + 0.55 * scoop}) translate(0 1)`}>
+          <path
+            d="M-6.4-1.4c-1-5 2-8.6 6.4-8.6s7.4 3.6 6.4 8.6c-1 .9-2 0-3 .9s-1 2.4-2.2 2.4-1.4-1.6-2.4-1.6-1.6 1.2-3 .4-1.2-1.6-2.2-2.1z"
+            fill="#F5C2CB"
+            stroke="#E39AA8"
+            strokeWidth="1"
+            strokeLinejoin="round"
+          />
+          <path d="M-3-6.4q1.4-1.6 3.2-1.8" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round" opacity="0.8" />
+        </g>
+      )}
+      {held && (
+        <>
+          <ellipse cx="-4.6" cy="2" rx="2.8" ry="3.4" fill={PAW.fill} stroke={PAW.edge} strokeWidth="1.1" transform="rotate(20 -4.6 2)" />
+          <ellipse cx="4.6" cy="2" rx="2.8" ry="3.4" fill={PAW.fill} stroke={PAW.edge} strokeWidth="1.1" transform="rotate(-20 4.6 2)" />
+        </>
+      )}
+    </g>
+  );
+}
+
+// A bowl of noodles, steaming, chopsticks across it, its base at (0, 0);
+// while slurped (t, 0 to 1 as it goes in), one strand runs from the bowl up
+// to (tx, ty), the cat's mouth, shortening from the bowl's end.
+function Noodles({ t = null, tx = 0, ty = -30 }) {
+  const rim = { x: 0, y: -11 };
+  const from = t == null ? null : { x: rim.x + (tx - rim.x) * t, y: rim.y + (ty - rim.y) * t };
+  const strand = from && (() => {
+    const steps = 8;
+    let d = `M${from.x} ${from.y}`;
+    for (let index = 1; index <= steps; index++) {
+      const k = index / steps;
+      const x = from.x + (tx - from.x) * k + Math.sin(k * Math.PI * 4) * 1.6;
+      const y = from.y + (ty - from.y) * k;
+      d += `L${x.toFixed(1)} ${y.toFixed(1)}`;
+    }
+    return d;
+  })();
+  return (
+    <g>
+      <path d="M-11-24q2-3 0-6M-4-25q2-3 0-6M4-24q2-3 0-6" fill="none" stroke="#C5CDD9" strokeWidth="1" strokeLinecap="round" opacity="0.8" />
+      <path d="M-14-11h28q-1 9-9 11h-10q-8-2-9-11z" fill="#F2F0EC" stroke="#B9B2A6" strokeWidth="1.1" strokeLinejoin="round" />
+      <path d="M-13.4-8.4h26.8" stroke="#9FB4E8" strokeWidth="1.3" />
+      <ellipse cx="0" cy="-11" rx="14" ry="2.6" fill="#E9C27D" stroke="#B9B2A6" strokeWidth="1" />
+      <path d="M-10-11.6q2.5-1.6 5 0t5 0 5 0M-8-10.4q2.5-1.4 5 0t5 0 4 0" fill="none" stroke="#F6E2B3" strokeWidth="1" />
+      <path d="M-3-12l16-9M0-11.4l15-11" stroke="#B48A5A" strokeWidth="1.1" strokeLinecap="round" />
+      {strand && (
+        <>
+          <path d={strand} fill="none" stroke="#D9B66C" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={strand} fill="none" stroke="#F6E2B3" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      )}
+    </g>
+  );
+}
+
+// A mochi (a soft round rice cake, dusted white) on a little dish, its base
+// at (0, 0); bitten and pulled (t, 0 to 1), it stretches up to (tx, ty), the
+// cat's mouth, thinning as it goes; eaten (variant 'empty'), just the dish.
+function MochiCake({ variant, t = 0, tx = 0, ty = -28 }) {
+  const top = { x: 0, y: -8 };
+  const width = 6 - 4.2 * t;
+  const nx = -(ty - top.y);
+  const ny = tx - top.x;
+  const length = Math.hypot(nx, ny) || 1;
+  const [ox, oy] = [(nx / length) * width / 2, (ny / length) * width / 2];
+  return (
+    <g>
+      <ellipse cx="0" cy="-0.8" rx="11" ry="2.4" fill="#E8EEF6" stroke="#B9C3D2" strokeWidth="1" />
+      {variant !== 'empty' && t > 0 && (
+        <path
+          d={`M${top.x - ox} ${top.y - oy}Q${(top.x + tx) / 2} ${(top.y + ty) / 2 + 3} ${tx - ox * 0.5} ${ty - oy * 0.5}L${tx + ox * 0.5} ${ty + oy * 0.5}Q${(top.x + tx) / 2} ${(top.y + ty) / 2 + 3} ${top.x + ox} ${top.y + oy}z`}
+          fill="#FDF7F4"
+          stroke="#E6CFCC"
+          strokeWidth="0.9"
+          strokeLinejoin="round"
+        />
+      )}
+      {variant !== 'empty' && (
+        <>
+          <path
+            d={`M${-7 + 1.4 * t} -1.6c0-${4.4 - 1.2 * t} 3-${6.6 - 1.6 * t} ${7 - 1.4 * t}-${6.6 - 1.6 * t}s${7 - 1.4 * t} ${2.2} ${7 - 1.4 * t} ${6.6 - 1.6 * t}z`}
+            fill="#FDF7F4"
+            stroke="#E6CFCC"
+            strokeWidth="1"
+            strokeLinejoin="round"
+          />
+          <ellipse cx="-2" cy="-6" rx="1.6" ry="0.9" fill="white" opacity="0.9" />
+        </>
+      )}
+    </g>
+  );
+}
+
+// A durian, spiky and green, its base at (0, 0), its smell (count, 0 to 1)
+// rising off it in wavy lines; variant 'smell', just the smell (to stay
+// upright over one rolling away).
+function Durian({ variant, count: smell = 0 }) {
+  const spikes = Array.from({ length: 14 }, (_, index) => (index / 14) * Math.PI * 2);
+  if (variant === 'smell') {
+    return (
+      <path
+        d="M-6-20q-2.4-3 0-6t0-6M0-22q-2.4-3 0-6t0-6M6-20q-2.4-3 0-6t0-6"
+        fill="none"
+        stroke="#A9BE7E"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        opacity={smell}
+      />
+    );
+  }
+  return (
+    <g>
+      {smell > 0 && (
+        <path
+          d="M-6-20q-2.4-3 0-6t0-6M0-22q-2.4-3 0-6t0-6M6-20q-2.4-3 0-6t0-6"
+          fill="none"
+          stroke="#A9BE7E"
+          strokeWidth="1.3"
+          strokeLinecap="round"
+          opacity={smell}
+        />
+      )}
+      {spikes.map((angle) => {
+        const [x, y] = [Math.cos(angle), Math.sin(angle)];
+        const [rx, ry] = [10, 8.4];
+        return (
+          <path
+            key={angle}
+            d={`M${(x * rx - y * 1.8).toFixed(2)} ${(-9 + y * ry + x * 1.8).toFixed(2)}L${(x * (rx + 3.2)).toFixed(2)} ${(-9 + y * (ry + 3.2)).toFixed(2)}L${(x * rx + y * 1.8).toFixed(2)} ${(-9 + y * ry - x * 1.8).toFixed(2)}z`}
+            fill="#B7BE6E"
+            stroke="#8E954C"
+            strokeWidth="0.8"
+            strokeLinejoin="round"
+          />
+        );
+      })}
+      <ellipse cx="0" cy="-9" rx="10" ry="8.4" fill="#C3C97A" stroke="#8E954C" strokeWidth="1.1" />
+      <path d="M-5-13l2 2M2-14l2 2M-1-7l2 2M5-8l2 2M-7-6l2 2" stroke="#8E954C" strokeWidth="0.9" strokeLinecap="round" />
+      <path d="M0-17.4v-3.4" stroke="#8B6B44" strokeWidth="1.6" strokeLinecap="round" />
+    </g>
+  );
+}
+
+// A fish-shaped kicker toy (a long plush stuffed with catnip), lying on its
+// side, its middle bottom at (0, 0), facing left.
+function Kicker() {
+  return (
+    <g transform="translate(-21 -6)">
+      <path
+        d="M0 0c0-3.4 5-5.4 12-5.4s13.6 1.4 19 3.8l6-3.8-1.4 5.4 1.4 5.4-6-3.8c-5.4 2.4-12 3.8-19 3.8S0 3.4 0 0z"
+        fill="#9FB4E8"
+        stroke="#7E95CF"
+        strokeWidth="1.1"
+        strokeLinejoin="round"
+      />
+      <path d="M10-4.8v9.6M17-4.4v8.8M24-3v6" stroke="#C9D6F4" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="4.4" cy="-1" r="1" fill="#3B3346" />
+    </g>
+  );
+}
+
+// A crinkle tunnel lying along the edge, rope px long, its middle bottom at
+// (0, 0): a ribbed tube, open at both ends; rustling (t, 0 to 1) it shivers.
+function Tunnel({ rope: length = 96, t = 0 }) {
+  const half = length / 2;
+  const ribs = Math.floor(length / 9);
+  const shiver = Math.sin(t * Math.PI * 18) * 1.2 * Math.sin(Math.PI * t);
+  return (
+    <g transform={`translate(${shiver} 0)`}>
+      <rect x={-half} y="-22" width={length} height="22" rx="4" fill="#B4D2C8" stroke="#7FA79C" strokeWidth="1.2" />
+      {Array.from({ length: ribs }, (_, index) => {
+        const x = -half + 6 + (index * (length - 12)) / Math.max(1, ribs - 1);
+        return <path key={index} d={`M${x} -21q-2.2 10.5 0 21`} fill="none" stroke="#93BBAF" strokeWidth="1" />;
+      })}
+      <ellipse cx={-half} cy="-11" rx="5.4" ry="11" fill="#6F8A84" stroke="#7FA79C" strokeWidth="1.2" />
+      <ellipse cx={half} cy="-11" rx="5.4" ry="11" fill="#6F8A84" stroke="#7FA79C" strokeWidth="1.2" />
+      <ellipse cx={-half + 1} cy="-11" rx="3.4" ry="8.6" fill="#556D67" opacity="0.6" />
+      <ellipse cx={half - 1} cy="-11" rx="3.4" ry="8.6" fill="#556D67" opacity="0.6" />
+    </g>
+  );
+}
+
+// A spinning top on its point at (0, 0), its bands sliding round as it
+// spins (count: how far round, in turns).
+function SpinningTop({ count: turns = 0 }) {
+  const phase = ((turns % 1) + 1) % 1;
+  const bands = [0, 1, 2].map((index) => -8.6 + (((index / 3 + phase) % 1) * 17.2));
+  return (
+    <g>
+      <defs>
+        <clipPath id="top-body">
+          <path d="M-9-11c0-3 4-5 9-5s9 2 9 5c0 4-5 9-9 11-4-2-9-7-9-11z" />
+        </clipPath>
+      </defs>
+      <path d="M-9-11c0-3 4-5 9-5s9 2 9 5c0 4-5 9-9 11-4-2-9-7-9-11z" fill="#F2B8C2" stroke="#D98E9C" strokeWidth="1.1" />
+      <g clipPath="url(#top-body)">
+        {bands.map((x, index) => (
+          <rect key={index} x={x - 1.4} y="-17" width="2.8" height="18" fill={index === 1 ? '#9FB4E8' : '#FCE3E7'} opacity="0.9" />
+        ))}
+      </g>
+      <path d="M-9-11c0-3 4-5 9-5s9 2 9 5c0 4-5 9-9 11-4-2-9-7-9-11z" fill="none" stroke="#D98E9C" strokeWidth="1.1" />
+      <path d="M0-16v-5" stroke="#B48A5A" strokeWidth="2" strokeLinecap="round" />
+    </g>
+  );
+}
+
 // A big croissant flying along with her riding on it (her feet at (0, 0), on
 // its top), speed lines trailing behind (it faces left; flip for right).
 function FlyingCroissant() {
@@ -1689,6 +1909,13 @@ const THINGS = {
   bigbubble: BigBubble,
   bowl: TreatBowl,
   lobbed: Lobbed,
+  cone: Cone,
+  noodles: Noodles,
+  mochicake: MochiCake,
+  durian: Durian,
+  kicker: Kicker,
+  tunnel: Tunnel,
+  top: SpinningTop,
   pastry: PastryThing,
   minioven: MiniOven,
   timer: KitchenTimer,
@@ -1752,6 +1979,13 @@ const REACH = {
   bigbubble: 44,
   bowl: 20,
   lobbed: 10,
+  cone: 14,
+  noodles: 30,
+  mochicake: 14,
+  durian: 14,
+  kicker: 24,
+  tunnel: 50,
+  top: 12,
   pastry: 24,
   minioven: 20,
   timer: 14,
