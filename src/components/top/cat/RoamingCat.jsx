@@ -120,7 +120,7 @@ const FEELS = {
     napFor: [16, 28],
     rest: [9, 18],
     notice: 170,
-    tease: 0.08,
+    tease: 0.03,
     plan: { move: 0.3, card: 0.1, bubble: 0.05, other: 0.55 },
     moves: { walk: 0.6, run: 0.1, leap: 0.2, side: 0.1 },
     gpus: { warm: 0.55, spin: 0.15, peekaboo: 0.15, oil: 0.15 },
@@ -137,7 +137,7 @@ const FEELS = {
     napFor: [20, 30],
     rest: [6, 13],
     notice: 170,
-    tease: 0.2,
+    tease: 0.07,
     plan: { move: 0.3, card: 0.12, bubble: 0.1, other: 0.48 },
     moves: { walk: 0.45, run: 0.2, leap: 0.2, side: 0.15 },
     gpus: {
@@ -164,7 +164,7 @@ const FEELS = {
     napFor: [18, 26],
     rest: [4, 9],
     notice: 210,
-    tease: 0.4,
+    tease: 0.12,
     plan: { move: 0.3, card: 0.13, bubble: 0.12, other: 0.45 },
     moves: { walk: 0.35, run: 0.3, leap: 0.2, side: 0.15 },
     gpus: {
@@ -183,14 +183,14 @@ const FEELS = {
   loaf: {
     energy: 1,
     pace: 1.25,
-    face: 'purring',
+    face: 'content',
     restFace: 'purring',
     doze: DOZE_AFTER,
     // Full, it hardly ever sleeps.
     dozes: 0.03,
     rest: [3, 8],
     notice: 170,
-    tease: 0.15,
+    tease: 0.05,
     plan: { move: 0.3, card: 0.14, bubble: 0.18, other: 0.38 },
     moves: { walk: 0.3, run: 0.35, leap: 0.2, side: 0.15 },
     gpus: {
@@ -458,6 +458,8 @@ function packOf(card) {
 function sceneOf(card) {
   return ovenOf(card) ?? packOf(card);
 }
+// After a game of keep-away, how long before it plays one again of itself.
+const TEASE_REST_MS = 90 * 1000;
 // How long after one earned cookie before the next is handed out.
 const COOKIE_REST_MS = 3 * 60 * 1000;
 // Presents it leaves by the notes pill: no sooner than GIFT_EVERY_MS after the
@@ -569,7 +571,7 @@ const JOY_FEELS = {
   }),
   happy: (base) => ({
     energy: Math.min(1, base.energy + 0.1),
-    tease: Math.min(0.6, base.tease * 1.5 + 0.05),
+    tease: Math.min(0.2, base.tease * 1.3 + 0.02),
     cheer: 0.12,
   }),
 };
@@ -7028,8 +7030,9 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
         } else if (feel().begs && !busy && Math.random() < 0.6) {
           state.chaseRest = time + 3000;
           act('beg', time);
-        } else if (!busy && Math.random() < feel().tease) {
-          // Keep-away: it plays hard to get.
+        } else if (!busy && time > (state.teaseRest ?? 0) && Math.random() < feel().tease) {
+          // Keep-away: it plays hard to get (and not again for a while).
+          state.teaseRest = time + TEASE_REST_MS;
           startTease(time);
           say('♪');
         } else if ((state.pointerSpeed ?? 0) > 700 && Math.abs(state.pointer.x - state.x) > 70 && Math.random() < 0.6) {
@@ -7659,7 +7662,14 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           }
           break;
         case 'rest': {
-          show(state.restPose, state.restPose === 'rest' ? feel().restFace : feel().face);
+          // Its eyes open, watching; now and then, while the pointer is still,
+          // a contented squint (its resting face) for a few seconds.
+          if (time > (state.squintNext ?? 0)) {
+            state.squintUntil = time + 2500 + Math.random() * 1500;
+            state.squintNext = state.squintUntil + 8000 + Math.random() * 8000;
+          }
+          const squint = state.restPose === 'rest' && time < state.squintUntil && time - state.pointer.at > 1500;
+          show(state.restPose, squint ? feel().restFace : feel().face);
           // On the notes pill with nothing more to do there: back to a panel.
           if (state.perch?.hasAttribute('data-cat-notes') && !state.menu && offNotes(state.perch)) break;
           // The pointer over a chart on its own panel: it stalks the hover dot.
@@ -8338,6 +8348,7 @@ export default function RoamingCat({ onHome, meal, peek = false, quiet = false }
           height={HEIGHT}
           data-cat
           data-pose={look.pose}
+          data-mood={look.mood ?? undefined}
           aria-hidden="true"
           className="pointer-events-auto touch-none overflow-visible"
           style={{ opacity: leaving ? 0 : 1, transition: `opacity ${LEAP_MS}ms ease-in` }}

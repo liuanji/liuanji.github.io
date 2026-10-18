@@ -221,7 +221,8 @@ walking, or busy with grooming, kneading or lolling:
 
 - **On a panel's side:** she hops up onto the top edge by the pointer.
 - **Hungry or starving:** 60% she begs.
-- **Keep-away:** starving 0%, hungry 8%, content 20%, well fed 40%, full 15%.
+- **Keep-away:** starving 0%, hungry 3%, content 7%, well fed 12%, full 5%,
+  and not again for 90 s after a game.
   The game's pace: 40% slow, 40% normal, 20% quick, tiring as it goes. A click
   on her catches her (she dodges 30% × pace). A click beside her makes her
   dodge. Cornered or pressed, she may bolt to another panel (50% or 35%, ×
@@ -252,6 +253,8 @@ Then she ignores the pointer for 3 s. Other reactions:
   outline and ears not at all. The eye on the side she looks to narrows a
   little, and the catchlights in her eyes hang back like a reflection. Once
   the pointer has been still for 2.2 s, she looks back out at you.
+- **Resting**, her eyes are open, watching. Every 8 to 24 s, while the pointer
+  is still, she squints contentedly (^ ^) for 2.5 to 4 s.
 - **Blinks:** every 2.5 to 7 s while she is awake, and 40% of the time with a
   big glance: lids half down, shut, half down again (0.18 s in all).
 - **Twitches**, always going on in the background: an ear flick now and then
@@ -450,7 +453,7 @@ It is kept in this browser only and starts afresh at 55 each day.
 | Sad (under 20) | Energy × 0.6, slower, walks rather than runs, no keep-away, nothing lively (no dances, backflips, tail chases or zoomies), GPU visits only a warm nap (70%) or peekaboo (30%); 55% of her stirs become a sad doing instead; 60% of the time she ignores the pointer, turning away ("hmph"); a sad face |
 | Glum (20 to 40) | Energy × 0.85, a little slower, runs a third as often, keep-away halved, nothing lively, no boisterous GPU visits; 15% of her stirs become a sad doing; she ignores the pointer 20% of the time; a sad face at rest |
 | Fine (40 to 75) | As her mood says |
-| Happy (75 and up) | Energy + 0.1, keep-away × 1.5 (+5%), and 12% of her stirs become a dance or the zoomies (an even chance) |
+| Happy (75 and up) | Energy + 0.1, keep-away × 1.3 (+2%, at most 20%), and 12% of her stirs become a dance or the zoomies (an even chance) |
 
 Her card adds a line when she is low ("She's feeling low today; some play would
 cheer her up").
