@@ -163,7 +163,7 @@ function ReserveForm({ host, gpu, held, onReserve, close }) {
   );
 }
 
-function ReservationInfo({ host, gpu, reservation, me, now, onRelease, close }) {
+function ReservationInfo({ host, gpu, reservation, me, now, onRelease }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(null);
   const mine = reservation.user === me;
@@ -174,8 +174,8 @@ function ReservationInfo({ host, gpu, reservation, me, now, onRelease, close }) 
     setPending(true);
     setError(null);
     try {
+      // The box stays open: released, it turns into the form to reserve it again.
       await onRelease(host, gpu.index);
-      close();
     } catch (failure) {
       setError(failure.message);
       setPending(false);
@@ -265,7 +265,7 @@ export function ReserveControl({ host, gpu, reservation, me, held, now, onReserv
         className="w-80 rounded-2xl border-border-light bg-white p-5 shadow-xl"
       >
         {reservation ? (
-          <ReservationInfo host={host} gpu={gpu} reservation={reservation} me={me} now={now} onRelease={onRelease} close={close} />
+          <ReservationInfo host={host} gpu={gpu} reservation={reservation} me={me} now={now} onRelease={onRelease} />
         ) : (
           <ReserveForm host={host} gpu={gpu} held={held} onReserve={onReserve} close={close} />
         )}
