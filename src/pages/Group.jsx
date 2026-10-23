@@ -137,7 +137,7 @@ const currentMembers = [
     // linkedin: '',
     website: 'https://hxu129.github.io/',
     remarks: 'From HKUST(GZ)',
-  },
+  }
 ];
 
 const alumni = [
