@@ -122,7 +122,7 @@ const currentMembers = [
     name: 'Navindu De Silva',
     role: 'PhD Student',
     year: '',
-    photo: '/photos/navindu.jpg',
+    photo: '/photos/navindu.jpeg',
     interests: 'Memory Consolidation',
     linkedin: 'https://www.linkedin.com/in/navindu-desilva/',
     website: 'https://scholar.google.com/citations?user=Ru7VeUIAAAAJ&hl=en',
