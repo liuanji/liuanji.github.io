@@ -115,11 +115,12 @@ export const SMALL_USER_BYTES = 100 * 1024 ** 3;
 // Cleanup reminders. Below CLEANUP.from full, nobody is asked; from there,
 // anyone holding more than an allowance of the disk is, and the allowance
 // shrinks steadily as the disk fills, from CLEANUP.share of the disk at
-// CLEANUP.from down to CLEANUP.floor when full (e.g. 20% at 85% full, 13% at 95%).
+// CLEANUP.from down to CLEANUP.floor when full (e.g. 21% at 70% full, 17.5% at
+// 80%, 13% at 95%; on a 14.5 TB scratch disk, 3.6 TB at 60%, 2.5 TB at 80%).
 // Once someone goes over, they are asked to get under that allowance till they
 // do, however the allowance changes after (the backend remembers it; keep its
 // CLEANUP_* in database.py in step with these).
-export const CLEANUP = { from: 0.7, share: 0.3, floor: 0.1 };
+export const CLEANUP = { from: 0.6, share: 0.25, floor: 0.1 };
 export const READING_STYLES = {
   warm: { color: '#A15C07' },
   hot: { color: '#B33A3A', backgroundColor: '#B33A3A1A' },

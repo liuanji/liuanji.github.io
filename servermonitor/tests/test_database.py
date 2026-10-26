@@ -222,22 +222,23 @@ class DatabaseTest(unittest.TestCase):
         def asked() -> list:
             return self.database.cleanup_flags(("brezel",))["brezel"].get("/scratch2", [])
 
-        # 80% full: the allowance is a third of the way from 30% down to 10%
-        # of the disk, about 233 bytes; alice (500) is asked to get under it.
+        # 80% full: the allowance is half way from 25% down to 10% of the
+        # disk, 175 bytes; alice (500) is asked to get under it.
         check(1_700_000_000, 800, 500)
-        self.assertEqual(asked(), [{"user": "alice", "quota_bytes": 233, "since": 1_700_000_000}])
+        self.assertEqual(asked(), [{"user": "alice", "quota_bytes": 175, "since": 1_700_000_000}])
         # The disk empties to half full (no allowance now): she is still asked.
         check(1_700_003_600, 500, 500)
         self.assertEqual([flag["user"] for flag in asked()], ["alice"])
         # Under the old allowance by the new one is not enough...
         check(1_700_007_200, 500, 300)
-        self.assertEqual(asked()[0]["quota_bytes"], 233)
+        self.assertEqual(asked()[0]["quota_bytes"], 175)
         # ...till she is under what she was asked for; then she is let off.
-        check(1_700_010_800, 500, 200)
+        check(1_700_010_800, 500, 150)
         self.assertEqual(asked(), [])
-        # Gone over again, she is asked again, from the allowance as it is now.
-        check(1_700_014_400, 900, 400)
-        self.assertEqual(asked()[0]["quota_bytes"], 167)
+        # Gone over again, she is asked again, from the allowance as it is now
+        # (88% full: 70% of the way down, 145 bytes).
+        check(1_700_014_400, 880, 400)
+        self.assertEqual(asked()[0]["quota_bytes"], 145)
         self.assertEqual(asked()[0]["since"], 1_700_014_400)
 
     def test_growth_reminders_ask_who_filled_a_full_disk_fastest_in_a_day(self) -> None:
@@ -268,7 +269,7 @@ class DatabaseTest(unittest.TestCase):
         # Her quota granted and her under it: left be.
         grant = [{"host": "brezel", "mount": None, "user": "alice", "quota_bytes": 400 * gib}]
         self.assertEqual(check(start + 24 * 3600, 800 * gib, 300 * gib, 310 * gib, grant), [])
-        # A day and a half in, the disk emptied to 35%: under 70% full,
+        # A day and a half in, the disk emptied to 35%: under 60% full,
         # nobody is asked.
         self.assertEqual(check(start + 36 * 3600, 350 * gib, 300 * gib, 10 * gib), [])
         # Busy again, 90% full (100 GiB free): bob adds 60 GiB, over 50 GiB and
@@ -315,14 +316,14 @@ class DatabaseTest(unittest.TestCase):
             return self.database.cleanup_flags(("brezel",))["brezel"].get("/scratch2", [])
 
         grant = lambda quota: [{"host": "brezel", "mount": None, "user": "alice", "quota_bytes": quota}]  # noqa: E731
-        # Over the allowance (about 233) but under her 600: not asked.
+        # Over the allowance (175) but under her 600: not asked.
         self.assertEqual(check(1_700_000_000, 500, grant(600)), [])
         # Over her 600: asked to get under it.
         self.assertEqual(check(1_700_003_600, 700, grant(600)), [{"user": "alice", "quota_bytes": 600, "since": 1_700_003_600}])
         # Granted more, she is under it again: let off.
         self.assertEqual(check(1_700_007_200, 700, grant(800)), [])
         # The exception taken away: the allowance asks again.
-        self.assertEqual(check(1_700_010_800, 700, [])[0]["quota_bytes"], 233)
+        self.assertEqual(check(1_700_010_800, 700, [])[0]["quota_bytes"], 175)
 
     def test_held_idle_counts_the_unbroken_run_of_idle_busy_minutes(self) -> None:
         def held(timestamp: int, utilization: float) -> CollectionResult:

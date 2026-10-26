@@ -711,7 +711,7 @@ export function CleanupBanner({ reminders, onOpen }) {
 }
 
 // The notice while the viewer has been filling some disk fast (the backend's
-// growth reminders: on a disk 70% full or more, more than a quarter of its
+// growth reminders: on a disk 60% full or more, more than a quarter of its
 // free space added in about a day). Gentler than the cleanup notice: it asks
 // them to check what is writing so much, with no amount to get under, and it
 // clears by itself once their day's growth drops. Coloured by the fullest

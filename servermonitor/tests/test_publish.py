@@ -139,7 +139,7 @@ class PublishTest(unittest.TestCase):
                 ]
             },
         }
-        disks = (DiskStat("/scratch1", 2000, 1300, 700), DiskStat("/scratch2", 2000, 10, 1990))
+        disks = (DiskStat("/scratch1", 2000, 1100, 900), DiskStat("/scratch2", 2000, 10, 1990))
         self.database.save_disks(DiskResult("brezel", 1_700_000_100, True, disks, accounts=("alice", "bob"), usage=usage))
 
         brezel, toast = public_disks(self.settings, self.database)["hosts"]
@@ -147,7 +147,7 @@ class PublishTest(unittest.TestCase):
         scratch1, scratch2 = brezel["disks"]
         self.assertEqual(scratch1["users"], [{"user": "alice", "bytes": 700}, {"user": "bob", "bytes": 500}])
         self.assertIsNone(scratch2["users"])
-        # 65% full: nobody is asked to clean up yet, and nobody has an exception.
+        # 55% full: nobody is asked to clean up yet, and nobody has an exception.
         self.assertEqual((scratch1["cleanup"], scratch2["cleanup"]), ([], []))
         self.assertEqual(scratch1["exceptions"], [])
 

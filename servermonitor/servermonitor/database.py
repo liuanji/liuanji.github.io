@@ -403,8 +403,8 @@ LOGGER = logging.getLogger(__name__)
 # CLEANUP_FROM full nobody is asked; from there anyone holding more than an
 # allowance of the disk is, the allowance shrinking steadily from
 # CLEANUP_SHARE of the disk at CLEANUP_FROM to CLEANUP_FLOOR when full.
-CLEANUP_FROM = 0.7
-CLEANUP_SHARE = 0.3
+CLEANUP_FROM = 0.6
+CLEANUP_SHARE = 0.25
 CLEANUP_FLOOR = 0.1
 
 # Growth reminders, beside the cleanup ones: on a disk at least GROWTH_FROM
@@ -413,7 +413,7 @@ CLEANUP_FLOOR = 0.1
 # writing so much. Measured against the scratch-usage summary closest to
 # GROWTH_WINDOW before the latest, no older than GROWTH_WINDOW + GROWTH_SLACK;
 # none without one. Not sticky: it clears once their day's growth is under.
-GROWTH_FROM = 0.7
+GROWTH_FROM = 0.6
 GROWTH_SHARE = 0.25
 GROWTH_MIN_BYTES = 50 * 1024**3
 GROWTH_WINDOW = 24 * 3600
