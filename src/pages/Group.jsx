@@ -117,11 +117,12 @@ const currentMembers = [
     // twitter: '#',
     // linkedin: '#',
     website: 'https://openreview.net/profile?id=%7EHanzhen_Zhao2',
+    remarks: <ParseMarkdown text='Co-advised with [Shuicheng Yan](https://yanshuicheng.info/)'/>
   },
   {
     name: 'Navindu De Silva',
     role: 'PhD Student',
-    year: '',
+    year: '1st year',
     photo: '/photos/navindu.jpeg',
     interests: 'Memory Consolidation',
     linkedin: 'https://www.linkedin.com/in/navindu-desilva/',
